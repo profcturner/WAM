@@ -12,14 +12,22 @@ from .models import Activity
 
 def index(request):
     staff_list = Staff.objects.all()
-    load_info = []
+    combined_list = []
+    total = 0
+    
     for staff in staff_list:
-        load_info.append(staff.hours_by_semester())
+        load_info = staff.hours_by_semester()
+        combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3]]
+        combined_list.append(combined_item)
+        total += load_info[3]
+        
+    average = total / len(combined_list)
         
     template = loader.get_template('loads/index.html')
     context = RequestContext(request, {
-        'staff_list': staff_list,
-        'load_info' : load_info,
+        'combined_list': combined_list,
+        'total_total': total,
+        'average': average,
     })
     return HttpResponse(template.render(context))
     
