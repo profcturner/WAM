@@ -111,7 +111,7 @@ class Activity(models.Model):
     module = models.ForeignKey('Module', blank = True, null = True)
     comment = models.CharField(max_length = 200, default='', blank = True)
     academic_year = models.CharField(max_length = 10, default = '2015/2016')
-    staff = models.ForeignKey(Staff, null = True)
+    staff = models.ForeignKey(Staff, null = True, blank = True)
     
     def __str__(self):
         return self.name + ' (' + str(self.module) + ')'
@@ -245,3 +245,84 @@ class Resource(models.Model):
         return self.name
     
     
+class LoadTracking(models.Model):
+    '''Tracks what the total School loads are at any given time'''
+    
+    academic_year = models.CharField(max_length=10, default=ACADEMIC_YEAR)
+    
+    semester1_hours = models.DecimalField(decimal_places=2, max_digits=15)
+    semester2_hours = models.DecimalField(decimal_places=2, max_digits=15)
+    semester3_hours = models.DecimalField(decimal_places=2, max_digits=15)
+    
+    total_hours = models.DecimalField(decimal_places=2, max_digits=15)
+    mean = models.DecimalField(decimal_places=2, max_digits=15)
+    sd = models.DecimalField(decimal_places=2, max_digits=15)
+    
+    created = models.DateTimeField(auto_now_add = True)    
+    
+    def __str__(self):
+        return str(total_hours)
+        
+        
+class CourseworkTracker(models.Model):
+    '''Tracks Coursework progress through the QA System
+    
+    academic_year   The academic year in 2014/2015 format
+    module          See the Module model
+    progress        A string showing the progress
+    created         A timestamp for this event
+    '''
+    
+    # TODO Let's see if we can track user with this at some point
+    # http://stackoverflow.com/questions/4670783/make-the-user-in-a-model-default-to-the-current-user
+    SET = 'SET'
+    MODERATE = 'MODERATE'
+    EXTERNAL = 'EXTERNAL'
+    REWORK = 'REWORK'
+    EXAMOFFICE = 'EXAMOFFICE'
+    PROGRESS_CHOICES = (
+        (SET, 'Coursework Set'),
+        (MODERATE, 'Internal Moderation'),
+        (EXTERNAL, 'Sent to External Examiner'),
+        (REWORK, 'Reworked'),
+        (EXAMOFFICE, 'Submitted to Exams Office'),
+    )
+    
+    academic_year = models.CharField(max_length=10, default=ACADEMIC_YEAR)
+    module = models.ForeignKey(Module)
+    progress = models.CharField(max_length = 15, choices = PROGRESS_CHOICES, default = SET)
+    created = models.DateTimeField(auto_now_add = True)
+    
+    def __str__(self):
+        return str(self.module) + ' ' + str(self.academic_year) + ' ' + str(self.progress) + ' ' + str(self.created)    
+
+
+class ExamTracker(models.Model):
+    '''Tracks Exam progress through the QA System
+    
+    academic_year   The academic year in 2014/2015 format
+    module          See the Module model
+    progress        A string showing the progress
+    created         A timestamp for this event
+    '''
+    
+    SET = 'SET'
+    MODERATE = 'MODERATE'
+    EXTERNAL = 'EXTERNAL'
+    REWORK = 'REWORK'
+    EXAMOFFICE = 'EXAMOFFICE'
+    PROGRESS_CHOICES = (
+        (SET, 'Exam Set'),
+        (MODERATE, 'Internal Moderation'),
+        (EXTERNAL, 'Sent to External Examiner'),
+        (REWORK, 'Reworked'),
+        (EXAMOFFICE, 'Submitted to Exams Office'),
+    )
+    
+    academic_year = models.CharField(max_length=10, default=ACADEMIC_YEAR)
+    module = models.ForeignKey(Module)
+    progress = models.CharField(max_length = 15, choices = PROGRESS_CHOICES, default = SET)
+    created = models.DateTimeField(auto_now_add = True)    
+    
+    def __str__(self):
+        return str(self.module) + ' ' + str(self.academic_year) + ' ' + str(self.progress) + ' ' + str(self.created)    
