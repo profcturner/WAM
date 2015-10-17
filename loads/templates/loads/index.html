@@ -1,9 +1,10 @@
 {% include "loads/header.html" %}
   
-<p>Welcome</p>
+<h1>Welcome</h1>
+<p>Welcome to the (prototype) tool for modelling allocation of workload for staff, and task tracker. Most of the functionality is in the Admin interface, for which you may need your username and password, and where you may have rather limited access depending on your user type. Please report issues to c.turner@ulster.ac.uk</p>
 <ul>
-  <li><a href="/loads/">Staff Loads</a></li>
-  <li><a href="/admin/">Admin Interface</a></li>
+  <li><a href="{% url 'loads' %}">Staff Loads</a></li>
+  <li><a href="{% url 'admin:index' %}">Admin Interface</a></li>
 </ul>
 
 {% include "loads/footer.html" %}
