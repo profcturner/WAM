@@ -146,7 +146,8 @@ class Activity(models.Model):
             else:
                 # Nothing in this semester
                 split_hours.append(0)
-                
+        
+        split_hours.append(total_hours)        
         return split_hours
             
             
@@ -195,8 +196,8 @@ class Task(models.Model):
     details = models.TextField()
     deadline = models.DateTimeField()
     archive = models.BooleanField()
-    targets = models.ManyToManyField(Staff)
-    groups = models.ManyToManyField(Group)
+    targets = models.ManyToManyField(Staff, null=True, blank=True)
+    groups = models.ManyToManyField(Group, null=True, blank=True)
     created = models.DateTimeField(auto_now_add = True)
     modified = models.DateTimeField(auto_now = True)
     
