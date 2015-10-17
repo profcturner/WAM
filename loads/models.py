@@ -108,7 +108,7 @@ class Activity(models.Model):
     hours_percentage = models.CharField(max_length = 1, choices = HOURPERCENTAGE_CHOICES, default = HOURS)
     semester = models.CommaSeparatedIntegerField(max_length = 10)
     activity_type = models.ForeignKey('ActivityType')
-    module = models.ForeignKey('Module', null = True)
+    module = models.ForeignKey('Module', blank = True, null = True)
     comment = models.CharField(max_length = 200, default='', blank = True)
     academic_year = models.CharField(max_length = 10, default = '2015/2016')
     staff = models.ForeignKey(Staff, null = True)
