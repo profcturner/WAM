@@ -20,5 +20,8 @@ from loads import views
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
+    url(r'^loads/$', views.loads, name='loads'),
+    url(r'^activities/(?P<staff_id>[0-9]+)$', views.activities, name='activities'),
+    url(r'^tasks/(?P<staff_id>[0-9]+)$', views.tasks, name='tasks'),    
     url(r'^admin/', include(admin.site.urls)),
 ]

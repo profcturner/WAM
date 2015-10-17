@@ -1,0 +1,31 @@
+{% include "loads/header.html" %}
+  
+
+{% if combined_list_complete or combined_list_incomplete %}
+    <table border="1">
+      <tr>
+        <th>Task Name</th><th>Completed</th>
+      </tr>
+      {% for task, when in combined_list_incomplete %}
+      <tr>
+        <th>{{ task.name }}</th>
+        <td>{{ when }}</th>
+      </tr>      
+      {% endfor %}
+      {% for task, when in combined_list_complete %}
+      <tr>
+        <th>{{ task.name }}</th>
+        <td>{{ when }}</th>
+      </tr>      
+      {% endfor %}
+    </table>
+    
+    <p>{{ staff }} has {{ combined_list_incomplete|length}} outstanding task{{combined_list_incomplete|length|pluralize}}.</p>
+    
+{% else %}
+    <p>No activities are available for {{ staff }}.</p>
+{% endif %}
+
+{{ debug }}
+
+{% include "loads/footer.html" %}

@@ -1,0 +1,31 @@
+{% include "loads/header.html" %}
+  
+
+{% if combined_list %}
+    <table border="1">
+      <tr>
+        <th>Staff Name</th><th>First Semester</th><th>Second Semester</th><th>Third Semester</th><th>Total</th><th>Activities</th><th>Tasks</th>
+      </tr>
+      {% for staff, first, second, third, total in combined_list %}
+      <tr>
+        <th>{{ staff }}</th>
+        <td>{{ first|stringformat:".2f" }}</td>
+        <td>{{ second|stringformat:".2f" }}</td>
+        <td>{{ third|stringformat:".2f" }}</td>
+        <td>{{ total }}</td>
+        <td><a href="{% url 'activities' staff.id %}">Activities</a></td>
+        <td><a href="{% url 'tasks' staff.id %}">Tasks</a></td>
+      </tr>      
+      {% endfor %}
+    </table>
+    
+    <p>
+    Total hours for all activities is {{ total_total }}, average hours by staff member {{ average }}.
+    </p>
+{% else %}
+    <p>No staff members are available.</p>
+{% endif %}
+
+{{ debug }}
+
+{% include "loads/footer.html" %}

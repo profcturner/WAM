@@ -1,0 +1,28 @@
+{% include "loads/header.html" %}
+  
+
+{% if combined_list %}
+    <table border="1">
+      <tr>
+        <th>Activity Name</th><th>First Semester</th><th>Second Semester</th><th>Third Semester</th><th>Total</th>
+      </tr>
+      {% for activity, first, second, third, total in combined_list %}
+      <tr>
+        <th>{{ activity }}</th>
+        <td>{{ first|stringformat:".2f" }}</td>
+        <td>{{ second|stringformat:".2f" }}</td>
+        <td>{{ third|stringformat:".2f" }}</td>
+        <td>{{ total }}</td>
+      </tr>      
+      {% endfor %}
+    </table>
+    
+    <p>{{ staff }} has a total allocation of {{ total }} hours.</p>
+    
+{% else %}
+    <p>No activities are available for {{ staff }}.</p>
+{% endif %}
+
+{{ debug }}
+
+{% include "loads/footer.html" %}
