@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 
 #TODO: Needs more elegant handling than this
 ACADEMIC_YEAR='2015/2016'
@@ -42,7 +42,7 @@ class Staff(models.Model):
             semester3_hours += hours_by_semester[2]
             
         return [semester1_hours, semester2_hours, semester3_hours,
-            semester1_hours + semester2_hours + semester3_hours]
+            int(semester1_hours + semester2_hours + semester3_hours), len(activities)]
     
     def total_hours(self, academic_year = ACADEMIC_YEAR):
         '''Calculate the total allocated hours'''
@@ -50,7 +50,8 @@ class Staff(models.Model):
         return hours_by_semester[3]
             
     class Meta:
-        verbose_name_plural = "staff"
+        verbose_name_plural = 'staff'
+        order_with_respect_to = 'user'
 
 
 class Category(models.Model):
@@ -130,7 +131,7 @@ class Activity(models.Model):
         if self.hours_percentage == self.HOURS:
             total_hours = self.hours
         else:
-            total_hours = self.percentage * NOMINAL_HOURS
+            total_hours = self.percentage * NOMINAL_HOURS / 100
         
         # Create a list to contain their subdivision
         split_hours = list()
@@ -138,8 +139,9 @@ class Activity(models.Model):
         no_semesters = len(semesters)
         # We currently have three semesters, 1, 2 and 3
         for s in range(1,4):
-            # Check if this one is flagged 
-            if s in semesters:
+            # Check if this one is flagged, brutally ugly code :-(
+            # TODO: Try and fix the abomination 
+            if self.semester.count(str(s)) > 0:
                 split_hours.append(total_hours / no_semesters)
             else:
                 # Nothing in this semester
@@ -194,6 +196,7 @@ class Task(models.Model):
     deadline = models.DateTimeField()
     archive = models.BooleanField()
     targets = models.ManyToManyField(Staff)
+    groups = models.ManyToManyField(Group)
     created = models.DateTimeField(auto_now_add = True)
     modified = models.DateTimeField(auto_now = True)
     
@@ -242,9 +245,3 @@ class Resource(models.Model):
         return self.name
     
     
-
-
-# balancing...
-# work out total hours for each staff member.
-# scale to 100% - using FTE, but also percentages allocated (needs a crude hour conversion)
-#
