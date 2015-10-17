@@ -53,13 +53,10 @@ class Activity(models.Model):
     module_id = models.ForeignKey('Module')
     
     def __str__(self):
-        #module = Module.objects.get(pk = self.module_id)
-        module = self.module_id
-        return self.name + ' (' + str(module) + ')' + repr(self.is_allocated())
+        return self.name + ' (' + str(self.module_id) + ')'
         
     def module_details(self):
-        module = self.module_id
-        return str(module)
+        return str(self.module_id)
         
     def is_allocated(self):
         count = StaffActivity.objects.all().filter(activity_id=self.id)
@@ -77,7 +74,11 @@ class StaffActivity(models.Model):
     activity_id = models.ForeignKey('Activity')
     
     def __str__(self):
-        return staff_id + ":" + activity_id
+        return str(self.staff_id) + " : " + str(self.activity_id)
+
+    class Meta:
+        verbose_name_plural = "staff activities"
+    
 
 
 class Module(models.Model):
