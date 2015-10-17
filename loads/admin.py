@@ -12,6 +12,8 @@ from django.contrib.auth.models import User
 from .models import Activity
 from .models import ActivityType
 from .models import Category
+from .models import CourseworkTracker
+from .models import ExamTracker
 from .models import Module
 from .models import Staff
 from .models import Task
@@ -47,6 +49,8 @@ class UserAdmin(UserAdmin):
 admin.site.register(ActivityType)
 admin.site.register(Activity, ActivityAdmin)
 admin.site.register(Category)
+admin.site.register(CourseworkTracker)
+admin.site.register(ExamTracker)
 admin.site.register(Module, ModuleAdmin)
 admin.site.register(Staff, StaffAdmin)
 admin.site.register(Task, TaskAdmin)
