@@ -1,0 +1,132 @@
+/* GENERIC CSS ELEMENTS *****************************/
+html {
+  padding: 0px 0px 0px 0px;
+  margin: 0px 0px 0px 0px;
+
+}
+
+body {
+  font-family: Arial, sans-serif;
+  font-size:10pt;
+  color:#000000;
+  background-color:#ffffff;
+  padding: 0px 0px 0px 0px;
+  margin: 0px 0px 0px 0px;
+  border: 0px #ccc solid;
+
+}
+
+a:link {
+  text-decoration: none; color : #338;
+}
+
+a:active {
+  text-decoration: none; color : #338;
+}
+
+a:visited {
+  text-decoration: none; color : #338;
+}
+
+a:hover {
+  text-decoration: underline; color : #338;
+}
+
+
+#error_message{
+  padding:0.5em;
+  border: 1px red dotted;
+  margin: 0.2em;
+  background:#ffdddd;
+  color:#990000;
+}
+
+
+
+#content_block 
+{
+  width:90%;
+  margin-left:50px;
+  margin-right:50px;
+  clear:left;
+  /*background-color: #f7f7f7;*/
+  border: 0px #f7f7f7 solid;
+  min-height:400px;
+  display:block;
+  float:left;
+}
+
+.content_block 
+{
+  width:90%;
+  padding-left:50px;
+  padding-right:50px;
+  clear:left;
+  background-color: #f7f7f7;
+  border: 0px #f7f7f7 solid;
+  min-height:500px;
+  display:block;
+  float:left;
+}
+
+
+
+#app_title
+{
+  margin-top: 0.8em;
+  margin-left: 53px;
+  margin-bottom: 0.3em;
+  float:left;
+  font-weight:bold;
+  font-size:larger;
+}
+
+#app_tagline
+{
+  float:left;
+  font-size:0.8em;
+  font-weight: bold;
+  /*padding-left:0.3em;*/
+  color: #ffffff;
+  float:right;
+  margin-bottom:0.3em;
+  margin-right:53px;
+  margin-top:0.5em;
+}
+
+#app_logo
+{
+  margin-top: 0.5em;
+  margin-right: 53px;
+  margin-bottom: 0.3em;
+  float:right;
+  font-weight:bold;
+  font-size:larger;
+}
+	
+
+#header 
+{
+  background-color: #f4f4f4;
+  height: 110px;
+  padding-left: 20px;
+  padding-top: 20px;
+  margin-bottom: 20px;
+}
+
+#page_title {
+  clear: left;
+  text-align: left;
+  padding-left: 1em;
+  line-height: 2em;
+  background-color: #ffffff;
+  color: #000000;
+  background-repeat: no-repeat;
+  background-position: top left;
+  min-height: 2em;
+  height: 2em;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+
