@@ -195,7 +195,7 @@ class Task(models.Model):
     category = models.ForeignKey(Category)
     details = models.TextField()
     deadline = models.DateTimeField()
-    archive = models.BooleanField()
+    archive = models.BooleanField(default=False)
     targets = models.ManyToManyField(Staff, null=True, blank=True)
     groups = models.ManyToManyField(Group, null=True, blank=True)
     created = models.DateTimeField(auto_now_add = True)
