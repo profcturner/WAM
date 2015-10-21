@@ -7,7 +7,7 @@
         <th>Staff Name</th><th>First Semester</th><th>Second Semester</th><th>Third Semester</th><th>Total</th><th>Activities</th><th>Tasks</th>
       </tr>
       {% for staff, first, second, third, total in combined_list %}
-      <tr>
+      <tr class="{% cycle 'row1' 'row2' %}">
         <th>{{ staff }}</th>
         <td>{{ first|stringformat:".2f" }}</td>
         <td>{{ second|stringformat:".2f" }}</td>
