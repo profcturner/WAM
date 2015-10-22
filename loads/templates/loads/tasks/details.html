@@ -1,0 +1,75 @@
+{% include "loads/header.html" %}
+
+<h2>Details for task {{ task.name }}</h2>
+
+<table border="0">
+  <tr>
+    <th>
+      Details
+    </th>
+    <td>
+      {{ task.details}}
+    </td>
+  </tr>
+  <tr>
+    <th>
+      Deadline
+    </th>
+    <td>
+      {{ task.deadline }} ({{ task.deadline|timeuntil }})
+    </td>
+  </tr>
+  {% if task.url %}
+  <tr>
+    <th>
+      URL
+    </th>
+    <td>
+      <a href="{{task.url}}">{{ task.url }}</a>
+    </td>
+  </tr>
+  {% endif %}
+  <tr>
+    <th>
+      Category
+    </th>
+    <td>
+      {{ task.category}}
+    </td>
+  </tr>
+
+</table>
+
+<h2>Task Completion Information</h2>
+  
+{% if combined_list_complete or combined_list_incomplete %}
+    <table border="1">
+      <tr>
+        <th>Staff Name</th><th>Completed</th><th>Comment</th>
+      </tr>
+      {% for target, dummy in combined_list_incomplete %}
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <th>{{ target }}</th>
+        <td>{{ dummy }}</td>
+        <td>N/A</td>
+      </tr>      
+      {% endfor %}
+      {% for target, completion in combined_list_complete %}
+      <tr class="{% cycle rowcolours %}">
+        <th>{{ target }}</th>
+        <td>{{ completion.when }}</td>
+        <td>{{ completion.comment }}</td>
+      </tr>      
+      {% endfor %}
+    </table>
+    
+  <p>Completions: {{ combined_list_complete|length}}. <br />
+    Non completions: {{combined_list_incomplete|length}}.
+  </p>
+    
+{% else %}
+    <p>No information can be found for {{ task.name }}.</p>
+{% endif %}
+
+
+{% include "loads/footer.html" %}

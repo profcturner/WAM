@@ -1,0 +1,26 @@
+{% include "loads/header.html" %}
+  
+
+{% if tasks %}
+    <table border="1">
+      <tr>
+        <th>Task Name</th><th>Deadline</th><th>Time left</th><th>Details</th>
+      </tr>
+      {% for task in tasks %}
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <th>{{ task.name }}</th>
+        <td>{{ task.deadline }}</td>
+        <td>{{ task.deadline|timeuntil }}</td>
+        <td><a href="{% url 'tasks_details' task.id %}">Details</a></td>
+      </tr>      
+      {% endfor %}
+    </table>
+    
+    <p>There are {{ tasks|length}} open task{{tasks|length|pluralize}}.</p>
+{% else %}
+    <p>No unarchived tasks are available.</p>
+{% endif %}
+
+{{ debug }}
+
+{% include "loads/footer.html" %}

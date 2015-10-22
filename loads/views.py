@@ -102,5 +102,57 @@ def tasks(request, staff_id):
     return HttpResponse(template.render(context))
         
 
+def tasks_index(request):
+    '''Obtains a list of all non archived tasks'''
+    # Fetch the tasks assigned against the specific user of the staff member
+    tasks = Task.objects.all().exclude(archive=True)
+                    
+    template = loader.get_template('loads/tasks/index.html')
+    context = RequestContext(request, {
+        'tasks': tasks,
+    })
+    return HttpResponse(template.render(context))
+            
     
+def tasks_details(request, task_id):
+    '''Obtains a list of all completions for a given task'''
+    # Get the task itself
+    task = get_object_or_404(Task, pk=task_id)
     
+    # Get all Users implicated
+    # These are staff objects
+    target_by_users = task.targets.all()
+    target_groups = task.groups.all()
+    # These are user objects 
+    target_by_groups = User.objects.all().filter(groups__in=target_groups).distinct()
+    all_targets = []
+    
+    for staff in target_by_users:
+        all_targets.append(staff)
+    for user in target_by_groups:
+        staff = Staff.objects.all().filter(user=user)[0]
+        if not staff in all_targets:
+            all_targets.append(staff)
+    
+    combined_list_complete = []
+    combined_list_incomplete = []
+    
+    for target in all_targets:
+        # Is it complete? Look for a completion model
+        completion = TaskCompletion.objects.all().filter(staff=target).filter(task=task)
+        if len(completion) == 0:
+            combined_item = [target, False]
+            combined_list_incomplete.append(combined_item)
+        else:
+            combined_item = [target, completion[0]]
+            combined_list_complete.append(combined_item)
+            
+                            
+    template = loader.get_template('loads/tasks/details.html')
+    context = RequestContext(request, {
+        'task': task,
+        'combined_list_complete': combined_list_complete,
+        'combined_list_incomplete' : combined_list_incomplete,
+    })
+    return HttpResponse(template.render(context))
+            
