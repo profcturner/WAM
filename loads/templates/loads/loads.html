@@ -14,7 +14,7 @@
         <td>{{ third|stringformat:".2f" }}</td>
         <td>{{ total }}</td>
         <td><a href="{% url 'activities' staff.id %}">Activities</a></td>
-        <td><a href="{% url 'tasks' staff.id %}">Tasks</a></td>
+        <td><a href="{% url 'tasks_bystaff' staff.id %}">Tasks</a></td>
       </tr>      
       {% endfor %}
     </table>

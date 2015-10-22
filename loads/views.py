@@ -66,8 +66,22 @@ def activities(request, staff_id):
     return HttpResponse(template.render(context))
 
 
-def tasks(request, staff_id):
+        
+
+def tasks_index(request):
+    '''Obtains a list of all non archived tasks'''
     # Fetch the tasks assigned against the specific user of the staff member
+    tasks = Task.objects.all().exclude(archive=True)
+                    
+    template = loader.get_template('loads/tasks/index.html')
+    context = RequestContext(request, {
+        'tasks': tasks,
+    })
+    return HttpResponse(template.render(context))
+            
+
+def tasks_bystaff(request, staff_id):
+    '''Show the tasks assigned against the specific user of the staff member'''
     staff = get_object_or_404(Staff, pk=staff_id)
     user_tasks = Task.objects.all().filter(targets=staff).exclude(archive=True).distinct()
     
@@ -93,26 +107,14 @@ def tasks(request, staff_id):
             combined_list_complete.append(combined_item)
             
             
-    template = loader.get_template('loads/tasks.html')
+    template = loader.get_template('loads/tasks/bystaff.html')
     context = RequestContext(request, {
         'staff': staff,
         'combined_list_complete': combined_list_complete,
         'combined_list_incomplete': combined_list_incomplete,
     })
     return HttpResponse(template.render(context))
-        
 
-def tasks_index(request):
-    '''Obtains a list of all non archived tasks'''
-    # Fetch the tasks assigned against the specific user of the staff member
-    tasks = Task.objects.all().exclude(archive=True)
-                    
-    template = loader.get_template('loads/tasks/index.html')
-    context = RequestContext(request, {
-        'tasks': tasks,
-    })
-    return HttpResponse(template.render(context))
-            
     
 def tasks_details(request, task_id):
     '''Obtains a list of all completions for a given task'''

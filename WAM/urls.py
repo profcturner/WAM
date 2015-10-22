@@ -24,6 +24,6 @@ urlpatterns = [
     url(r'^activities/(?P<staff_id>[0-9]+)$', views.activities, name='activities'),
     url(r'^tasks/index/$', views.tasks_index, name='tasks_index'),
     url(r'^tasks/detail/(?P<task_id>[0-9]+)$', views.tasks_details, name='tasks_details'),
-    url(r'^tasks/(?P<staff_id>[0-9]+)$', views.tasks, name='tasks'),    
+    url(r'^tasks/bystaff/(?P<staff_id>[0-9]+)$', views.tasks_bystaff, name='tasks_bystaff'),    
     url(r'^admin/', include(admin.site.urls)),
 ]
