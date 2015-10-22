@@ -12,6 +12,9 @@ from .models import Staff
 from .models import Task
 from .models import Activity
 from .models import TaskCompletion
+from .models import Module
+from .models import ExamTracker
+from .models import CourseworkTracker
 
 from django.contrib.auth.models import User, Group
 
@@ -157,4 +160,56 @@ def tasks_details(request, task_id):
         'combined_list_incomplete' : combined_list_incomplete,
     })
     return HttpResponse(template.render(context))
+    
+    
+def modules_index(request):
+    """Shows a high level list of modules"""
+    # Fetch the tasks assigned against the specific user of the staff member
+    modules = Module.objects.all().order_by('module_code')
+    
+    combined_list = []
+    for module in modules:
+        # get the most recent exam tracker and coursework tracker
+        exam_trackers = ExamTracker.objects.all().filter(module=module).order_by('created')[:1]
+        coursework_trackers = CourseworkTracker.objects.all().filter(module=module).order_by('created')[:1]
+        
+        if len(exam_trackers) > 0:
+            exam_tracker = exam_trackers[0]
+        else:
+            exam_tracker = False
+
+        if len(coursework_trackers) > 0:
+            coursework_tracker = coursework_trackers[0]
+        else:
+            coursework_tracker = False
+
+        combined_item = [module, exam_tracker, coursework_tracker]
+        combined_list.append(combined_item)
+    
+    template = loader.get_template('loads/modules/index.html')
+    context = RequestContext(request, {
+        'combined_list': combined_list,
+    })
+    return HttpResponse(template.render(context))
+    
+
+def modules_details(request, module_id):
+    """Detailed information on a given module"""
+    # Get the module itself
+    module = get_object_or_404(Module, pk=module_id)
+    
+    # Get all associated activities, exam and coursework trackers
+    activities = Activity.objects.all().filter(module=module).order_by('name')
+    exam_trackers = ExamTracker.objects.all().filter(module=module).order_by('created')
+    coursework_trackers = CourseworkTracker.objects.all().filter(module=module).order_by('created')
+    
+    template = loader.get_template('loads/modules/details.html')
+    context = RequestContext(request, {
+        'module': module,
+        'activities': activities,
+        'exam_trackers': exam_trackers,
+        'coursework_trackers': coursework_trackers,
+    })
+    return HttpResponse(template.render(context))
+    
             

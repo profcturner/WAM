@@ -1,0 +1,26 @@
+{% include "loads/header.html" %}
+
+{% if combined_list %}
+    <table border="1">
+      <tr>
+        <th>Module Code</th><th>Module Name</th><th>Exam</th><th>Coursework</th><th>Details</th>
+      </tr>
+      {% for module, exam, coursework in combined_list %}
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <th>{{ module.module_code }}</th>
+        <td>{{ module.module_name }}</td>
+        <td>{% if exam %}{{exam.progress}} ({{ exam.created }}){% else %}No Information{% endif %}</td>
+        <td>{% if coursework %}{{coursework.progress}} ({{ coursework.created }}){% else %}No Information{% endif %}</td>
+        <td><a href="{% url 'modules_details' module.id %}">Details</a></td>
+      </tr>      
+      {% endfor %}
+    </table>
+    
+  <p>Total of {{ combined_list|length}} module{{combined_list|length|pluralize}}.
+  </p>
+    
+{% else %}
+    <p>No modules currently exist.</p>
+{% endif %}
+
+{% include "loads/footer.html" %}

@@ -1,0 +1,85 @@
+{% include "loads/header.html" %}
+
+<h2>Details for Module {{ module.name }}</h2>
+
+<table border="0">
+  <tr>
+    <th>
+      Module Code
+    </th>
+    <td>
+      {{ module.module_code }}
+    </td>
+  </tr>
+  <tr>
+    <th>
+      Module Name
+    </th>
+    <td>
+      {{ module.module_name }}
+    </td>
+  </tr>
+</table>
+
+<h2>Related Activity Information</h2>
+  
+{% if activities %}
+    <table border="1">
+      <tr>
+        <th>Activity Name</th><th>Staff Member</th><th>Comment</th>
+      </tr>
+      {% for activity in activities %}
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <th>{{ activity.name }}</th>
+        <td>{{ activity.staff }}</td>
+        <td>{{ activity.comment }}</td>
+      </tr>
+      {% endfor %}      
+    </table>
+    
+{% else %}
+    <p>No activities recorded for this module.</p>
+{% endif %}
+
+<h2>Exam Tracker</h2>
+  
+{% if exam_trackers %}
+    <table border="1">
+      <tr>
+        <th>Academic Year</th><th>Progress</th><th>Timestamp</th>
+      </tr>
+      {% for tracker in exam_trackers %}
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <th>{{ tracker.academic_year }}</th>
+        <td>{{ tracker.progress }}</td>
+        <td>{{ tracker.created }}</td>
+      </tr>
+      {% endfor %}      
+    </table>
+    
+{% else %}
+    <p>No exam trackers recorded for this module.</p>
+{% endif %}
+
+<h2>Coursework Tracker</h2>
+  
+{% if coursework_trackers %}
+    <table border="1">
+      <tr>
+        <th>Academic Year</th><th>Progress</th><th>Timestamp</th>
+      </tr>
+      {% for tracker in coursework_trackers %}
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <th>{{ tracker.academic_year }}</th>
+        <td>{{ tracker.progress }}</td>
+        <td>{{ tracker.created }}</td>
+      </tr>
+      {% endfor %}      
+    </table>
+    
+{% else %}
+    <p>No coursework trackers recorded for this module.</p>
+{% endif %}
+
+
+{% include "loads/footer.html" %}
