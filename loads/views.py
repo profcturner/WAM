@@ -24,7 +24,7 @@ def index(request):
     
 
 def loads(request):
-    staff_list = Staff.objects.all()
+    staff_list = Staff.objects.all().order_by('user__last_name')
     combined_list = []
     total = 0
     
@@ -47,7 +47,7 @@ def loads(request):
     
 def activities(request, staff_id):
     staff = get_object_or_404(Staff, pk=staff_id)
-    activities = Activity.objects.all().filter(staff=staff)
+    activities = Activity.objects.all().filter(staff=staff).order_by('name')
     combined_list = []
     total = 0
         
@@ -71,7 +71,7 @@ def activities(request, staff_id):
 def tasks_index(request):
     '''Obtains a list of all non archived tasks'''
     # Fetch the tasks assigned against the specific user of the staff member
-    tasks = Task.objects.all().exclude(archive=True)
+    tasks = Task.objects.all().exclude(archive=True).order_by('deadline')
                     
     template = loader.get_template('loads/tasks/index.html')
     context = RequestContext(request, {
@@ -83,11 +83,11 @@ def tasks_index(request):
 def tasks_bystaff(request, staff_id):
     '''Show the tasks assigned against the specific user of the staff member'''
     staff = get_object_or_404(Staff, pk=staff_id)
-    user_tasks = Task.objects.all().filter(targets=staff).exclude(archive=True).distinct()
+    user_tasks = Task.objects.all().filter(targets=staff).exclude(archive=True).distinct().order_by('deadline')
     
     # And those assigned against the group
     groups = Group.objects.all().filter(user=staff.user)
-    group_tasks = Task.objects.all().filter(groups__in=groups).distinct()
+    group_tasks = Task.objects.all().filter(groups__in=groups).distinct().order_by('deadline')
     
     # Combine them
     all_tasks = user_tasks | group_tasks
