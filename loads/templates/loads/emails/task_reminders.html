@@ -1,5 +1,5 @@
 {% if combined_list_complete or combined_list_incomplete %}
-<p>This is just a reminder that you have several incomplete tasts.</p>
+<p>This is just a reminder that you have several incomplete tasks.</p>
 
     <table border="1">
       <tr>
@@ -7,14 +7,6 @@
       </tr>
       {% for task, when in combined_list_incomplete %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <th>{{ task.name }}</th>
-        <td>{{ task.deadline }}</td>
-        <td>{{ task.deadline|timeuntil }}</td>
-        <td>{{ when }}</th>
-      </tr>      
-      {% endfor %}
-      {% for task, when in combined_list_complete %}
-      <tr class="{% cycle rowcolours %}">
         <th>{{ task.name }}</th>
         <td>{{ task.deadline }}</td>
         <td>{{ task.deadline|timeuntil }}</td>
