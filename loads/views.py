@@ -19,6 +19,7 @@ from .models import CourseworkTracker
 from django.contrib.auth.models import User, Group
 
 def index(request):
+    '''Main index page for non admin views'''
  
     template = loader.get_template('loads/index.html')
     context = RequestContext(request, {
@@ -27,6 +28,7 @@ def index(request):
     
 
 def loads(request):
+    '''Show the loads for all members of staff'''
     staff_list = Staff.objects.all().order_by('user__last_name')
     combined_list = []
     total = 0
@@ -49,6 +51,7 @@ def loads(request):
     
     
 def activities(request, staff_id):
+    '''Show the activities for a given staff member'''
     staff = get_object_or_404(Staff, pk=staff_id)
     activities = Activity.objects.all().filter(staff=staff).order_by('name')
     combined_list = []
@@ -68,8 +71,6 @@ def activities(request, staff_id):
     })
     return HttpResponse(template.render(context))
 
-
-        
 
 def tasks_index(request):
     '''Obtains a list of all non archived tasks'''
@@ -170,8 +171,8 @@ def modules_index(request):
     combined_list = []
     for module in modules:
         # get the most recent exam tracker and coursework tracker
-        exam_trackers = ExamTracker.objects.all().filter(module=module).order_by('created')[:1]
-        coursework_trackers = CourseworkTracker.objects.all().filter(module=module).order_by('created')[:1]
+        exam_trackers = ExamTracker.objects.all().filter(module=module).order_by('-created')[:1]
+        coursework_trackers = CourseworkTracker.objects.all().filter(module=module).order_by('-created')[:1]
         
         if len(exam_trackers) > 0:
             exam_tracker = exam_trackers[0]
