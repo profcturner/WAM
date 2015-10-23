@@ -51,7 +51,7 @@
       {% for tracker in exam_trackers %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ tracker.academic_year }}</th>
-        <td>{{ tracker.progress }}</td>
+        <td>{{ tracker.get_progress_display }}</td>
         <td>{{ tracker.created }}</td>
       </tr>
       {% endfor %}      
@@ -71,7 +71,7 @@
       {% for tracker in coursework_trackers %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ tracker.academic_year }}</th>
-        <td>{{ tracker.progress }}</td>
+        <td>{{ tracker.get_progress_display }}</td>
         <td>{{ tracker.created }}</td>
       </tr>
       {% endfor %}      

@@ -9,8 +9,8 @@
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ module.module_code }}</th>
         <td>{{ module.module_name }}</td>
-        <td>{% if exam %}{{exam.progress}} ({{ exam.created }}){% else %}No Information{% endif %}</td>
-        <td>{% if coursework %}{{coursework.progress}} ({{ coursework.created }}){% else %}No Information{% endif %}</td>
+        <td>{% if exam %}{{exam.get_progress_display}} ({{ exam.created }}){% else %}No Information{% endif %}</td>
+        <td>{% if coursework %}{{coursework.get_progress_display}} ({{ coursework.created }}){% else %}No Information{% endif %}</td>
         <td><a href="{% url 'modules_details' module.id %}">Details</a></td>
       </tr>      
       {% endfor %}
