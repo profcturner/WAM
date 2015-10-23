@@ -75,8 +75,7 @@ class Command(BaseCommand):
         text_content = plaintext.render(context)
         html_content = html.render(context)
         
-        print(html_content)
-        return False
+        self.stdout.write('Email sent to' + staff.user.email)
         
         email = EmailMultiAlternatives(subject, text_content, from_email, [to])
         email.attach_alternative(html_content, "text/html")
