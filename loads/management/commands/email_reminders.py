@@ -71,11 +71,11 @@ class Command(BaseCommand):
         })
 
         # TODO Remove hardcode from address
-        subject, from_email, to = 'Your task reminders', 'noreply@ulster.ac.uk', staff.user.email
+        subject, from_email, to = 'Your task reminders', 'c.turner@ulster.ac.uk', staff.user.email
         text_content = plaintext.render(context)
         html_content = html.render(context)
         
-        self.stdout.write('Email sent to' + staff.user.email)
+        self.stdout.write('Email sent to ' + staff.user.email)
         
         email = EmailMultiAlternatives(subject, text_content, from_email, [to])
         email.attach_alternative(html_content, "text/html")
