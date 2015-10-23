@@ -48,6 +48,20 @@ class Staff(models.Model):
         '''Calculate the total allocated hours'''
         hours_by_semester = self.hours_by_semester(academic_year)
         return hours_by_semester[3]
+        
+    def get_all_tasks(self):
+        '''Returns a queryset of all unarchived tasks linked to this staff member'''
+        user_tasks = Task.objects.all().filter(targets=self).exclude(archive=True).distinct().order_by('deadline')
+    
+        # And those assigned against the group
+        groups = Group.objects.all().filter(user=self.user)
+        group_tasks = Task.objects.all().filter(groups__in=groups).distinct().order_by('deadline')
+    
+        # Combine them
+        all_tasks = user_tasks | group_tasks
+        
+        return all_tasks
+    
             
     class Meta:
         verbose_name_plural = 'staff'
@@ -149,11 +163,25 @@ class Activity(models.Model):
         
         split_hours.append(total_hours)        
         return split_hours
-            
+        
             
     class Meta:
         verbose_name_plural = "activities"
-        
+
+
+class Campus(models.Model):
+    '''This indicated the campus or site that a module is delivered at'''
+    
+    name = models.CharField(max_length=100)
+    
+    def __str__(self):
+        return self.name
+
+
+#class ModuleSize(models.Model):
+#    
+#    text = models.CharField(max_length=10)
+#    scaling = models.DecimalField(max_digits=6, )        
 
 class Module(models.Model):
     '''Basic information about a module
@@ -203,6 +231,30 @@ class Task(models.Model):
     
     def __str__(self):
         return self.name + ' due ' + str(self.deadline)
+        
+    def get_all_targets(self):
+        """obtains all targets for a task whether by user or group, returns a list of valid targets"""
+        # These are staff objects
+        target_by_users = self.targets.all()
+        target_groups = self.groups.all()
+        # These are user objects 
+        target_by_groups = User.objects.all().filter(groups__in=target_groups).distinct()
+        
+        # Start to build a queryset, starting with targetted users
+        all_targets = target_by_users
+    
+        # Add each collection of staff members implicated by group
+        for user in target_by_groups:
+            staff = Staff.objects.all().filter(user=user)
+            all_targets = all_targets | staff
+            
+        # Use distinct to clean up any duplicates
+        all_targets = all_targets.distinct()
+        
+        return all_targets
+        
+
+
     
     
 class TaskCompletion(models.Model):
@@ -221,6 +273,8 @@ class TaskCompletion(models.Model):
     
     def __str__(self):
         return self.task.name + ' completed by ' + str(self.staff) + ' on ' + str(self.when)
+
+
 
     
 class Resource(models.Model):

@@ -87,14 +87,7 @@ def tasks_index(request):
 def tasks_bystaff(request, staff_id):
     '''Show the tasks assigned against the specific user of the staff member'''
     staff = get_object_or_404(Staff, pk=staff_id)
-    user_tasks = Task.objects.all().filter(targets=staff).exclude(archive=True).distinct().order_by('deadline')
-    
-    # And those assigned against the group
-    groups = Group.objects.all().filter(user=staff.user)
-    group_tasks = Task.objects.all().filter(groups__in=groups).distinct().order_by('deadline')
-    
-    # Combine them
-    all_tasks = user_tasks | group_tasks
+    all_tasks = staff.get_all_tasks()
 
     # We will create separate lists for those tasks that are complete
     combined_list_complete = []
@@ -122,23 +115,9 @@ def tasks_bystaff(request, staff_id):
     
 def tasks_details(request, task_id):
     '''Obtains a list of all completions for a given task'''
-    # Get the task itself
+    # Get the task itself, and all targetted users
     task = get_object_or_404(Task, pk=task_id)
-    
-    # Get all Users implicated
-    # These are staff objects
-    target_by_users = task.targets.all()
-    target_groups = task.groups.all()
-    # These are user objects 
-    target_by_groups = User.objects.all().filter(groups__in=target_groups).distinct()
-    all_targets = []
-    
-    for staff in target_by_users:
-        all_targets.append(staff)
-    for user in target_by_groups:
-        staff = Staff.objects.all().filter(user=user)[0]
-        if not staff in all_targets:
-            all_targets.append(staff)
+    all_targets = task.get_all_targets()
     
     combined_list_complete = []
     combined_list_incomplete = []
@@ -161,6 +140,11 @@ def tasks_details(request, task_id):
         'combined_list_incomplete' : combined_list_incomplete,
     })
     return HttpResponse(template.render(context))
+    
+    
+def task_completion(request):
+    """Processes recording of a task completion"""
+    pass
     
     
 def modules_index(request):

@@ -33,15 +33,7 @@ class Command(BaseCommand):
 
     def email_tasks_by_staff(self, staff):
         """docstring for email_tasks_by_staff"""
-        #TODO Too much commonality with view layer, move some to model
-        user_tasks = Task.objects.all().filter(targets=staff).exclude(archive=True).distinct().order_by('deadline')
-    
-        # And those assigned against the group
-        groups = Group.objects.all().filter(user=staff.user)
-        group_tasks = Task.objects.all().filter(groups__in=groups).distinct().order_by('deadline')
-    
-        # Combine them
-        all_tasks = user_tasks | group_tasks
+        all_tasks = staff.get_all_tasks()
 
         # We will create separate lists for those tasks that are complete
         combined_list_complete = []
