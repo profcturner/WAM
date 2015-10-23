@@ -1,5 +1,5 @@
 {% if combined_list_complete or combined_list_incomplete %}
-<p>This is just a reminder that you have several incomplete tasks.</p>
+<p>This is just a reminder that you have {{ combined_list_incomplete|length}} outstanding task{{combined_list_incomplete|length|pluralize}}.</p>
 
     <table border="1">
       <tr>
@@ -14,8 +14,6 @@
       </tr>      
       {% endfor %}
     </table>
-    
-    <p>You have {{ combined_list_incomplete|length}} outstanding task{{combined_list_incomplete|length|pluralize}}.</p>
     
 {% else %}
     <p>No tasks are noted for {{ staff }}.</p>
