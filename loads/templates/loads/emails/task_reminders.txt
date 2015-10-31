@@ -3,12 +3,12 @@
 This is just a reminder that you have {{ combined_list_incomplete|length}} outstanding task{{combined_list_incomplete|length|pluralize}}.
 
 {% for task, when in combined_list_incomplete %}
-{{ task.name }}
-Deadline: {{ task.deadline }} ({{ task.deadline|timeuntil }})
+* {{ task.name }}
+  Deadline: {{ task.deadline }} ({{ task.deadline|timeuntil }})
 
 {% endfor %}
     
 {% else %}
-    <p>No tasks are noted for {{ staff }}.</p>
+No tasks are noted for {{ staff }}.
 {% endif %}
 
