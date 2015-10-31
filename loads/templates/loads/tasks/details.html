@@ -45,13 +45,14 @@
 {% if combined_list_complete or combined_list_incomplete %}
     <table border="1">
       <tr>
-        <th>Staff Name</th><th>Completed</th><th>Comment</th>
+        <th>Staff Name</th><th>Completed</th><th>Comment</th><th>Complete</th>
       </tr>
       {% for target, dummy in combined_list_incomplete %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ target }}</th>
         <td>{{ dummy }}</td>
         <td>N/A</td>
+        <td><a href="{% url 'tasks_completion' task_id=task.id staff_id=target.id %}">Complete</a></td>
       </tr>      
       {% endfor %}
       {% for target, completion in combined_list_complete %}
@@ -59,6 +60,7 @@
         <th>{{ target }}</th>
         <td>{{ completion.when }}</td>
         <td>{{ completion.comment }}</td>
+        <td>N/A</td>
       </tr>      
       {% endfor %}
     </table>

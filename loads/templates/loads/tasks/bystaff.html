@@ -4,14 +4,15 @@
 {% if combined_list_complete or combined_list_incomplete %}
     <table border="1">
       <tr>
-        <th>Task Name</th><th>Deadline</th><th>Time left</th><th>Completed</th>
+        <th>Task Name</th><th>Deadline</th><th>Time left</th><th>Completed</th><th>Complete</th>
       </tr>
       {% for task, when in combined_list_incomplete %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ task.name }}</th>
         <td>{{ task.deadline }}</td>
         <td>{{ task.deadline|timeuntil }}</td>
-        <td>{{ when }}</th>
+        <td>{{ when }}</td>
+        <td><a href="{% url 'tasks_completion' task_id=task.id staff_id=staff.id %}">Complete</a></td>  
       </tr>      
       {% endfor %}
       {% for task, when in combined_list_complete %}
@@ -20,6 +21,7 @@
         <td>{{ task.deadline }}</td>
         <td>{{ task.deadline|timeuntil }}</td>
         <td>{{ when }}</th>
+        <td>N/A</td>
       </tr>      
       {% endfor %}
     </table>

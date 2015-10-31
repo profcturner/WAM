@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 # Create your views here.
 
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.template import RequestContext, loader
 
 from .models import Staff
@@ -16,12 +16,23 @@ from .models import Module
 from .models import ExamTracker
 from .models import CourseworkTracker
 
+from .forms import TaskCompletionForm
+
 from django.contrib.auth.models import User, Group
 
 def index(request):
     '''Main index page for non admin views'''
  
     template = loader.get_template('loads/index.html')
+    context = RequestContext(request, {
+    })
+    return HttpResponse(template.render(context))
+
+
+def forbidden(request):
+    '''General permissions failure warning'''
+ 
+    template = loader.get_template('loads/forbidden.html')
     context = RequestContext(request, {
     })
     return HttpResponse(template.render(context))
@@ -142,9 +153,46 @@ def tasks_details(request, task_id):
     return HttpResponse(template.render(context))
     
     
-def task_completion(request):
+def tasks_completion(request, task_id, staff_id):
     """Processes recording of a task completion"""
-    pass
+    # Get the task itself, and all targetted users
+    # TODO: check for existing completions
+    # TODO: check staff is in *open* targets
+    task = get_object_or_404(Task, pk=task_id)
+    staff = get_object_or_404(Staff, pk=staff_id)
+    all_targets = task.get_all_targets()
+
+    # check the staff member is that currently logged in
+    # or a user with permission to edit completions
+    is_current_user = (request.user == staff.user)
+    can_override = request.user.has_perm('loads.add_taskcompletion')
+    if is_current_user and not can_override:
+        return HttpResponseRedirect('/forbidden/')
+    
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        form = TaskCompletionForm(request.POST)
+        # check whether it's valid:
+        if form.is_valid():
+            
+            new_item = form.save(commit=False)
+            new_item.task = task
+            new_item.staff = staff
+            
+            new_item.save()
+            form.save_m2m()
+            
+            # redirect to the task details
+            # TODO: which is a pain if we came from the bystaff view
+            url = reverse('tasks_details', kwargs={'task_id': task_id})
+            return HttpResponseRedirect(url)
+
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        form = TaskCompletionForm()
+
+    return render(request, 'loads/tasks/completion.html', {'form': form, 'task': task, 'staff': staff})
     
     
 def modules_index(request):
