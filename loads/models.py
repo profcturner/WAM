@@ -224,8 +224,8 @@ class Task(models.Model):
     details = models.TextField()
     deadline = models.DateTimeField()
     archive = models.BooleanField(default=False)
-    targets = models.ManyToManyField(Staff, null=True, blank=True)
-    groups = models.ManyToManyField(Group, null=True, blank=True)
+    targets = models.ManyToManyField(Staff, blank=True)
+    groups = models.ManyToManyField(Group, blank=True)
     created = models.DateTimeField(auto_now_add = True)
     modified = models.DateTimeField(auto_now = True)
     
