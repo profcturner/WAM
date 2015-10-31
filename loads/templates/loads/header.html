@@ -13,6 +13,38 @@
 <!--[if gte IE 9]><!-->
   <a class="brand-only ulster-university" href="http://www.ulster.ac.uk" tabindex="1">Ulster University Ulster University <span>Workload Modelling</span></a>
 <!--<![endif]-->
+
+<div id="menu">
+  <ul>
+    <li class="menutop home">
+      <a title="click to access section: Home" class="first" href="{% url 'index' %}">Home</a>
+    </li>
+		<li class="menutop">
+      <a title="click to access section: Loads" class="current" href="{% url 'loads' %}">Loads</a>
+    </li>
+		<li class="menutop">
+      <a title="click to access section: Tasks" class="current" href="{% url 'tasks_index' %}">Tasks</a>
+    </li>
+		<li class="menutop">
+      <a title="click to access section: Modules" class="current" href="{% url 'modules_index' %}">Modules</a>
+    </li>
+	</ul>
 </div>
+
+{% comment some more work to do later %}
+
+<div id="submenu">
+  <ul> 
+	  <div id="username">Username</div>
+	</ul>
+</div>	
+
+{% endcomment %}
+
+</div>
+
+<br />
+   
+
 
   

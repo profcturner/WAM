@@ -200,4 +200,284 @@ tr.alt {
     background: #fff;
 }
 
+#menu {
+width: 1400px;
+clear:both;
+
+}
+
+#menu ul {
+list-style: none;
+margin:0;
+padding: 0;
+width: 100%;
+clear:both;
+margin-left: 53px;
+}
+
+#menu li {
+float:left;
+}
+
+#menu li.home
+{
+  /*border-left-width: 53px;*/
+  border-left-style: solid;
+  border-left-color: transparent;
+}
+
+/* style, color and size links and headings to suit */
+#menu a {
+font: bold 1.0em arial, sans-serif;
+display: block;
+height: 26px;
+margin-top: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top:10px;
+  padding-bottom:2px;
+color: #ffffff;
+background: #346fbd;
+text-decoration: none;
+}
+
+#menu a.welcome {
+font: bold 1.0em arial, sans-serif;
+display: block;
+height: 26px;
+  padding-left: 10px;
+  padding-right: 11px;
+  padding-top:10px;
+  padding-bottom:2px;
+color: #ffffff;
+background: #346fbd;
+text-decoration: none;
+
+}
+
+#menu a.first 
+{
+	font: bold 1.0em arial, sans-serif;
+	display: block;
+	height: 26px;
+	margin-top: 10px;
+	padding-left: 10px;
+	padding-right: 10px;
+	padding-top:10px;
+	padding-bottom:2px;
+	color: #ffffff;
+	background: #346fbd;
+	text-decoration: none;
+}
+
+
+
+#menu li.right {
+  float:right;
+}
+
+#menu li.logout {
+  float:right;
+  padding-right: 20px;
+  background-color:transparent;
+}
+
+#menu a.logout {
+  color:#cc5555;
+  border-width: 0px 0px 0px 0px;
+  border-color: #dddddd;
+  font-weight:bold;
+  background-color:transparent;
+}
+#menu a:hover {
+  color:#ffffff;
+  background: #3780e6;
+
+}
+
+#menu a.logout:hover {
+  text-decoration: underline;
+  border-left-width: 0px;
+  font-weight:bold;
+  background-color:transparent;
+
+}
+#menu a.current:hover {
+  padding-left: 5px;
+}
+
+#menu a.current {
+  color:#ffffff;
+  background: #3780e6;
+  border-left-width: 5px;
+  border-left-style: solid;
+  border-left-color: transparent;
+  padding-left: 5px;
+}
+
+#menu a.currentfirst
+ {
+  border-width: 0px 1px 0px 1px;
+  color:#ffffff;
+  background: #3780e6;
+  border-left-width: 5px;
+  border-left-style: solid;
+  border-left-color: transparent;
+  padding-left: 5px;
+}
+#menu a.currentfirst:hover {
+  padding-left: 5px;
+}
+
+#menu ul ul {
+  width:auto;                /* sets the size of the menu blocks */
+  /*border: 1px solid #000;*/      /* puts a black border around the menu blocks */
+  background-color: #8aa;      /* makes the menu blocks mint green - a bg-color MUST be included for IE to work properly! */
+  padding-left: 0px;           /* stops the usual indent from ul */
+  cursor: default;             /* gives an arrow cursor */
+  margin-left: 0px;            /* Opera 7 final's margin and margin-box model cause problems */
+  opacity: 0.9;
+}
+#menu ul li {
+  position: relative;
+  opacity: 0.9;
+  padding-right: 0.3em;
+  border: none;          /* makes the menu blocks be positioned relative to their parent menu item
+                                  the lack of offset makes these appear normal, but it will make a difference
+                                  to the absolutely positioned child blocks */
+}
+#menu ul li > ul {          /* using the > selector prevents many lesser browsers (and IE - see below) hiding child ULs */
+  display: none;               /* hides child menu blocks - one of the most important declarations */
+  position: absolute;          /* make child blocks hover without leaving space for them */
+  top: 1.3em;                    /* position slightly lower than the parent menu item */
+  left: 0em;  
+                  /* this must not be more than the width of the parent block, or the mouse will
+                    			have to move off the element to move between blocks, and the menu will close */
+  background:#3780e6;
+  border:1px #ddd solid;
+  margin-top:  17px;
+  opacity: 0.9;
+  
+}
+#menu ul li ul li {
+  clear:left;
+  width:100%;
+  opacity: 0.9;
+}
+
+#menu ul li ul li a {
+  border: 0px #fff solid;
+  font-weight:bold;
+  white-space:nowrap;
+}
+#menu ul ul {     /* must not be combined with the next rule or IE gets confused */
+  display: block;              /* specially to go with the className changes in the behaviour file */
+  opacity: 0.9;
+}
+#menu ul li:hover > ul {    /* one of the most important declarations - the browser must detect hovering over arbitrary elements
+                                  the > targets only the child ul, not any child uls of that child ul */
+  display: block;              /* makes the child block visible - one of the most important declarations */
+}
+
+/* Fixes for broken IE behaviour */
+#menu ul li.CSStoHighlight {
+  background-color: #fff;      /* gives the active menu items a yellow background */
+  color: #000;                 /* makes the active menu item text black */
+  z-index:100;
+  display:block;
+}
+
+#menu ul ul.CSStoShow {     /* must not be combined with the next rule or IE gets confused */
+  display: block;              /* specially to go with the className changes in the behaviour file */
+  position:absolute;
+  width:auto;
+  background-color: #fff;
+  border:1px #ddd solid;
+}
+
+#menu ul li a.CSStoHighLight { color: #000; }
+
+#submenu {
+width: auto;
+background: #ffffff;
+margin-right: 55px;
+
+}
+
+#submenu ul {
+list-style: none;
+margin: 0;
+height:40px;
+padding-left: 55px;
+width: 100%;
+float:left;
+background-color: #3780e6;
+}
+
+#submenu li {
+float:left;
+}
+
+/* style, color and size links and headings to suit */
+#submenu a {
+font: bold 0.9em arial, sans-serif;
+display: block;
+border-width: 0px;
+margin: 0;
+padding-left: 20px;
+padding-right: 12px;
+padding-top:12px;
+color: #ffffff;
+background: #3780e6;
+text-decoration: none;
+}
+
+#submenu a:hover {
+	text-decoration: underline;
+}
+
+#submenu a.current {
+  color: #FF9900;
+  font-style:italic;
+  background: #3780e6;
+  border-left-width: 5px;
+  border-left-style: solid;
+  border-left-color: transparent;
+  padding-left: 5px;
+}
+
+#submenu form {
+  margin-bottom:0px;
+}
+
+
+#navigation_history b {
+  font-size: 1em;
+}
+
+#navigation_history {
+  font-size: 1em;
+}
+
+#name {
+  font-size: small;
+  font-weight:bold;
+  color: #333333;
+  float: left;
+}
+
+#content_block 
+{
+  width:90%;
+  margin-left:50px;
+  margin-right:50px;
+  clear:left;
+  /*background-color: #f7f7f7;*/
+  border: 0px #f7f7f7 solid;
+  min-height:400px;
+  display:block;
+  float:left;
+}
+
+
 
