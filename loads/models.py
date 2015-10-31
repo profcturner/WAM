@@ -198,6 +198,7 @@ class Module(models.Model):
     
     module_code = models.CharField(max_length=10)
     module_name = models.CharField(max_length=200)
+    campus = models.ForeignKey('Campus')
     semester = models.CommaSeparatedIntegerField(max_length=10)
     
     def __str__(self):
