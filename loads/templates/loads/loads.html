@@ -4,15 +4,16 @@
 {% if combined_list %}
     <table border="1">
       <tr>
-        <th>Staff Name</th><th>First Semester</th><th>Second Semester</th><th>Third Semester</th><th>Total</th><th>Activities</th><th>Tasks</th>
+        <th>Staff Name</th><th>First Semester</th><th>Second Semester</th><th>Third Semester</th><th>Total</th><th>Scaled</th><th>Activities</th><th>Tasks</th>
       </tr>
-      {% for staff, first, second, third, total in combined_list %}
+      {% for staff, first, second, third, total, scaled in combined_list %}
       <tr class="{% cycle 'row1' 'row2' %}">
         <th>{{ staff }}</th>
         <td>{{ first|stringformat:".2f" }}</td>
         <td>{{ second|stringformat:".2f" }}</td>
         <td>{{ third|stringformat:".2f" }}</td>
         <td>{{ total }}</td>
+        <td>{{ scaled|stringformat:".0f" }}
         <td><a href="{% url 'activities' staff.id %}">Activities</a></td>
         <td><a href="{% url 'tasks_bystaff' staff.id %}">Tasks</a></td>
       </tr>      

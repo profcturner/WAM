@@ -46,7 +46,7 @@ def loads(request):
     
     for staff in staff_list:
         load_info = staff.hours_by_semester()
-        combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3]]
+        combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3], 100*load_info[3]/staff.fte]
         combined_list.append(combined_item)
         total += load_info[3]
         
