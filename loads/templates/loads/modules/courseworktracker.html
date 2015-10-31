@@ -1,0 +1,14 @@
+{% include "loads/header.html" %}
+
+<h2>{{ module }}</h2>
+<p>
+Please confirm the nature of the courswork tracker.
+</p>
+
+<form action="" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Submit" />
+</form>  
+
+{% include "loads/footer.html" %}

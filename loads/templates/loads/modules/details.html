@@ -61,6 +61,10 @@
     <p>No exam trackers recorded for this module.</p>
 {% endif %}
 
+<p>
+Click <a href="{% url 'exam_track_progress' module.id %}">here</a> to record another tracking event.
+</p>
+
 <h2>Coursework Tracker</h2>
   
 {% if coursework_trackers %}
@@ -80,6 +84,10 @@
 {% else %}
     <p>No coursework trackers recorded for this module.</p>
 {% endif %}
+
+<p>
+Click <a href="{% url 'coursework_track_progress' module.id %}">here</a> to record another tracking event.
+</p>
 
 
 {% include "loads/footer.html" %}

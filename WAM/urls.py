@@ -28,6 +28,8 @@ urlpatterns = [
     url(r'^tasks/bystaff/(?P<staff_id>[0-9]+)$', views.tasks_bystaff, name='tasks_bystaff'),
     url(r'^modules/index/$', views.modules_index, name='modules_index'),
     url(r'^modules/details/(?P<module_id>[0-9]+)$', views.modules_details, name='modules_details'),
+    url(r'^modules/examtracker/(?P<module_id>[0-9]+)$', views.exam_track_progress, name='exam_track_progress'),
+    url(r'^modules/courseworktracker/(?P<module_id>[0-9]+)$', views.coursework_track_progress, name='coursework_track_progress'),
     url(r'^forbidden/$', views.forbidden, name='forbidden'),
     url(r'^admin/', include(admin.site.urls)),
 ]

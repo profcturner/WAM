@@ -8,6 +8,8 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template import RequestContext, loader
 
+from .models import ACADEMIC_YEAR
+
 from .models import Staff
 from .models import Task
 from .models import Activity
@@ -17,6 +19,8 @@ from .models import ExamTracker
 from .models import CourseworkTracker
 
 from .forms import TaskCompletionForm
+from .forms import ExamTrackerForm
+from .forms import CourseworkTrackerForm
 
 from django.contrib.auth.models import User, Group
 
@@ -193,7 +197,75 @@ def tasks_completion(request, task_id, staff_id):
         form = TaskCompletionForm()
 
     return render(request, 'loads/tasks/completion.html', {'form': form, 'task': task, 'staff': staff})
+
+
+def exam_track_progress(request, module_id):
+    """Processes recording of an exam QA tracking event"""
+    # Get the module itself
+    module = get_object_or_404(Module, pk=module_id)
+
+    # Check for a valid permission at this stage
+    can_override = request.user.has_perm('loads.add_examtracker')
+    if not can_override:
+        return HttpResponseRedirect('/forbidden/')
     
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        form = ExamTrackerForm(request.POST)
+        # check whether it's valid:
+        if form.is_valid():
+            
+            new_item = form.save(commit=False)
+            # TODO: More elegant handling of ACADEMIC_YEAR needed
+            new_item.module = module
+            new_item.academic_year = ACADEMIC_YEAR
+            
+            new_item.save()
+            form.save_m2m()
+            url = reverse('modules_details', kwargs={'module_id': module_id})
+            return HttpResponseRedirect(url)
+
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        form = ExamTrackerForm()
+
+    return render(request, 'loads/modules/examtracker.html', {'form': form, 'module': module})
+ 
+    
+def coursework_track_progress(request, module_id):
+    """Processes recording of a coursework QA tracking event"""
+    # Get the module itself
+    module = get_object_or_404(Module, pk=module_id)
+
+    # Check for a valid permission at this stage
+    can_override = request.user.has_perm('loads.add_courseworktracker')
+    if not can_override:
+        return HttpResponseRedirect('/forbidden/')
+    
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        form = CourseworkTrackerForm(request.POST)
+        # check whether it's valid:
+        if form.is_valid():
+            
+            new_item = form.save(commit=False)
+            # TODO: More elegant handling of ACADEMIC_YEAR needed
+            new_item.module = module
+            new_item.academic_year = ACADEMIC_YEAR
+            
+            new_item.save()
+            form.save_m2m()
+            url = reverse('modules_details', kwargs={'module_id': module_id})
+            return HttpResponseRedirect(url)
+
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        form = CourseworkTrackerForm()
+
+    return render(request, 'loads/modules/courseworktracker.html', {'form': form, 'module': module})
+
     
 def modules_index(request):
     """Shows a high level list of modules"""
