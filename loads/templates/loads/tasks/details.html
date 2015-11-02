@@ -41,37 +41,45 @@
 </table>
 
 <h2>Task Completion Information</h2>
-  
-{% if combined_list_complete or combined_list_incomplete %}
+
+{% if combined_list_incomplete %}
+<h3>Completions Still Required</h3>
+
     <table border="1">
       <tr>
-        <th>Staff Name</th><th>Completed</th><th>Comment</th><th>Complete</th>
+        <th>Staff Name</th><th>Complete</th>
       </tr>
       {% for target, dummy in combined_list_incomplete %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ target }}</th>
-        <td>{{ dummy }}</td>
-        <td>N/A</td>
         <td><a href="{% url 'tasks_completion' task_id=task.id staff_id=target.id %}">Complete</a></td>
       </tr>      
       {% endfor %}
+    </table>
+
+{% endif %}
+  
+{% if combined_list_complete %}
+<h3>Task Completion Registered</h3>
+
+    <table border="1">
+      <tr>
+        <th>Staff Name</th><th>Completed</th><th>Comment</th>
+      </tr>
       {% for target, completion in combined_list_complete %}
-      <tr class="{% cycle rowcolours %}">
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ target }}</th>
         <td>{{ completion.when }}</td>
         <td>{{ completion.comment }}</td>
-        <td>N/A</td>
       </tr>      
       {% endfor %}
     </table>
     
-  <p>Completions: {{ combined_list_complete|length}}. <br />
-    Non completions: {{combined_list_incomplete|length}}.
-  </p>
-    
-{% else %}
-    <p>No information can be found for {{ task.name }}.</p>
 {% endif %}
-
+    
+<p>Completions: {{ combined_list_complete|length}}. <br />
+Non completions: {{combined_list_incomplete|length}}.
+</p>
+    
 
 {% include "loads/footer.html" %}
