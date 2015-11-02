@@ -170,7 +170,7 @@ def tasks_completion(request, task_id, staff_id):
     # or a user with permission to edit completions
     is_current_user = (request.user == staff.user)
     can_override = request.user.has_perm('loads.add_taskcompletion')
-    if is_current_user and not can_override:
+    if not (is_current_user or can_override):
         return HttpResponseRedirect('/forbidden/')
     
     # if this is a POST request we need to process the form data
