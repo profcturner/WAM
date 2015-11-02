@@ -1,11 +1,13 @@
 {% if combined_list_complete or combined_list_incomplete %}
 
-This is just a reminder that you have {{ combined_list_incomplete|length}} outstanding task{{combined_list_incomplete|length|pluralize}}.
+This is just an automated reminder that you have {{ combined_list_incomplete|length}} outstanding task{{combined_list_incomplete|length|pluralize}}.
 
 {% for task, when in combined_list_incomplete %}
 * {{ task.name }}
   Deadline: {{ task.deadline }} ({{ task.deadline|timeuntil }})
-
+  {{ base_url }}{% url 'tasks_details' task.id %}
+  
+Please click on the links above for more details or to sign off completion of a task.
 {% endfor %}
     
 {% else %}

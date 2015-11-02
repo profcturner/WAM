@@ -1,19 +1,22 @@
 {% if combined_list_complete or combined_list_incomplete %}
-<p>This is just a reminder that you have {{ combined_list_incomplete|length}} outstanding task{{combined_list_incomplete|length|pluralize}}.</p>
+<p>This is just an automated reminder that you have {{ combined_list_incomplete|length}} outstanding task{{combined_list_incomplete|length|pluralize}}.</p>
 
     <table border="0">
       <tr>
-        <th>Task Name</th><th>Deadline</th><th>Time left</th><th>Completed</th>
+        <th>Task Name</th><th>Deadline</th><th>Time left</th><th>Completed</th><th>Details</th>
       </tr>
       {% for task, when in combined_list_incomplete %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ task.name }}</th>
         <td>{{ task.deadline }}</td>
         <td>{{ task.deadline|timeuntil }}</td>
-        <td>{{ when }}</th>
+        <td>{{ when }}</td>
+        <td>{{ base_url }}{% url 'tasks_details' task.id %}</td>
       </tr>      
       {% endfor %}
     </table>
+    
+    <p>Please click on the links above for more details or to sign off completion of a task.</p>
     
 {% else %}
     <p>No tasks are noted for {{ staff }}.</p>

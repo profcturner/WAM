@@ -19,6 +19,9 @@ from loads.models import TaskCompletion
 from django.utils.timezone import utc
 import datetime
 
+# We need to access a few settings
+from django.conf import settings
+
 class Command(BaseCommand):
     help = 'Emails staff if tasks are outstanding'
 
@@ -85,11 +88,11 @@ class Command(BaseCommand):
             'combined_list_incomplete': combined_list_incomplete,
             'combined_list_complete': combined_list_complete,
             'urgent_tasks': urgent_tasks,
-            'urgent_only' : urgent_only, 
+            'urgent_only' : urgent_only,
+            'base_url' : settings.WAM_URL, 
         })
 
-        # TODO Remove hardcode from address
-        subject, from_email, to = 'Your task reminders', 'c.turner@ulster.ac.uk', staff.user.email
+        subject, from_email, to = 'Your task reminders', settings.WAM_AUTO_EMAIL_FROM, staff.user.email
         text_content = plaintext.render(context)
         html_content = html.render(context)
         
