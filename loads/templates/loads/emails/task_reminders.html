@@ -19,3 +19,6 @@
     <p>No tasks are noted for {{ staff }}.</p>
 {% endif %}
 
+{% if urgent_only %}
+<p>This email has only been sent because there are incomplete tasks that are overdue or less than a week from deadline and therefore may be urgent.</p>
+{% endif %}

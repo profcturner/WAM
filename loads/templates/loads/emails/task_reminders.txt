@@ -12,3 +12,6 @@ This is just a reminder that you have {{ combined_list_incomplete|length}} outst
 No tasks are noted for {{ staff }}.
 {% endif %}
 
+{% if urgent_only %}
+This email has only been sent because there are incomplete tasks that are overdue or less than a week from deadline and therefore may be urgent.
+{% endif %}
