@@ -184,8 +184,9 @@ class Campus(models.Model):
 #class ModuleSize(models.Model):
 #    
 #    text = models.CharField(max_length=10)
-#    scaling = models.DecimalField(max_digits=6, )        
-
+#    scaling = models.DecimalField(max_digits=6, decimal_places=2)
+    
+    
 class Module(models.Model):
     '''Basic information about a module
     
@@ -239,10 +240,10 @@ class Task(models.Model):
     def get_all_targets(self):
         """obtains all targets for a task whether by user or group, returns a list of valid targets"""
         # These are staff objects
-        target_by_users = self.targets.all()
+        target_by_users = self.targets.all().order_by('user__last_name')
         target_groups = self.groups.all()
         # These are user objects 
-        target_by_groups = User.objects.all().filter(groups__in=target_groups).distinct()
+        target_by_groups = User.objects.all().filter(groups__in=target_groups).distinct().order_by('last_name')
         
         # Start to build a queryset, starting with targetted users
         all_targets = target_by_users
