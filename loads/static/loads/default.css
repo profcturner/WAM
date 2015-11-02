@@ -302,11 +302,11 @@ text-decoration: none;
   background-color:transparent;
 
 }
-#menu a.current:hover {
+#menu a.active:hover {
   padding-left: 5px;
 }
 
-#menu a.current {
+#menu a.active {
   color:#ffffff;
   background: #3780e6;
   border-left-width: 5px;
@@ -315,7 +315,7 @@ text-decoration: none;
   padding-left: 5px;
 }
 
-#menu a.currentfirst
+#menu a.activefirst
  {
   border-width: 0px 1px 0px 1px;
   color:#ffffff;
@@ -325,7 +325,7 @@ text-decoration: none;
   border-left-color: transparent;
   padding-left: 5px;
 }
-#menu a.currentfirst:hover {
+#menu a.activefirst:hover {
   padding-left: 5px;
 }
 

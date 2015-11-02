@@ -14,19 +14,27 @@
   <a class="brand-only ulster-university" href="http://www.ulster.ac.uk" tabindex="1">Ulster University Ulster University <span>Workload Modelling</span></a>
 <!--<![endif]-->
 
+{% load tags %}
+
+{% url 'index' as index %}
+{% url 'loads' as loads %}
+{% url 'tasks_index' as tasks_index %}
+{% url 'modules_index' as modules_index %}
+
+
 <div id="menu">
   <ul>
     <li class="menutop home">
       <a title="click to access section: Home" class="first" href="{% url 'index' %}">Home</a>
     </li>
 		<li class="menutop">
-      <a title="click to access section: Loads" class="current" href="{% url 'loads' %}">Loads</a>
+      <a title="click to access section: Loads" class="{% active request loads %}" href="{% url 'loads' %}">Loads</a>
     </li>
 		<li class="menutop">
-      <a title="click to access section: Tasks" class="current" href="{% url 'tasks_index' %}">Tasks</a>
+      <a title="click to access section: Tasks" class="{% active request tasks_index %}" href="{% url 'tasks_index' %}">Tasks</a>
     </li>
 		<li class="menutop">
-      <a title="click to access section: Modules" class="current" href="{% url 'modules_index' %}">Modules</a>
+      <a title="click to access section: Modules" class="{% active request modules_index %}" href="{% url 'modules_index' %}">Modules</a>
     </li>
 	</ul>
 </div>
@@ -42,6 +50,8 @@
 {% endcomment %}
 
 </div>
+
+<div id="content_block">
 
 <br />
    
