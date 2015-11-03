@@ -76,9 +76,12 @@
     </table>
     
 {% endif %}
-    
+
+<h3>Completion Status</h3>
+
+<strong>{{ percentage_complete|stringformat:".2f"}}% complete.</strong><br />   
 <p>Completions: {{ combined_list_complete|length}}. <br />
-Non completions: {{combined_list_incomplete|length}}.
+Non completions: {{combined_list_incomplete|length}}.<br />
 </p>
     
 

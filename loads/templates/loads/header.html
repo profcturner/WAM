@@ -25,7 +25,7 @@
 <div id="menu">
   <ul>
     <li class="menutop home">
-      <a title="click to access section: Home" class="first" href="{% url 'index' %}">Home</a>
+      <a title="click to access section: Home" class="{%if home_page %}active{% endif %}first" href="{% url 'index' %}">Home</a>
     </li>
 		<li class="menutop">
       <a title="click to access section: Loads" class="{% active request loads %}" href="{% url 'loads' %}">Loads</a>

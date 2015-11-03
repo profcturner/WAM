@@ -29,6 +29,7 @@ def index(request):
  
     template = loader.get_template('loads/index.html')
     context = RequestContext(request, {
+        'home_page': True,
     })
     return HttpResponse(template.render(context))
 
@@ -147,12 +148,19 @@ def tasks_details(request, task_id):
             combined_item = [target, completion[0]]
             combined_list_complete.append(combined_item)
             
+    total_number = len(combined_list_complete) + len(combined_list_incomplete)
+    if total_number > 0:
+        percentage_complete = 100 * len(combined_list_complete) / total_number
+    else:
+        percentage_complete = 0
+            
                             
     template = loader.get_template('loads/tasks/details.html')
     context = RequestContext(request, {
         'task': task,
         'combined_list_complete': combined_list_complete,
         'combined_list_incomplete' : combined_list_incomplete,
+        'percentage_complete' : percentage_complete
     })
     return HttpResponse(template.render(context))
     
