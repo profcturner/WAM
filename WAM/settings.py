@@ -22,6 +22,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'i(@t%n%skz1v)y-%b4+krov&l1efdc__m+oh!jn59%(!4n1r7+'
 
+# I can't find a better way to do this in django!
+WAM_URL = "http://localhost"
+WAM_AUTO_EMAIL_FROM = "c.turner@ulster.ac.uk"
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -82,6 +86,7 @@ DATABASES = {
     }
 }
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
