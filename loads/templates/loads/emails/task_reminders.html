@@ -10,7 +10,7 @@
         <th style="text-align: left;">Details</th>
       </tr>
       {% for task, when in combined_list_incomplete %}
-      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+      <tr style="background: {% cycle '#EDF3FE' '#FFFFFF' %};">
         <th style="text-align: left; padding: 5px">{{ task.name }}</th>
         <td style="padding: 5px">{{ task.deadline }}</td>
         <td style="padding: 5px">{{ task.deadline|timeuntil }}</td>
