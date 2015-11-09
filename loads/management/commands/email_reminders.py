@@ -31,6 +31,12 @@ class Command(BaseCommand):
             dest='urgent-only',
             default=False,
             help='Only email if some tasks are urgent (less than 7 days to deadline)')
+            
+        parser.add_argument('--test-only',
+            action='store_true',
+            dest='test-only',
+            default=False,
+            help='Don\'t actually send emails')
 
             
     def handle(self, *args, **options):
@@ -39,15 +45,18 @@ class Command(BaseCommand):
         
         count = 0
         urgent_only = options['urgent-only']
+        verbosity = options['verbosity']
         for staff in all_staff:
-            if self.email_tasks_by_staff(staff, urgent_only=urgent_only):
+            if self.email_tasks_by_staff(staff, options, urgent_only=urgent_only):
                 count += 1
 
-        self.stdout.write(str(count)+ ' reminder(s) sent')
+        if verbosity > 0:
+            self.stdout.write(str(count)+ ' reminder(s) sent')
 
 
-    def email_tasks_by_staff(self, staff, urgent_only='false'):
+    def email_tasks_by_staff(self, staff, options, urgent_only='false'):
         """docstring for email_tasks_by_staff"""
+        verbosity = options['verbosity']
         all_tasks = staff.get_all_tasks()
 
         # We will create separate lists for those tasks that are complete
@@ -96,11 +105,16 @@ class Command(BaseCommand):
         text_content = plaintext.render(context)
         html_content = html.render(context)
         
-        self.stdout.write('Email sent to ' + staff.user.email)
+        if verbosity > 0:
+            self.stdout.write('Email sent to ' + staff.user.email)
         
         email = EmailMultiAlternatives(subject, text_content, from_email, [to])
         email.attach_alternative(html_content, "text/html")
-        email.send()
+        if not options['test-only']:
+            email.send()
+        else:
+            if verbosity > 0:
+                self.stdout.write('Email NOT sent, test mode.')
         return True
 
 
