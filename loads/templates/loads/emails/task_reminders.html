@@ -1,17 +1,21 @@
 {% if combined_list_complete or combined_list_incomplete %}
 <p>This is just an automated reminder that you have {{ combined_list_incomplete|length}} outstanding task{{combined_list_incomplete|length|pluralize}}.</p>
 
-    <table border="0">
+    <table style="border-collapse: collapse; border-color: #ccc;" border="1">
       <tr>
-        <th>Task Name</th><th>Deadline</th><th>Time left</th><th>Completed</th><th>Details</th>
+        <th style="text-align: left;">Task Name</th>
+        <th style="text-align: left;">Deadline</th>
+        <th style="text-align: left;">Time left</th>
+        <th style="text-align: left;">Completed</th>
+        <th style="text-align: left;">Details</th>
       </tr>
       {% for task, when in combined_list_incomplete %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <th>{{ task.name }}</th>
-        <td>{{ task.deadline }}</td>
-        <td>{{ task.deadline|timeuntil }}</td>
-        <td>{{ when }}</td>
-        <td>{{ base_url }}{% url 'tasks_details' task.id %}</td>
+        <th style="text-align: left; padding: 5px">{{ task.name }}</th>
+        <td style="padding: 5px">{{ task.deadline }}</td>
+        <td style="padding: 5px">{{ task.deadline|timeuntil }}</td>
+        <td style="padding: 5px">{{ when }}</td>
+        <td style="padding: 5px"><a href="{{ base_url }}{% url 'tasks_details' task.id %}">details</a></td>
       </tr>      
       {% endfor %}
     </table>
