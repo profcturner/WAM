@@ -46,12 +46,20 @@ class Command(BaseCommand):
         count = 0
         urgent_only = options['urgent-only']
         verbosity = options['verbosity']
+        
+        if verbosity and options['test-only']:
+            self.stdout.write('TEST MODE, No emails will actually be sent.')
+        
         for staff in all_staff:
             if self.email_tasks_by_staff(staff, options, urgent_only=urgent_only):
                 count += 1
 
-        if verbosity > 0:
+        if verbosity:
             self.stdout.write(str(count)+ ' reminder(s) sent')
+        
+        if verbosity and options['test-only']:
+            self.stdout.write('TEST MODE, No emails will actually be sent.')
+            
 
 
     def email_tasks_by_staff(self, staff, options, urgent_only='false'):
@@ -80,7 +88,13 @@ class Command(BaseCommand):
             else:
                 combined_item = [task, completion[0].when]
                 combined_list_complete.append(combined_item)
-                
+        
+        if verbosity > 2:
+            self.stdout.write('  considering: {}'.format(str(staff)))
+            self.stdout.write('    complete {}, incomplete {}, urgent tasks {}'.format(
+                len(combined_list_complete), len(combined_list_incomplete), urgent_tasks
+            ))
+                    
         # Don't nag staff with no tasks
         if len(combined_list_incomplete) == 0:
             return False
@@ -105,16 +119,13 @@ class Command(BaseCommand):
         text_content = plaintext.render(context)
         html_content = html.render(context)
         
-        if verbosity > 0:
+        if verbosity:
             self.stdout.write('Email sent to ' + staff.user.email)
         
         email = EmailMultiAlternatives(subject, text_content, from_email, [to])
         email.attach_alternative(html_content, "text/html")
         if not options['test-only']:
             email.send()
-        else:
-            if verbosity > 0:
-                self.stdout.write('Email NOT sent, test mode.')
         return True
 
 
