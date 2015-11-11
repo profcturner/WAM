@@ -6,16 +6,22 @@
         <th style="text-align: left;">Task Name</th>
         <th style="text-align: left;">Deadline</th>
         <th style="text-align: left;">Time left</th>
-        <th style="text-align: left;">Completed</th>
+        <th style="text-align: left;">Status</th>
         <th style="text-align: left;">Details</th>
       </tr>
-      {% for task, when in combined_list_incomplete %}
+      {% for task, urgent, overdue in combined_list_incomplete %}
       <tr style="background: {% cycle '#EDF3FE' '#FFFFFF' %};">
         <th style="text-align: left; padding: 5px">{{ task.name }}</th>
-        <td style="padding: 5px">{{ task.deadline }}</td>
-        <td style="padding: 5px">{{ task.deadline|timeuntil }}</td>
-        <td style="padding: 5px">{{ when }}</td>
-        <td style="padding: 5px"><a href="{{ base_url }}{% url 'tasks_details' task.id %}">details</a></td>
+        <td style="padding: 5px;">{{ task.deadline }}</td>
+        <td style="padding: 5px;{% if overdue %}color=red;{% endif %}">{{ task.deadline|timeuntil }}</td>
+        {% if overdue %}
+        <td style="padding: 5px; color: red">Overdue<br />{{ task.deadline|timesince }}</td>
+        {% elif urgent %}
+        <td style="padding: 5px; color: red">Urgent</td>
+        {% else %}
+        <td style="padding: 5px;">Pending</td>
+        {% endif %}
+        <td style="padding: 5px;"><a href="{{ base_url }}{% url 'tasks_details' task.id %}">details</a></td>
       </tr>      
       {% endfor %}
     </table>
@@ -27,5 +33,5 @@
 {% endif %}
 
 {% if urgent_only %}
-<p>This email has only been sent because there are incomplete tasks that are overdue or less than a week from deadline and therefore may be urgent.</p>
+<p><strong>This email has only been sent because there are incomplete tasks that are overdue or less than a week from deadline and therefore may be urgent.</strong></p>
 {% endif %}

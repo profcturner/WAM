@@ -77,14 +77,24 @@ class Command(BaseCommand):
             # Is it complete? Look for a completion model
             completion = TaskCompletion.objects.all().filter(staff=staff).filter(task=task)
             if len(completion) == 0:
-                # It isn't complete...
-                combined_item = [task, False]
-                combined_list_incomplete.append(combined_item)
-                # How long do we have left
                 seconds_left = (task.deadline - now).total_seconds()
                 # If a task is less than a week from deadline consider it urgent
                 if(seconds_left < 60*60*24*7):
+                    urgent = True
                     urgent_tasks = True
+                else:
+                    urgent = False
+                    
+                if(seconds_left < 0):
+                    overdue = True
+                else:
+                    overdue = False
+                    
+                # It isn't complete...
+                combined_item = [task, urgent, overdue]
+                combined_list_incomplete.append(combined_item)
+                # How long do we have left
+                
             else:
                 combined_item = [task, completion[0].when]
                 combined_list_complete.append(combined_item)
@@ -115,14 +125,19 @@ class Command(BaseCommand):
             'base_url' : settings.WAM_URL, 
         })
 
-        subject, from_email, to = 'Your task reminders', settings.WAM_AUTO_EMAIL_FROM, staff.user.email
+        if urgent_tasks:
+            email_subject = 'URGENT: Your task reminders'
+        else:
+            email_subject = 'Your task reminders'
+            
+        from_email, to = settings.WAM_AUTO_EMAIL_FROM, staff.user.email
         text_content = plaintext.render(context)
         html_content = html.render(context)
         
         if verbosity:
             self.stdout.write('Email sent to {} <{}>'.format(str(staff), staff.user.email))
         
-        email = EmailMultiAlternatives(subject, text_content, from_email, [to])
+        email = EmailMultiAlternatives(email_subject, text_content, from_email, [to])
         email.attach_alternative(html_content, "text/html")
         if not options['test-only']:
             email.send()
