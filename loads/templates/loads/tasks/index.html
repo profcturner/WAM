@@ -23,11 +23,9 @@
       {% endfor %}
     </table>
     
-    <p>There are {{ tasks|length}} open task{{tasks|length|pluralize}}.</p>
+    <p>There are {{ augmented_tasks|length}} open task{{tasks|length|pluralize}}.</p>
 {% else %}
     <p>No unarchived tasks are available.</p>
 {% endif %}
-
-{{ debug }}
 
 {% include "loads/footer.html" %}
