@@ -17,6 +17,12 @@
     </th>
     <td>
       {{ task.deadline }} ({{ task.deadline|timeuntil }})
+      {% if overdue %}
+      <span class="urgent">Overdue: {{ task.deadline|timesince }}</span>
+      {% elif urgent %}
+      <span class="urgent">Urgent</span>
+      {% endif %}
+      
     </td>
   </tr>
   {% if task.url %}

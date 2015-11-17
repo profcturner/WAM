@@ -1,6 +1,51 @@
 {% include "loads/header.html" %}
 
 <h2>{{ task.name }}</h2>
+
+<table border="0">
+  <tr>
+    <th>
+      Details
+    </th>
+    <td>
+      {{ task.details}}
+    </td>
+  </tr>
+  <tr>
+    <th>
+      Deadline
+    </th>
+    <td>
+      {{ task.deadline }} ({{ task.deadline|timeuntil }})
+      {% if overdue %}
+      <span class="urgent">Overdue: {{ task.deadline|timesince }}</span>
+      {% elif urgent %}
+      <span class="urgent">Urgent</span>
+      {% endif %}
+      
+    </td>
+  </tr>
+  {% if task.url %}
+  <tr>
+    <th>
+      URL
+    </th>
+    <td>
+      <a href="{{task.url}}">{{ task.url }}</a>
+    </td>
+  </tr>
+  {% endif %}
+  <tr>
+    <th>
+      Category
+    </th>
+    <td>
+      {{ task.category}}
+    </td>
+  </tr>
+
+</table>
+
 <p>
 Please confirm completion of this task by {{ staff }}, any comment is optional.
 </p>

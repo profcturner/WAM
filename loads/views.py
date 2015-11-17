@@ -92,10 +92,14 @@ def tasks_index(request):
     '''Obtains a list of all non archived tasks'''
     # Fetch the tasks assigned against the specific user of the staff member
     tasks = Task.objects.all().exclude(archive=True).order_by('deadline')
+    
+    augmented_tasks = []
+    for task in tasks:
+        augmented_tasks.append([task, task.is_urgent(), task.is_overdue()])
                     
     template = loader.get_template('loads/tasks/index.html')
     context = RequestContext(request, {
-        'tasks': tasks,
+        'augmented_tasks': augmented_tasks,
     })
     return HttpResponse(template.render(context))
             
@@ -113,7 +117,7 @@ def tasks_bystaff(request, staff_id):
         # Is it complete? Look for a completion model
         completion = TaskCompletion.objects.all().filter(staff=staff).filter(task=task)
         if len(completion) == 0:
-            combined_item = [task, False]
+            combined_item = [task, task.is_urgent(), task.is_overdue()]
             combined_list_incomplete.append(combined_item)
         else:
             combined_item = [task, completion[0].when]
@@ -158,6 +162,8 @@ def tasks_details(request, task_id):
     template = loader.get_template('loads/tasks/details.html')
     context = RequestContext(request, {
         'task': task,
+        'overdue': task.is_overdue(),
+        'urgent': task.is_urgent(),
         'combined_list_complete': combined_list_complete,
         'combined_list_incomplete' : combined_list_incomplete,
         'percentage_complete' : percentage_complete
@@ -204,7 +210,9 @@ def tasks_completion(request, task_id, staff_id):
     else:
         form = TaskCompletionForm()
 
-    return render(request, 'loads/tasks/completion.html', {'form': form, 'task': task, 'staff': staff})
+    return render(request, 'loads/tasks/completion.html', {'form': form, 'task': task, 
+        'overdue': task.is_overdue(), 
+        'urgent': task.is_urgent(),'staff': staff})
 
 
 def exam_track_progress(request, module_id):

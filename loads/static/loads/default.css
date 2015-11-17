@@ -129,6 +129,10 @@ a:hover {
   font-weight: bold;
 }
 
+.urgent {
+  color: red;
+}
+
 /* TABLES */
 
 table {

@@ -1,6 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import User, Group
 
+# code to handle timezones
+from django.utils.timezone import utc
+import datetime
+
 #TODO: Needs more elegant handling than this
 ACADEMIC_YEAR='2015/2016'
 NOMINAL_HOURS=1600
@@ -258,8 +262,24 @@ class Task(models.Model):
         
         return all_targets
         
-
-
+    def is_urgent(self):
+        """returns True is the task is 7 days away or less, False otherwise"""
+        now = datetime.datetime.utcnow().replace(tzinfo=utc)
+        seconds_left = (self.deadline - now).total_seconds()
+        # If a task is less than a week from deadline consider it urgent
+        if(seconds_left < 60*60*24*7):
+            return True
+        else:
+            return False
+            
+    def is_overdue(self):
+        """returns True is the deadline has passed, False otherwise"""
+        now = datetime.datetime.utcnow().replace(tzinfo=utc)
+        seconds_left = (self.deadline - now).total_seconds()
+        if(seconds_left < 0):
+            return True
+        else:
+            return False
     
     
 class TaskCompletion(models.Model):

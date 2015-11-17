@@ -1,16 +1,23 @@
 {% include "loads/header.html" %}
   
 
-{% if tasks %}
+{% if augmented_tasks %}
     <table border="1">
       <tr>
-        <th>Task Name</th><th>Deadline</th><th>Time left</th><th>Details</th>
+        <th>Task Name</th><th>Deadline</th><th>Time left</th><th>Status</th><th>Details</th>
       </tr>
-      {% for task in tasks %}
+      {% for task, urgent, overdue in augmented_tasks %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ task.name }}</th>
         <td>{{ task.deadline }}</td>
         <td>{{ task.deadline|timeuntil }}</td>
+        {% if overdue %}
+        <td><span class="urgent">Overdue<br />{{ task.deadline|timesince }}</span></td>
+        {% elif urgent %}
+        <td><span class="urgent">Urgent</span></td>
+        {% else %}
+        <td>Pending</td>
+        {% endif %}
         <td><a href="{% url 'tasks_details' task.id %}">Details</a></td>
       </tr>      
       {% endfor %}
