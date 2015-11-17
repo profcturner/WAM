@@ -21,7 +21,7 @@
     </table>
     
     <p>
-    Total hours for all activities is {{ total_total }}, average hours by staff member {{ average }}.
+    Total hours for all activities is {{ total_total }}, average hours by staff member {{ average|stringformat:".0f" }}.
     </p>
 {% else %}
     <p>No staff members are available.</p>

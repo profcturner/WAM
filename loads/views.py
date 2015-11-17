@@ -54,8 +54,11 @@ def loads(request):
         combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3], 100*load_info[3]/staff.fte]
         combined_list.append(combined_item)
         total += load_info[3]
-        
-    average = total / len(combined_list)
+    
+    if len(combined_list):    
+        average = total / len(combined_list)
+    else:
+        average = 0
         
     template = loader.get_template('loads/loads.html')
     context = RequestContext(request, {
