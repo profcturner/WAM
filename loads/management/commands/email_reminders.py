@@ -15,10 +15,6 @@ from loads.models import Staff
 from loads.models import Task
 from loads.models import TaskCompletion
 
-# And code to handle timezones
-from django.utils.timezone import utc
-import datetime
-
 # We need to access a few settings
 from django.conf import settings
 
@@ -72,23 +68,16 @@ class Command(BaseCommand):
         combined_list_incomplete = []
         
         urgent_tasks = False
-        now = datetime.datetime.utcnow().replace(tzinfo=utc)
         for task in all_tasks:
             # Is it complete? Look for a completion model
             completion = TaskCompletion.objects.all().filter(staff=staff).filter(task=task)
             if len(completion) == 0:
-                seconds_left = (task.deadline - now).total_seconds()
-                # If a task is less than a week from deadline consider it urgent
-                if(seconds_left < 60*60*24*7):
-                    urgent = True
+                # It isn't complete, find out if urgent or overdue
+                urgent = task.is_urgent()
+                overdue = task.is_overdue()
+
+                if urgent:
                     urgent_tasks = True
-                else:
-                    urgent = False
-                    
-                if(seconds_left < 0):
-                    overdue = True
-                else:
-                    overdue = False
                     
                 # It isn't complete...
                 combined_item = [task, urgent, overdue]
@@ -96,6 +85,7 @@ class Command(BaseCommand):
                 # How long do we have left
                 
             else:
+                # It is complete, add information as to when
                 combined_item = [task, completion[0].when]
                 combined_list_complete.append(combined_item)
         
