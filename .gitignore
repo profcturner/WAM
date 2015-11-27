@@ -35,3 +35,7 @@ coverage.xml
 *.mo
 
 db.sqlite3
+
+tmtags
+
+tmtagsHistory
