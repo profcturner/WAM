@@ -99,7 +99,7 @@ class Command(BaseCommand):
         if len(combined_list_incomplete) == 0:
             return False
         
-        # Or if urgency is set to low and no tasks are urgent
+        # Or if urgent_only is set and no tasks are urgent
         if not urgent_tasks and urgent_only:
             return False 
         
