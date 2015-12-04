@@ -16,6 +16,8 @@ from .models import Category
 from .models import CourseworkTracker
 from .models import ExamTracker
 from .models import Module
+from .models import ModuleSize
+from .models import ModuleStaff
 from .models import Staff
 from .models import Task
 from .models import TaskCompletion
@@ -54,6 +56,8 @@ admin.site.register(Category)
 admin.site.register(CourseworkTracker)
 admin.site.register(ExamTracker)
 admin.site.register(Module, ModuleAdmin)
+admin.site.register(ModuleStaff)
+admin.site.register(ModuleSize)
 admin.site.register(Staff, StaffAdmin)
 admin.site.register(Task, TaskAdmin)
 admin.site.register(TaskCompletion)

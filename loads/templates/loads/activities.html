@@ -1,6 +1,7 @@
 {% include "loads/header.html" %}
   
 
+<h2>Custom Activities</h2>
 {% if combined_list %}
     <table border="1">
       <tr>
@@ -17,10 +18,31 @@
       {% endfor %}
     </table>
     
-    <p>{{ staff }} has a total allocation of {{ total }} hours.</p>
-    
+
 {% else %}
     <p>No activities are available for {{ staff }}.</p>
 {% endif %}
+
+<h2>Activities Automatically Added From Modules</h2>
+{% if combined_list_modules %}
+    <table border="1">
+      <tr>
+        <th>Activity Name</th><th>First Semester</th><th>Second Semester</th><th>Third Semester</th><th>Total</th>
+      </tr>
+      {% for activity, first, second, third, total in combined_list_modules %}
+      <tr class="{% cycle 'row1' 'row2' %}">
+        <th>{{ activity }}</th>
+        <td>{{ first|stringformat:".2f" }}</td>
+        <td>{{ second|stringformat:".2f" }}</td>
+        <td>{{ third|stringformat:".2f" }}</td>
+        <td>{{ total }}</td>
+      </tr>      
+      {% endfor %}
+    </table>
+{% else %}
+    <p>No module activities are available for {{ staff }}.</p>
+{% endif %}
+
+<p>{{ staff }} has a total allocation of {{ total }} hours.</p>
 
 {% include "loads/footer.html" %}

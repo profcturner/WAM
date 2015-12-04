@@ -15,6 +15,7 @@ from .models import Task
 from .models import Activity
 from .models import TaskCompletion
 from .models import Module
+from .models import ModuleStaff
 from .models import ExamTracker
 from .models import CourseworkTracker
 
@@ -74,6 +75,7 @@ def activities(request, staff_id):
     staff = get_object_or_404(Staff, pk=staff_id)
     activities = Activity.objects.all().filter(staff=staff).order_by('name')
     combined_list = []
+    combined_list_modules = []
     total = 0
         
     for activity in activities:
@@ -81,11 +83,46 @@ def activities(request, staff_id):
         combined_item = [activity, load_info[0], load_info[1], load_info[2], load_info[3]]
         combined_list.append(combined_item)
         total += load_info[3]
-            
+        
+    # Add hours calculated from "automatic" module allocation
+    modulestaff = ModuleStaff.objects.all().filter(staff=staff_id)
+    for moduledata in modulestaff:
+        c_hours = moduledata.module.get_contact_hours_by_semester()
+        as_hours = moduledata.module.get_assessment_hours_by_semester()
+        ad_hours = moduledata.module.get_admin_hours_by_semester()
+
+        semester1_c_hours = c_hours[0] * moduledata.contact_proportion / 100
+        semester1_as_hours = as_hours[0] * moduledata.assessment_proportion / 100
+        semester1_ad_hours = ad_hours[0] * moduledata.admin_proportion / 100
+        
+        semester2_c_hours = c_hours[1] * moduledata.contact_proportion / 100
+        semester2_as_hours = as_hours[1] * moduledata.assessment_proportion / 100
+        semester2_ad_hours = ad_hours[1] * moduledata.admin_proportion / 100
+
+        semester3_c_hours = c_hours[2] * moduledata.contact_proportion / 100
+        semester3_as_hours = as_hours[2] * moduledata.assessment_proportion / 100
+        semester3_ad_hours = ad_hours[2] * moduledata.admin_proportion / 100
+        
+        c_hours_proportion = c_hours[3] * moduledata.contact_proportion / 100
+        as_hours_proportion = as_hours[3] * moduledata.assessment_proportion / 100
+        ad_hours_proportion = ad_hours[3] * moduledata.admin_proportion / 100
+        
+        combined_item = [str(moduledata.module) + ' Contact Hours',
+            semester1_c_hours, semester2_c_hours, semester3_c_hours, c_hours_proportion]
+        combined_list_modules.append(combined_item)
+        combined_item = [str(moduledata.module) + ' Admin Hours',
+            semester1_ad_hours, semester2_ad_hours, semester3_ad_hours, ad_hours_proportion]
+        combined_list_modules.append(combined_item)
+        combined_item = [str(moduledata.module) + ' Assessment Hours',
+            semester1_as_hours, semester2_as_hours, semester3_as_hours, as_hours_proportion]
+        combined_list_modules.append(combined_item)
+        total += c_hours_proportion + as_hours_proportion + ad_hours_proportion
+        
     template = loader.get_template('loads/activities.html')
     context = RequestContext(request, {
         'staff': staff,
         'combined_list': combined_list,
+        'combined_list_modules': combined_list_modules,
         'total': total
     })
     return HttpResponse(template.render(context))
