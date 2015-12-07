@@ -29,13 +29,19 @@ class ModuleAdmin(admin.ModelAdmin):
     list_display = ('module_code', 'module_name', 'semester')
     
 class ActivityAdmin(admin.ModelAdmin):
-    list_display = ('name', 'module', 'hours', 'semester', 'activity_type', 'is_allocated')
+    list_display = ('name', 'module', 'staff', 'hours', 'percentage', 'semester', 'activity_type', 'is_allocated')
     
 class StaffAdmin(admin.ModelAdmin):
     list_display = ('title','first_name','last_name','staff_number','fte','total_hours')
     
 class TaskAdmin(admin.ModelAdmin):
     list_display = ('name', 'category', 'deadline')
+    
+class TaskCompletionAdmin(admin.ModelAdmin):
+    list_display = ('task', 'staff', 'when', 'comment')
+    
+class ModuleStaffAdmin(admin.ModelAdmin):
+    list_display = ('module', 'staff', 'contact_proportion', 'admin_proportion', 'assessment_proportion')
 
 # Define an inline admin descriptor for Staff model
 # which acts a bit like a singleton
@@ -56,11 +62,11 @@ admin.site.register(Category)
 admin.site.register(CourseworkTracker)
 admin.site.register(ExamTracker)
 admin.site.register(Module, ModuleAdmin)
-admin.site.register(ModuleStaff)
+admin.site.register(ModuleStaff, ModuleStaffAdmin)
 admin.site.register(ModuleSize)
 admin.site.register(Staff, StaffAdmin)
 admin.site.register(Task, TaskAdmin)
-admin.site.register(TaskCompletion)
+admin.site.register(TaskCompletion, TaskCompletionAdmin)
 admin.site.register(Resource)
 
 # Re-register UserAdmin

@@ -242,7 +242,7 @@ class ModuleStaff(models.Model):
         return str(self.module) + " : " + str(self.staff)
         
     class Meta:
-        verbose_name_plural = "modulestaff"
+        verbose_name_plural = "module staff"
 
 
 class ModuleSize(models.Model):
