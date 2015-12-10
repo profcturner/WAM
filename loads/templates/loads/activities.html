@@ -1,11 +1,12 @@
 {% include "loads/header.html" %}
-  
+
+<h1>Activity breakdown for {{staff}}</h1>  
 
 <h2>Custom Activities</h2>
 {% if combined_list %}
     <table border="1">
       <tr>
-        <th>Activity Name</th><th>First Semester</th><th>Second Semester</th><th>Third Semester</th><th>Total</th>
+        <th width="50%">Activity Name</th><th width="10%">First Semester</th><th width="10%">Second Semester</th><th width="10%">Third Semester</th><th width="10%">Total</th>
       </tr>
       {% for activity, first, second, third, total in combined_list %}
       <tr class="{% cycle 'row1' 'row2' %}">
@@ -27,7 +28,7 @@
 {% if combined_list_modules %}
     <table border="1">
       <tr>
-        <th>Activity Name</th><th>First Semester</th><th>Second Semester</th><th>Third Semester</th><th>Total</th>
+        <th width="50%">Activity Name</th><th width="10%">First Semester</th><th width="10%">Second Semester</th><th width="10%">Third Semester</th><th width="10%">Total</th>
       </tr>
       {% for activity, first, second, third, total in combined_list_modules %}
       <tr class="{% cycle 'row1' 'row2' %}">
@@ -43,6 +44,19 @@
     <p>No module activities are available for {{ staff }}.</p>
 {% endif %}
 
-<p>{{ staff }} has a total allocation of {{ total }} hours.</p>
+<h2>Totals</h2>
+    <table border="1">
+      <tr>
+        <th width="50%"></th><th width="10%">First Semester</th><th width="10%">Second Semester</th><th width="10%">Third Semester</th><th width="10%">Total</th>
+      </tr>
+      <tr class='row1'>
+        <th>Totals</th>
+        <th>{{ semester1_total|stringformat:".2f" }}</th>
+        <th>{{ semester2_total|stringformat:".2f" }}</th>
+        <th>{{ semester3_total|stringformat:".2f" }}</th>
+        <th>{{ total }}</th>        
+      </tr>
+    </table>
+
 
 {% include "loads/footer.html" %}

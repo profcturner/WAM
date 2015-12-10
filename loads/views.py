@@ -77,11 +77,17 @@ def activities(request, staff_id):
     combined_list = []
     combined_list_modules = []
     total = 0
+    semester1_total = 0
+    semester2_total = 0
+    semester3_total = 0
         
     for activity in activities:
         load_info = activity.hours_by_semester()
         combined_item = [activity, load_info[0], load_info[1], load_info[2], load_info[3]]
         combined_list.append(combined_item)
+        semester1_total += load_info[0]
+        semester2_total += load_info[1]
+        semester3_total += load_info[2]
         total += load_info[3]
         
     # Add hours calculated from "automatic" module allocation
@@ -116,6 +122,11 @@ def activities(request, staff_id):
         combined_item = [str(moduledata.module) + ' Assessment Hours',
             semester1_as_hours, semester2_as_hours, semester3_as_hours, as_hours_proportion]
         combined_list_modules.append(combined_item)
+        
+        semester1_total += (semester1_c_hours + semester1_ad_hours + semester1_as_hours)
+        semester2_total += (semester2_c_hours + semester2_ad_hours + semester2_as_hours)
+        semester3_total += (semester3_c_hours + semester3_ad_hours + semester3_as_hours)
+        
         total += c_hours_proportion + as_hours_proportion + ad_hours_proportion
         
     template = loader.get_template('loads/activities.html')
@@ -123,6 +134,9 @@ def activities(request, staff_id):
         'staff': staff,
         'combined_list': combined_list,
         'combined_list_modules': combined_list_modules,
+        'semester1_total': semester1_total,
+        'semester2_total': semester2_total,
+        'semester3_total': semester3_total,
         'total': total
     })
     return HttpResponse(template.render(context))
