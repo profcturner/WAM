@@ -152,6 +152,9 @@ class ActivityType(models.Model):
     
     def __str__(self):
         return self.name
+        
+    class Meta:
+        ordering = ['name']
     
 
 class Activity(models.Model):
@@ -187,7 +190,10 @@ class Activity(models.Model):
     staff = models.ForeignKey(Staff, null = True, blank = True)
     
     def __str__(self):
-        return self.name + ' (' + str(self.module) + ')'
+        if self.module is not None:
+            return self.name + ' (' + str(self.module) + ')'
+        else:
+            return self.name
         
     def module_details(self):
         return str(self.module_id)
@@ -219,6 +225,7 @@ class Campus(models.Model):
         
     class Meta:
         verbose_name_plural = "campuses"
+        ordering = ['name']
 
 
 class ModuleStaff(models.Model):
@@ -335,6 +342,9 @@ class Module(models.Model):
     
     def __str__(self):
         return self.module_code + ' : ' + self.module_name
+        
+    class Meta:
+        ordering = ['module_code']
     
 
 class Task(models.Model):
