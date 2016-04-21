@@ -106,14 +106,14 @@ class Command(BaseCommand):
         plaintext = get_template('loads/emails/task_reminders.txt')
         html = get_template('loads/emails/task_reminders.html')
 
-        context = Context({
+        context_dict = {
             'staff': staff,
             'combined_list_incomplete': combined_list_incomplete,
             'combined_list_complete': combined_list_complete,
             'urgent_tasks': urgent_tasks,
             'urgent_only' : urgent_only,
             'base_url' : settings.WAM_URL, 
-        })
+        };
 
         if urgent_tasks:
             email_subject = 'URGENT: Your task reminders'
@@ -121,8 +121,8 @@ class Command(BaseCommand):
             email_subject = 'Your task reminders'
             
         from_email, to = settings.WAM_AUTO_EMAIL_FROM, staff.user.email
-        text_content = plaintext.render(context)
-        html_content = html.render(context)
+        text_content = plaintext.render(context_dict)
+        html_content = html.render(context_dict)
         
         if verbosity:
             self.stdout.write('Email sent to {} <{}>'.format(str(staff), staff.user.email))
