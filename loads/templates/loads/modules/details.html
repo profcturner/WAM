@@ -22,6 +22,12 @@
 </table>
 
 <h2>Related Activity Information</h2>
+
+<p>Selected Work Package : {{package}}</p>
+
+{% if package.draft %}
+<h1>This is a DRAFT allocation and may be incomplete.</h1>
+{% endif %}  
   
 {% if activities %}
     <table border="1">

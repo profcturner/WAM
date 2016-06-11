@@ -1,5 +1,10 @@
 {% include "loads/header.html" %}
-  
+
+<p>Selected Work Package : {{package}}</p>
+
+{% if package.draft %}
+<h1>This is a DRAFT allocation and may be incomplete.</h1>
+{% endif %}  
 
 {% if combined_list %}
     <table border="1">

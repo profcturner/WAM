@@ -2,6 +2,12 @@
 
 <h1>Activity breakdown for {{staff}}</h1>  
 
+<p>Selected Work Package : {{package}}</p>
+
+{% if package.draft %}
+<h1>This is a DRAFT allocation and may be incomplete.</h1>
+{% endif %}  
+
 <h2>Custom Activities</h2>
 {% if combined_list %}
     <table border="1">

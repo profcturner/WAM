@@ -22,6 +22,7 @@ from .models import Staff
 from .models import Task
 from .models import TaskCompletion
 from .models import Resource
+from .models import WorkPackage
 
 # Some code to augment the admin views in some cases
 
@@ -42,6 +43,9 @@ class TaskCompletionAdmin(admin.ModelAdmin):
     
 class ModuleStaffAdmin(admin.ModelAdmin):
     list_display = ('module', 'staff', 'contact_proportion', 'admin_proportion', 'assessment_proportion')
+    
+class WorkPackageAdmin(admin.ModelAdmin):
+    list_display = ('name', 'startdate', 'enddate', 'draft', 'archive')
 
 # Define an inline admin descriptor for Staff model
 # which acts a bit like a singleton
@@ -68,6 +72,7 @@ admin.site.register(Staff, StaffAdmin)
 admin.site.register(Task, TaskAdmin)
 admin.site.register(TaskCompletion, TaskCompletionAdmin)
 admin.site.register(Resource)
+admin.site.register(WorkPackage, WorkPackageAdmin)
 
 # Re-register UserAdmin
 # See https://docs.djangoproject.com/en/1.8/topics/auth/customizing/#extending-user

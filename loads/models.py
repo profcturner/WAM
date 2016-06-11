@@ -44,6 +44,41 @@ def divide_by_semesters(total_hours, semester_string):
     return split_hours
     
 
+class WorkPackage(models.Model):
+    '''Groups workload by user groups and time
+    
+    A WorkPackage can represent all the users and the time period
+    for which activities are relevant. A most usual application
+    would be to group activities by School and Academic Year.
+    
+    name        the name of the package, probably the academic unit
+    details     any further details of the package
+    startdate   the first date of activities related to the package
+    enddate     the end date of the activities related to the package
+    draft       indicates the package is still being constructed
+    archive     indicates the package is maintained for record only
+    groups      a collection of all django groups affected
+    created     when the package was created
+    modified    when the package was last modified
+    '''
+    
+    name = models.CharField(max_length = 100)
+    details = models.TextField()
+    startdate = models.DateField()
+    enddate = models.DateField()
+    draft = models.BooleanField(default=True)
+    archive = models.BooleanField(default=False)
+    groups = models.ManyToManyField(Group, blank=True)
+    created = models.DateTimeField(auto_now_add = True)
+    modified = models.DateTimeField(auto_now = True)
+    
+    def __str__(self):
+        return self.name + ' (' + str(self.startdate) + ' - ' + str(self.enddate) + ')'
+    
+    class Meta:
+        ordering = ['name', '-startdate']
+
+
 class Staff(models.Model):
     '''Augments the Django user model with staff details
     
@@ -51,11 +86,13 @@ class Staff(models.Model):
     title           the title of the member of staff (Dr, Mr etc)
     staff_number    the staff number
     fte             the percentage of time the member of staff is available for
+    package         the active work package to edit or display
     '''
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     staff_number = models.CharField(max_length=20)
     fte = models.PositiveSmallIntegerField(default=100)
+    package = models.ForeignKey(WorkPackage)
     
     def __str__(self):
         return self.title + ' ' + self.user.first_name + ' ' + self.user.last_name
@@ -66,14 +103,17 @@ class Staff(models.Model):
     def last_name(self):
         return self.user.last_name
         
-    def hours_by_semester(self, academic_year = ACADEMIC_YEAR):
-        '''Calculate the total allocated hours'''
+    def hours_by_semester(self, package = 0):
+        '''Calculate the total allocated hours for a given WorkPackage
+        
+        If package is zero it attempts to find the value for the logged in user
+        '''
         semester1_hours = 0
         semester2_hours = 0
         semester3_hours = 0
         
         # Fetch all the allocated activities for this member of staff
-        activities = Activity.objects.all().filter(staff=self.id).filter(academic_year=academic_year)
+        activities = Activity.objects.all().filter(staff=self.id).filter(package=package)
         for activity in activities:
             hours_by_semester = activity.hours_by_semester()
             semester1_hours += hours_by_semester[0]
@@ -81,7 +121,7 @@ class Staff(models.Model):
             semester3_hours += hours_by_semester[2]
             
         # Add hours calculated from "automatic" module allocation
-        modulestaff = ModuleStaff.objects.all().filter(staff=self.id).filter(academic_year=academic_year)
+        modulestaff = ModuleStaff.objects.all().filter(staff=self.id).filter(package=package)
         for moduledata in modulestaff:
             c_hours = moduledata.module.get_contact_hours_by_semester()
             as_hours = moduledata.module.get_assessment_hours_by_semester()
@@ -103,9 +143,9 @@ class Staff(models.Model):
         return [semester1_hours, semester2_hours, semester3_hours,
             int(semester1_hours + semester2_hours + semester3_hours), len(activities)]
     
-    def total_hours(self, academic_year = ACADEMIC_YEAR):
+    def total_hours(self, package = 0):
         '''Calculate the total allocated hours'''
-        hours_by_semester = self.hours_by_semester(academic_year)
+        hours_by_semester = self.hours_by_semester(package)
         return hours_by_semester[3]
         
     def get_all_tasks(self):
@@ -127,11 +167,25 @@ class Staff(models.Model):
         order_with_respect_to = 'user'
 
 
+
 class Category(models.Model):
     '''Categories of activity
     
     name    whether the activity is Teaching, Research etc.
     '''
+    
+    SET = 'SET'
+    MODERATE = 'MODERATE'
+    EXTERNAL = 'EXTERNAL'
+    REWORK = 'REWORK'
+    EXAMOFFICE = 'EXAMOFFICE'
+    PROGRESS_CHOICES = (
+        (SET, 'Coursework Set'),
+        (MODERATE, 'Internal Moderation'),
+        (EXTERNAL, 'Sent to External Examiner'),
+        (REWORK, 'Reworked'),
+        (EXAMOFFICE, 'Submitted to Exams Office'),
+    )
     name = models.CharField(max_length=100)
     
     def __str__(self):
@@ -169,6 +223,7 @@ class Activity(models.Model):
     comment          any short comment or note
     academic_year    the academic year in the form 2015/2016 etc.
     staff            if not NULL, the staff member allocated this activity
+    package          the WorkPackage this activity belongs to
     
     '''
     
@@ -188,6 +243,7 @@ class Activity(models.Model):
     comment = models.CharField(max_length = 200, default='', blank = True)
     academic_year = models.CharField(max_length = 10, default = ACADEMIC_YEAR)
     staff = models.ForeignKey(Staff, null = True, blank = True)
+    package = models.ForeignKey('WorkPackage')
     
     def __str__(self):
         if self.module is not None:
@@ -240,6 +296,7 @@ class ModuleStaff(models.Model):
     module = models.ForeignKey('Module')
     staff = models.ForeignKey('Staff')
     academic_year = models.CharField(max_length=10, default=ACADEMIC_YEAR)
+    package = models.ForeignKey('WorkPackage')
     
     contact_proportion = models.PositiveSmallIntegerField()
     admin_proportion = models.PositiveSmallIntegerField()
@@ -278,6 +335,7 @@ class Module(models.Model):
     contact_hours   the main contact hours for the module
     admin_hours     admin hours, blank for automatic calculation
     assessment_hours    assessment, hours, blank for automatic calculation
+    package         the package this module (instance) is associated with
     
     Eventually augmenting this from CMS would be useful
     '''
@@ -291,6 +349,7 @@ class Module(models.Model):
     contact_hours = models.PositiveSmallIntegerField(blank = True)
     admin_hours = models.PositiveSmallIntegerField(blank = True)
     assessment_hours = models.PositiveSmallIntegerField(blank = True)
+    package = models.ForeignKey('WorkPackage')
     
     def get_contact_hours(self):
         """returns the contact hours for the module

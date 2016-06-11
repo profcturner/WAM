@@ -46,12 +46,19 @@ def forbidden(request):
 
 def loads(request):
     '''Show the loads for all members of staff'''
+
+    # Fetch the staff user associated with the person requesting
+    staff = get_object_or_404(Staff, user=request.user)
+    # And therefore the package enabled for that user
+    package = staff.package
+    
+    #TODO We should create a staff list only featuring those in groups related to the package
     staff_list = Staff.objects.all().order_by('user__last_name')
     combined_list = []
     total = 0
     
     for staff in staff_list:
-        load_info = staff.hours_by_semester()
+        load_info = staff.hours_by_semester(package=package)
         combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3], 100*load_info[3]/staff.fte]
         combined_list.append(combined_item)
         total += load_info[3]
@@ -66,14 +73,21 @@ def loads(request):
         'combined_list': combined_list,
         'total_total': total,
         'average': average,
+        'package': package,
     })
     return HttpResponse(template.render(context))
     
     
 def activities(request, staff_id):
     '''Show the activities for a given staff member'''
+    # Fetch the staff user associated with the person requesting
+    staff = get_object_or_404(Staff, user=request.user)
+    # And therefore the package enabled for that user
+    package = staff.package
+    
+    # Now the staff member we want to look at
     staff = get_object_or_404(Staff, pk=staff_id)
-    activities = Activity.objects.all().filter(staff=staff).order_by('name')
+    activities = Activity.objects.all().filter(staff=staff).filter(package=package).order_by('name')
     combined_list = []
     combined_list_modules = []
     total = 0
@@ -91,7 +105,7 @@ def activities(request, staff_id):
         total += load_info[3]
         
     # Add hours calculated from "automatic" module allocation
-    modulestaff = ModuleStaff.objects.all().filter(staff=staff_id)
+    modulestaff = ModuleStaff.objects.all().filter(staff=staff_id).filter(package=package)
     for moduledata in modulestaff:
         c_hours = moduledata.module.get_contact_hours_by_semester()
         as_hours = moduledata.module.get_assessment_hours_by_semester()
@@ -137,7 +151,8 @@ def activities(request, staff_id):
         'semester1_total': semester1_total,
         'semester2_total': semester2_total,
         'semester3_total': semester3_total,
-        'total': total
+        'total': total,
+        'package': package,
     })
     return HttpResponse(template.render(context))
 
@@ -373,8 +388,13 @@ def modules_details(request, module_id):
     # Get the module itself
     module = get_object_or_404(Module, pk=module_id)
     
+    # Fetch the staff user associated with the person requesting
+    staff = get_object_or_404(Staff, user=request.user)
+    # And therefore the package enabled for that user
+    package = staff.package
+    
     # Get all associated activities, exam and coursework trackers
-    activities = Activity.objects.all().filter(module=module).order_by('name')
+    activities = Activity.objects.all().filter(module=module).filter(package=package).order_by('name')
     exam_trackers = ExamTracker.objects.all().filter(module=module).order_by('created')
     coursework_trackers = CourseworkTracker.objects.all().filter(module=module).order_by('created')
     
@@ -384,6 +404,7 @@ def modules_details(request, module_id):
         'activities': activities,
         'exam_trackers': exam_trackers,
         'coursework_trackers': coursework_trackers,
+        'package': package,
     })
     return HttpResponse(template.render(context))
     
