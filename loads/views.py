@@ -54,33 +54,38 @@ def loads(request):
     # And therefore the package enabled for that user
     package = staff.package
     
-    # We will group the data according to groups in the package
+    total = 0.0
+    total_staff = 0
     group_data = []
+ 
+    # Go through each group in turn
+    for group in staff.package.groups.all():
+        group_list = []
+        group_total = 0.0
+        group_average = 0.0
+        # Get the users in the group
+        users = User.objects.all().filter(groups__in=[group]).distinct().order_by('last_name')
+        # And the associated staff objects
+        staff_list = Staff.objects.all().filter(user__in=users).order_by('user__last_name')
+        for staff in staff_list:
+            load_info = staff.hours_by_semester(package=package)
+            combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3], 100*load_info[0]/staff.fte]
+            group_list.append(combined_item)
+            group_total += load_info[0]
+            group_average = group_total / len(staff_list)
+        group_data.append([group, group_list, group_total, group_average])
+        total += group_total
+        total_staff += len(staff_list)
     
-    #for group in staff.package.groups:
-    #    staff_list = Staff.objects.all().filter(user__in=group).order_by('user__last_name')
-
-    
-    #TODO We should create a staff list only featuring those in groups related to the package
-    staff_list = Staff.objects.all().order_by('user__last_name')
-    combined_list = []
-    total = 0
-    
-    for staff in staff_list:
-        load_info = staff.hours_by_semester(package=package)
-        combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3], 100*load_info[0]/staff.fte]
-        combined_list.append(combined_item)
-        total += load_info[0]
-    
-    if len(combined_list):    
-        average = total / len(combined_list)
+    if total_staff:    
+        average = total / total_staff
     else:
         average = 0
         
     template = loader.get_template('loads/loads.html')
     context = RequestContext(request, {
-        'combined_list': combined_list,
-        'total_total': total,
+        'group_data' : group_data,
+        'total': total,
         'average': average,
         'package': package,
     })

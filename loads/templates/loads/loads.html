@@ -6,12 +6,15 @@
 <h1>This is a DRAFT allocation and may be incomplete.</h1>
 {% endif %}  
 
-{% if combined_list %}
+{% if group_data %}
+  {% for group, group_list, group_total, group_average in group_data %}
+  <h2>{{group}}</h2>
+    {% if group_list %}
     <table border="1">
       <tr>
         <th>Staff Name</th><th>First Semester</th><th>Second Semester</th><th>Third Semester</th><th>Total</th><th>Scaled</th><th>Activities</th><th>Tasks</th>
       </tr>
-      {% for staff, total, first, second, third, scaled in combined_list %}
+      {% for staff, total, first, second, third, scaled in group_list %}
       <tr class="{% cycle 'row1' 'row2' %}">
         <th>{{ staff }}</th>
         <td>{{ first|stringformat:".2f" }}</td>
@@ -24,14 +27,22 @@
       </tr>      
       {% endfor %}
     </table>
-    
     <p>
-    Total hours for all activities is {{ total_total }}, average hours by staff member {{ average|stringformat:".0f" }}.
+      Total hours for all activities in this group is {{ group_total }}, average hours by staff member {{ group_average|stringformat:".0f" }}.
     </p>
+    {% else %}
+    <p>No allocations for this group at this time.</p>
+    {% endif %}
+  {% endfor %}
+  <h2>Overall Totals</h2>
+  <p>
+  Total hours for all activities is {{ total }}, average hours by staff member {{ average|stringformat:".0f" }}.
+  </p>
+  
 {% else %}
-    <p>No staff members are available.</p>
+  <p>No data for this work package at this time.</p>
 {% endif %}
 
-{{ debug }}
+
 
 {% include "loads/footer.html" %}
