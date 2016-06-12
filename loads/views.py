@@ -149,14 +149,14 @@ def activities(request, staff_id):
         as_hours_proportion = as_hours[0] * moduledata.assessment_proportion / 100
         ad_hours_proportion = ad_hours[0] * moduledata.admin_proportion / 100
         
-        combined_item = [str(moduledata.module) + ' Contact Hours',
-            semester1_c_hours, semester2_c_hours, semester3_c_hours, c_hours_proportion]
+        combined_item = [str(moduledata.module) + ' Contact Hours', c_hours_proportion,
+            semester1_c_hours, semester2_c_hours, semester3_c_hours]
         combined_list_modules.append(combined_item)
-        combined_item = [str(moduledata.module) + ' Admin Hours',
-            semester1_ad_hours, semester2_ad_hours, semester3_ad_hours, ad_hours_proportion]
+        combined_item = [str(moduledata.module) + ' Admin Hours', ad_hours_proportion,
+            semester1_ad_hours, semester2_ad_hours, semester3_ad_hours]
         combined_list_modules.append(combined_item)
-        combined_item = [str(moduledata.module) + ' Assessment Hours',
-            semester1_as_hours, semester2_as_hours, semester3_as_hours, as_hours_proportion]
+        combined_item = [str(moduledata.module) + ' Assessment Hours', as_hours_proportion,
+            semester1_as_hours, semester2_as_hours, semester3_as_hours]
         combined_list_modules.append(combined_item)
         
         semester1_total += (semester1_c_hours + semester1_ad_hours + semester1_as_hours)
