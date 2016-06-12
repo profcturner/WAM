@@ -63,6 +63,8 @@ def loads(request):
         group_list = []
         group_total = 0.0
         group_average = 0.0
+        group_allocated_staff = 0
+        group_allocated_average = 0.0
         # Get the users in the group
         users = User.objects.all().filter(groups__in=[group]).distinct().order_by('last_name')
         # And the associated staff objects
@@ -72,8 +74,14 @@ def loads(request):
             combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3], 100*load_info[0]/staff.fte]
             group_list.append(combined_item)
             group_total += load_info[0]
+            if load_info[0]:
+                # Also count staff with allocated hours
+                group_allocated_staff += 1
+        if len(staff_list):
             group_average = group_total / len(staff_list)
-        group_data.append([group, group_list, group_total, group_average])
+        if group_allocated_staff:
+            group_allocated_average = group_total / group_allocated_staff
+        group_data.append([group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average])
         total += group_total
         total_staff += len(staff_list)
     
