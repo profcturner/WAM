@@ -1,10 +1,19 @@
 from django import forms
 from django.forms import ModelForm
 
+from .models import Staff
 from .models import TaskCompletion
 from .models import ExamTracker
 from .models import CourseworkTracker
 
+class StaffWorkPackageForm(ModelForm):
+    '''This form is to change a Staff member's active WorkPackage'''
+    class Meta:
+        model = Staff
+        # Only one field is on the form, the rest are passed in before
+        fields = ['package']
+        
+        
 class TaskCompletionForm(ModelForm):
     '''This form is to file completion of a task given an existing task'''
     class Meta:

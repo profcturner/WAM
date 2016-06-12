@@ -9,20 +9,15 @@ import datetime
 
 #TODO: Needs more elegant handling than this
 ACADEMIC_YEAR='2015/2016'
-NOMINAL_HOURS=1600
-
-CREDIT_TO_CONTACT_SCALING = 8/20
-CONTACT_TO_ADMIN_SCALING = 1
-CONTACT_TO_ASSESSMENT_SCALING = 1
 
 def divide_by_semesters(total_hours, semester_string):
     """divide hours equally between targeted semesters
     
     total_hours     the total number of hours to divide
-    semester_string comma separated list of semesters
+    semester_string comma separated list of semesters the hours are in
     
-    returns a list with hours in each of three semesters
-    followed by the total itself
+    returns a list with the first item containing the total and
+    then each following item being the hours for that semester
     """
     semesters = semester_string.split(',')
     
@@ -40,7 +35,7 @@ def divide_by_semesters(total_hours, semester_string):
             # Nothing in this semester
             split_hours.append(0)
     
-    split_hours.append(total_hours)        
+    split_hours.insert(0, total_hours)
     return split_hours
     
 
@@ -60,6 +55,15 @@ class WorkPackage(models.Model):
     groups      a collection of all django groups affected
     created     when the package was created
     modified    when the package was last modified
+    nominal_hours
+                the considered normal number of load hours in a year
+    credit_contact_scaling
+                multiplier from credit points to contact hours
+    contact_admin_scaling
+                multiplier from contact hours to admin hours
+    contact_assessment_scaling
+                multiplier from contact hours to assessment hours
+    
     '''
     
     name = models.CharField(max_length = 100)
@@ -69,6 +73,10 @@ class WorkPackage(models.Model):
     draft = models.BooleanField(default=True)
     archive = models.BooleanField(default=False)
     groups = models.ManyToManyField(Group, blank=True)
+    nominal_hours = models.PositiveIntegerField(default=1600)
+    credit_contact_scaling = models.FloatField(default=8/20)
+    contact_admin_scaling = models.FloatField(default=1)
+    contact_assessment_scaling = models.FloatField(default=1)
     created = models.DateTimeField(auto_now_add = True)
     modified = models.DateTimeField(auto_now = True)
     
@@ -108,17 +116,17 @@ class Staff(models.Model):
         
         If package is zero it attempts to find the value for the logged in user
         '''
-        semester1_hours = 0
-        semester2_hours = 0
-        semester3_hours = 0
+        semester1_hours = 0.0
+        semester2_hours = 0.0
+        semester3_hours = 0.0
         
         # Fetch all the allocated activities for this member of staff
         activities = Activity.objects.all().filter(staff=self.id).filter(package=package)
         for activity in activities:
             hours_by_semester = activity.hours_by_semester()
-            semester1_hours += hours_by_semester[0]
-            semester2_hours += hours_by_semester[1]
-            semester3_hours += hours_by_semester[2]
+            semester1_hours += hours_by_semester[1]
+            semester2_hours += hours_by_semester[2]
+            semester3_hours += hours_by_semester[3]
             
         # Add hours calculated from "automatic" module allocation
         modulestaff = ModuleStaff.objects.all().filter(staff=self.id).filter(package=package)
@@ -127,26 +135,26 @@ class Staff(models.Model):
             as_hours = moduledata.module.get_assessment_hours_by_semester()
             ad_hours = moduledata.module.get_admin_hours_by_semester()
 
-            semester1_hours += c_hours[0] * moduledata.contact_proportion / 100
-            semester1_hours += as_hours[0] * moduledata.assessment_proportion / 100
-            semester1_hours += ad_hours[0] * moduledata.admin_proportion / 100
+            semester1_hours += int(c_hours[1] * moduledata.contact_proportion / 100)
+            semester1_hours += int(as_hours[1] * moduledata.assessment_proportion / 100)
+            semester1_hours += int(ad_hours[1] * moduledata.admin_proportion / 100)
 
-            semester2_hours += c_hours[1] * moduledata.contact_proportion / 100
-            semester2_hours += as_hours[1] * moduledata.assessment_proportion / 100
-            semester2_hours += ad_hours[1] * moduledata.admin_proportion / 100
+            semester2_hours += int(c_hours[2] * moduledata.contact_proportion / 100)
+            semester2_hours += int(as_hours[2] * moduledata.assessment_proportion / 100)
+            semester2_hours += int(ad_hours[2] * moduledata.admin_proportion / 100)
 
-            semester3_hours += c_hours[2] * moduledata.contact_proportion / 100
-            semester3_hours += as_hours[2] * moduledata.assessment_proportion / 100
-            semester3_hours += ad_hours[2] * moduledata.admin_proportion / 100            
+            semester3_hours += int(c_hours[3] * moduledata.contact_proportion / 100)
+            semester3_hours += int(as_hours[3] * moduledata.assessment_proportion / 100)
+            semester3_hours += int(ad_hours[3] * moduledata.admin_proportion / 100)            
             
             
-        return [semester1_hours, semester2_hours, semester3_hours,
-            int(semester1_hours + semester2_hours + semester3_hours), len(activities)]
+        return [int(semester1_hours + semester2_hours + semester3_hours),
+            semester1_hours, semester2_hours, semester3_hours, len(activities)]
     
     def total_hours(self, package = 0):
         '''Calculate the total allocated hours'''
         hours_by_semester = self.hours_by_semester(package)
-        return hours_by_semester[3]
+        return hours_by_semester[0]
         
     def get_all_tasks(self):
         '''Returns a queryset of all unarchived tasks linked to this staff member'''
@@ -221,7 +229,6 @@ class Activity(models.Model):
     semester         the semester or semesters the activity is in, comma separated
     activity_type    see the related Model
     comment          any short comment or note
-    academic_year    the academic year in the form 2015/2016 etc.
     staff            if not NULL, the staff member allocated this activity
     package          the WorkPackage this activity belongs to
     
@@ -241,7 +248,6 @@ class Activity(models.Model):
     activity_type = models.ForeignKey('ActivityType')
     module = models.ForeignKey('Module', blank = True, null = True)
     comment = models.CharField(max_length = 200, default='', blank = True)
-    academic_year = models.CharField(max_length = 10, default = ACADEMIC_YEAR)
     staff = models.ForeignKey(Staff, null = True, blank = True)
     package = models.ForeignKey('WorkPackage')
     
@@ -263,7 +269,7 @@ class Activity(models.Model):
         if self.hours_percentage == self.HOURS:
             total_hours = self.hours
         else:
-            total_hours = self.percentage * NOMINAL_HOURS / 100
+            total_hours = self.percentage * self.package.nominal_hours / 100
         
         return divide_by_semesters(total_hours, self.semester)        
             
@@ -295,7 +301,6 @@ class ModuleStaff(models.Model):
     
     module = models.ForeignKey('Module')
     staff = models.ForeignKey('Staff')
-    academic_year = models.CharField(max_length=10, default=ACADEMIC_YEAR)
     package = models.ForeignKey('WorkPackage')
     
     contact_proportion = models.PositiveSmallIntegerField()
@@ -318,8 +323,8 @@ class ModuleSize(models.Model):
     '''
     
     text = models.CharField(max_length=10)
-    admin_scaling = models.DecimalField(max_digits=6, decimal_places=2)
-    assessment_scaling = models.DecimalField(max_digits=6, decimal_places=2)
+    admin_scaling = models.FloatField()
+    assessment_scaling = models.FloatField()
     
     def __str__(self):
         return str(self.text)
@@ -359,7 +364,7 @@ class Module(models.Model):
         if self.contact_hours:
             hours = self.contact_hours
         else:
-            hours = self.credits * CREDIT_TO_CONTACT_SCALING
+            hours = self.credits * self.package.credit_contact_scaling
         return hours
         
     def get_contact_hours_by_semester(self):
@@ -370,7 +375,7 @@ class Module(models.Model):
         if self.admin_hours:
             hours = self.admin_hours
         else:
-            hours = self.get_contact_hours() * CONTACT_TO_ADMIN_SCALING * float(self.size.admin_scaling)
+            hours = self.get_contact_hours() * self.package.contact_admin_scaling * self.size.admin_scaling
         return hours
         
     def get_admin_hours_by_semester(self):
@@ -381,7 +386,7 @@ class Module(models.Model):
         if self.assessment_hours:
             hours = self.assessment_hours
         else:
-            hours = self.get_contact_hours() * CONTACT_TO_ASSESSMENT_SCALING * float(self.size.assessment_scaling)
+            hours = self.get_contact_hours() * self.package.contact_assessment_scaling * self.size.assessment_scaling
         return hours
         
     def get_assessment_hours_by_semester(self):

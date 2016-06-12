@@ -1,5 +1,11 @@
 {% include "loads/header.html" %}
 
+<p>Selected Work Package : {{package}} <a href="{%url 'workpackage_change' %}">(Change Package)</a></p>
+
+{% if package.draft %}
+<h1>This is a DRAFT allocation and may be incomplete.</h1>
+{% endif %}  
+
 {% if combined_list %}
     <table border="1">
       <tr>
@@ -20,7 +26,7 @@
   </p>
     
 {% else %}
-    <p>No modules currently exist.</p>
+    <p>No modules currently exist for this package.</p>
 {% endif %}
 
 {% include "loads/footer.html" %}

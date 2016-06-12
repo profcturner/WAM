@@ -14,7 +14,7 @@
       <tr>
         <th width="50%">Activity Name</th><th width="10%">First Semester</th><th width="10%">Second Semester</th><th width="10%">Third Semester</th><th width="10%">Total</th>
       </tr>
-      {% for activity, first, second, third, total in combined_list %}
+      {% for activity, total, first, second, third in combined_list %}
       <tr class="{% cycle 'row1' 'row2' %}">
         <th>{{ activity }}</th>
         <td>{{ first|stringformat:".2f" }}</td>
@@ -36,7 +36,7 @@
       <tr>
         <th width="50%">Activity Name</th><th width="10%">First Semester</th><th width="10%">Second Semester</th><th width="10%">Third Semester</th><th width="10%">Total</th>
       </tr>
-      {% for activity, first, second, third, total in combined_list_modules %}
+      {% for activity, total, first, second, third in combined_list_modules %}
       <tr class="{% cycle 'row1' 'row2' %}">
         <th>{{ activity }}</th>
         <td>{{ first|stringformat:".2f" }}</td>

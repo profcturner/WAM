@@ -18,10 +18,12 @@ from .models import Module
 from .models import ModuleStaff
 from .models import ExamTracker
 from .models import CourseworkTracker
+from .models import WorkPackage
 
 from .forms import TaskCompletionForm
 from .forms import ExamTrackerForm
 from .forms import CourseworkTrackerForm
+from .forms import StaffWorkPackageForm
 
 from django.contrib.auth.models import User, Group
 
@@ -52,6 +54,13 @@ def loads(request):
     # And therefore the package enabled for that user
     package = staff.package
     
+    # We will group the data according to groups in the package
+    group_data = []
+    
+    #for group in staff.package.groups:
+    #    staff_list = Staff.objects.all().filter(user__in=group).order_by('user__last_name')
+
+    
     #TODO We should create a staff list only featuring those in groups related to the package
     staff_list = Staff.objects.all().order_by('user__last_name')
     combined_list = []
@@ -59,9 +68,9 @@ def loads(request):
     
     for staff in staff_list:
         load_info = staff.hours_by_semester(package=package)
-        combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3], 100*load_info[3]/staff.fte]
+        combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3], 100*load_info[0]/staff.fte]
         combined_list.append(combined_item)
-        total += load_info[3]
+        total += load_info[0]
     
     if len(combined_list):    
         average = total / len(combined_list)
@@ -90,19 +99,19 @@ def activities(request, staff_id):
     activities = Activity.objects.all().filter(staff=staff).filter(package=package).order_by('name')
     combined_list = []
     combined_list_modules = []
-    total = 0
-    semester1_total = 0
-    semester2_total = 0
-    semester3_total = 0
+    total = 0.0
+    semester1_total = 0.0
+    semester2_total = 0.0
+    semester3_total = 0.0
         
     for activity in activities:
         load_info = activity.hours_by_semester()
         combined_item = [activity, load_info[0], load_info[1], load_info[2], load_info[3]]
         combined_list.append(combined_item)
-        semester1_total += load_info[0]
-        semester2_total += load_info[1]
-        semester3_total += load_info[2]
-        total += load_info[3]
+        semester1_total += load_info[1]
+        semester2_total += load_info[2]
+        semester3_total += load_info[3]
+        total += load_info[0]
         
     # Add hours calculated from "automatic" module allocation
     modulestaff = ModuleStaff.objects.all().filter(staff=staff_id).filter(package=package)
@@ -111,21 +120,21 @@ def activities(request, staff_id):
         as_hours = moduledata.module.get_assessment_hours_by_semester()
         ad_hours = moduledata.module.get_admin_hours_by_semester()
 
-        semester1_c_hours = c_hours[0] * moduledata.contact_proportion / 100
-        semester1_as_hours = as_hours[0] * moduledata.assessment_proportion / 100
-        semester1_ad_hours = ad_hours[0] * moduledata.admin_proportion / 100
+        semester1_c_hours = c_hours[1] * moduledata.contact_proportion / 100
+        semester1_as_hours = as_hours[1] * moduledata.assessment_proportion / 100
+        semester1_ad_hours = ad_hours[1] * moduledata.admin_proportion / 100
         
-        semester2_c_hours = c_hours[1] * moduledata.contact_proportion / 100
-        semester2_as_hours = as_hours[1] * moduledata.assessment_proportion / 100
-        semester2_ad_hours = ad_hours[1] * moduledata.admin_proportion / 100
+        semester2_c_hours = c_hours[2] * moduledata.contact_proportion / 100
+        semester2_as_hours = as_hours[2] * moduledata.assessment_proportion / 100
+        semester2_ad_hours = ad_hours[2] * moduledata.admin_proportion / 100
 
-        semester3_c_hours = c_hours[2] * moduledata.contact_proportion / 100
-        semester3_as_hours = as_hours[2] * moduledata.assessment_proportion / 100
-        semester3_ad_hours = ad_hours[2] * moduledata.admin_proportion / 100
+        semester3_c_hours = c_hours[3] * moduledata.contact_proportion / 100
+        semester3_as_hours = as_hours[3] * moduledata.assessment_proportion / 100
+        semester3_ad_hours = ad_hours[3] * moduledata.admin_proportion / 100
         
-        c_hours_proportion = c_hours[3] * moduledata.contact_proportion / 100
-        as_hours_proportion = as_hours[3] * moduledata.assessment_proportion / 100
-        ad_hours_proportion = ad_hours[3] * moduledata.admin_proportion / 100
+        c_hours_proportion = c_hours[0] * moduledata.contact_proportion / 100
+        as_hours_proportion = as_hours[0] * moduledata.assessment_proportion / 100
+        ad_hours_proportion = ad_hours[0] * moduledata.admin_proportion / 100
         
         combined_item = [str(moduledata.module) + ' Contact Hours',
             semester1_c_hours, semester2_c_hours, semester3_c_hours, c_hours_proportion]
@@ -354,8 +363,12 @@ def coursework_track_progress(request, module_id):
     
 def modules_index(request):
     """Shows a high level list of modules"""
-    # Fetch the tasks assigned against the specific user of the staff member
-    modules = Module.objects.all().order_by('module_code')
+    # Fetch the staff user associated with the person requesting
+    staff = get_object_or_404(Staff, user=request.user)
+    # And therefore the package enabled for that user
+    package = staff.package
+    
+    modules = Module.objects.all().filter(package=package).order_by('module_code')
     
     combined_list = []
     for module in modules:
@@ -379,6 +392,7 @@ def modules_index(request):
     template = loader.get_template('loads/modules/index.html')
     context = RequestContext(request, {
         'combined_list': combined_list,
+        'package': package,
     })
     return HttpResponse(template.render(context))
     
@@ -408,4 +422,34 @@ def modules_details(request, module_id):
     })
     return HttpResponse(template.render(context))
     
+    
+def workpackage_change(request):
+    """Allows a user to change their current active workpackage"""
+    # Get the member of staff for the logged in user
+    staff = get_object_or_404(Staff, user=request.user)
+    
+    # Get all workpackages that touch on the staff member's group
+    packages = WorkPackage.objects.all().distinct()
+    
+    #target_by_groups = User.objects.all().filter(groups__in=target_groups).distinct().order_by('last_name')
+    #all_targets = task.get_all_targets()
+    
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request and the given staff
+        form = StaffWorkPackageForm(request.POST, instance = staff)
+        # check whether it's valid:
+        if form.is_valid():
+            form.save()
             
+            # redirect to the loads page
+            url = reverse('loads')
+            return HttpResponseRedirect(url)
+
+    # if a GET (or any other method) we'll create a form from the current logged in user
+    else:
+        form = StaffWorkPackageForm(instance = staff)
+
+    return render(request, 'loads/workpackage.html', {'form': form, 'staff': staff})
+
+        

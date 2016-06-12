@@ -20,6 +20,7 @@ from loads import views
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
+    url(r'^workpackage/$', views.workpackage_change, name='workpackage_change'),
     url(r'^loads/$', views.loads, name='loads'),
     url(r'^activities/(?P<staff_id>[0-9]+)$', views.activities, name='activities'),
     url(r'^tasks/index/$', views.tasks_index, name='tasks_index'),
