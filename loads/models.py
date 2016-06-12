@@ -402,7 +402,7 @@ class Module(models.Model):
         return(hours)
         
     def get_all_hours_by_semester(self):
-        return divide_by_demesters(self.get_all_hours())
+        return divide_by_semesters(self.get_all_hours(), self.semester)
     
     def __str__(self):
         return self.module_code + ' : ' + self.module_name
