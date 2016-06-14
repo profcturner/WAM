@@ -82,6 +82,56 @@ class WorkPackage(models.Model):
     
     def __str__(self):
         return self.name + ' (' + str(self.startdate) + ' - ' + str(self.enddate) + ')'
+        
+    def clone_from(self, package, options):
+        '''Copy from another package'''
+        
+        if (Activity.objects.filter(package=self).count()
+            + Module.objects.filter(package=self).count()
+            + ModuleStaff.objects.filter(package=self).count()) > 0:
+            return "Destination Workpackage not empty, aborting..."
+            
+        changes = ""
+        
+        if options['activities']:
+            # Copy Activities
+            changes += "Copying activities...<br />"
+            activities = Activity.objects.all().filter(package=package)
+            for activity in activities:
+                # Invalidate the primary key to force save
+                activity.pk = None
+                # Point the new instance at the current package
+                activity.package = self
+                activity.save()
+                changes += "  Activity {} copied...<br />".format(str(activity))
+            changes += "{} activities copied...<br />".format(len(activities))
+                
+        if options['modules']:
+            # Copy Modules
+            modules = Module.objects.all().filter(package=package)
+            for module in modules:
+                # Invalidate the primary key to force save
+                module.pk = None
+                # Point the new instance at the current package
+                module.package = self
+                module.save()
+                changes += "  Module {} copied...<br />".format(str(module))
+                # And now copy Module Allocations if needed
+                if options['modulestaff']:
+                    modulestaff = ModuleStaff.objects.all().filter()
+                    for allocation in modulestaff:
+                        # Invalidate the module key
+                        allocation.pk = None
+                        # Point the new instance at the current package and module
+                        allocation.module = module
+                        allocation.package = self
+                        allocation.save()
+                        changes += "    Allocation {} copied...<br />".format(str(allocation))
+                    changes += "  {} allocations copied...<br />".format(len(modulestaff))
+            changes += "{} modules copied...<br />".format(len(modules))
+        
+        return changes
+
     
     class Meta:
         ordering = ['name', '-startdate']

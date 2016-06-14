@@ -24,6 +24,7 @@ from .forms import TaskCompletionForm
 from .forms import ExamTrackerForm
 from .forms import CourseworkTrackerForm
 from .forms import StaffWorkPackageForm
+from .forms import MigrateWorkPackageForm
 
 from django.contrib.auth.models import User, Group
 
@@ -464,5 +465,55 @@ def workpackage_change(request):
         form = StaffWorkPackageForm(instance = staff)
 
     return render(request, 'loads/workpackage.html', {'form': form, 'staff': staff})
+
+
+def workpackage_migrate(request):
+    """Allows a user to change their current active workpackage"""
+    # Get the member of staff for the logged in user
+    staff = get_object_or_404(Staff, user=request.user)
+    # TODO Check that this staff member is in the two WorkPackages
+    
+    # Check for a valid permission at this stage
+    can_override = (request.user.has_perm('loads.add_activity')
+        and request.user.has_perm('loads_add_module')
+        and request.user.has_perm('loads_add_modulestaff'))
+        
+    if not can_override:
+        return HttpResponseRedirect('/forbidden/')
+    
+    # Get all workpackages that touch on the staff member's group
+    packages = WorkPackage.objects.all().distinct()
+    
+    #target_by_groups = User.objects.all().filter(groups__in=target_groups).distinct().order_by('last_name')
+    #all_targets = task.get_all_targets()
+    
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request and the given staff
+        form = MigrateWorkPackageForm(request.POST)
+        # check whether it's valid:
+        if form.is_valid():
+
+            options = {'activities': form.cleaned_data['copy_activities'],
+                'modules': form.cleaned_data['copy_modules'],
+                'modulestaff': form.cleaned_data['copy_modulestaff'], }
+            destination_package = form.cleaned_data['destination_package']
+            source_package = form.cleaned_data['source_package']
+            changes = destination_package.clone_from(source_package, options)
+            
+            template = loader.get_template('loads/workpackages/migrate_results.html')
+            context = RequestContext(request, {
+                'source_package': source_package,
+                'destination_package': destination_package,
+                'options': options,
+                'changes': changes,
+            })
+            return HttpResponse(template.render(context))
+
+    # if a GET (or any other method) we'll create a form from the current logged in user
+    else:
+        form = MigrateWorkPackageForm()
+
+    return render(request, 'loads/workpackages/migrate.html', {'form': form, 'staff': staff})
 
         

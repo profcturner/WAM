@@ -1,0 +1,24 @@
+{% include "loads/header.html" %}
+
+<h2>Migrate WorkPackage</h2>
+
+<p>
+This tool allows for custom activities, modules, and allocations of staff to modules to
+be copied from one WorkPackage to another. It is, for safety reasons, not possible to
+copy to a destination WorkPackage which already contains any of these items.
+</p>
+
+<p>
+The normal use for this functionality is to roll the allocation from one year to another
+so that it can then be edited appropriately for the next year.
+</p>
+
+<form action="" method="post">
+    {% csrf_token %}
+    <table>
+    {{ form.as_table }}
+    </table>
+    <input type="submit" value="Submit" />
+</form>  
+
+{% include "loads/footer.html" %}

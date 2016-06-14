@@ -5,6 +5,15 @@ from .models import Staff
 from .models import TaskCompletion
 from .models import ExamTracker
 from .models import CourseworkTracker
+from .models import WorkPackage
+
+class MigrateWorkPackageForm(forms.Form):
+    '''This form allows for material in one Work Package to another'''
+    source_package = forms.ModelChoiceField(queryset=WorkPackage.objects.all())
+    destination_package = forms.ModelChoiceField(queryset=WorkPackage.objects.all())
+    copy_activities = forms.BooleanField(required=False)
+    copy_modules = forms.BooleanField(required=False)
+    copy_modulestaff = forms.BooleanField(required=False)
 
 class StaffWorkPackageForm(ModelForm):
     '''This form is to change a Staff member's active WorkPackage'''
