@@ -53,7 +53,12 @@ def loads(request):
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
+    
     package = staff.package
+    if not package:
+        url = reverse('workpackage_change')
+        return HttpResponseRedirect(url)
+        
     
     total = 0.0
     total_staff = 0
