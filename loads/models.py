@@ -150,7 +150,7 @@ class Staff(models.Model):
     title = models.CharField(max_length=100)
     staff_number = models.CharField(max_length=20)
     fte = models.PositiveSmallIntegerField(default=100)
-    package = models.ForeignKey(WorkPackage)
+    package = models.ForeignKey(WorkPackage, null=True, on_delete=models.SET_NULL)
     
     def __str__(self):
         return self.title + ' ' + self.user.first_name + ' ' + self.user.last_name
