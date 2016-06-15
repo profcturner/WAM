@@ -15,6 +15,7 @@ class MigrateWorkPackageForm(forms.Form):
     copy_modules = forms.BooleanField(required=False)
     copy_modulestaff = forms.BooleanField(required=False)
 
+
 class StaffWorkPackageForm(ModelForm):
     '''This form is to change a Staff member's active WorkPackage'''
     class Meta:

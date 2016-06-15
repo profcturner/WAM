@@ -85,6 +85,7 @@ class WorkPackage(models.Model):
         
     def clone_from(self, package, options):
         '''Copy from another package'''
+        #TODO return just a data structure to mark up with HTML in the template
         
         if (Activity.objects.filter(package=self).count()
             + Module.objects.filter(package=self).count()
@@ -281,7 +282,6 @@ class Activity(models.Model):
     comment          any short comment or note
     staff            if not NULL, the staff member allocated this activity
     package          the WorkPackage this activity belongs to
-    
     '''
     
     HOURS = 'H'

@@ -32,6 +32,7 @@ urlpatterns = [
     url(r'^modules/details/(?P<module_id>[0-9]+)$', views.modules_details, name='modules_details'),
     url(r'^modules/examtracker/(?P<module_id>[0-9]+)$', views.exam_track_progress, name='exam_track_progress'),
     url(r'^modules/courseworktracker/(?P<module_id>[0-9]+)$', views.coursework_track_progress, name='coursework_track_progress'),
+    url(r'^staff/allocation/(?P<package_id>[0-9]+)/(?P<staff_id>[0-9]+)$', views.staff_module_allocation, name='staff_module_allocation'),    
     url(r'^forbidden/$', views.forbidden, name='forbidden'),
     url(r'^admin/', include(admin.site.urls)),
 ]

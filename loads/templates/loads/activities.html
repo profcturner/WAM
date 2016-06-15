@@ -1,6 +1,6 @@
 {% include "loads/header.html" %}
 
-<h1>Activity breakdown for {{staff}}</h1>  
+<h1>Activity breakdown for {{staff}} <a href="{% url 'staff_module_allocation' package.id staff.id %}">(Edit)</a></h1>  
 
 <p>Selected Work Package : {{package}}</p>
 

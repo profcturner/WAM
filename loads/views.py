@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404, render
 from django.core.urlresolvers import reverse
+from django.forms import modelformset_factory
 
 
 # Create your views here.
@@ -440,6 +441,36 @@ def modules_details(request, module_id):
         'package': package,
     })
     return HttpResponse(template.render(context))
+    
+    
+def staff_module_allocation(request, staff_id, package_id):
+    """
+    Allows a user to update their own profile.
+    """
+    staff = get_object_or_404(Staff, pk=staff_id)
+    package = get_object_or_404(WorkPackage, pk=package_id)
+    
+    AllocationFormSet = modelformset_factory(ModuleStaff,
+        fields=('module', 'contact_proportion', 'admin_proportion', 'assessment_proportion'))
+        
+    if request.method == "POST":
+        formset = AllocationFormSet(
+            request.POST, request.FILES,
+            queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff),
+        )
+        if formset.is_valid():
+            formset.save()
+            # Do something.
+            
+        # redirect to the activites page
+        #TODO this might just be a different package from this one, note.
+        
+        url = reverse('activities', args=[staff_id])
+        return HttpResponseRedirect(url)
+    else:
+        formset = AllocationFormSet(queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff))
+        
+    return render(request, 'loads/staff/allocations.html', {'staff': staff, 'package':package, 'formset': formset})
     
     
 def workpackage_change(request):

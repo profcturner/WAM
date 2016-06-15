@@ -1,0 +1,16 @@
+{% include "loads/header.html" %}
+
+<h2>Manage Allocations for {{staff}}</h2>
+<h2>Package {{package}}</h2>
+
+
+<form method="post" action="">
+  <table>
+    {% csrf_token %}
+    {{ formset.as_table }}
+  </table>
+  <input type="submit" value="Submit" />
+</form>
+
+
+{% include "loads/footer.html" %}
