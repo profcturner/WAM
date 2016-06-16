@@ -27,10 +27,12 @@ from .models import WorkPackage
 # Some code to augment the admin views in some cases
 
 class ModuleAdmin(admin.ModelAdmin):
-    list_display = ('module_code', 'module_name', 'semester')
+    list_display = ('package', 'module_code', 'module_name', 'semester')
+    list_filter = ('package__name',)
     
 class ActivityAdmin(admin.ModelAdmin):
-    list_display = ('name', 'module', 'staff', 'hours', 'percentage', 'semester', 'activity_type', 'is_allocated')
+    list_display = ('package', 'name', 'module', 'staff', 'hours', 'percentage', 'semester', 'activity_type', 'is_allocated')
+    list_filter = ('package__name',)
     
 class StaffAdmin(admin.ModelAdmin):
     list_display = ('title','first_name','last_name','staff_number','fte','total_hours')
@@ -42,7 +44,8 @@ class TaskCompletionAdmin(admin.ModelAdmin):
     list_display = ('task', 'staff', 'when', 'comment')
     
 class ModuleStaffAdmin(admin.ModelAdmin):
-    list_display = ('module', 'staff', 'contact_proportion', 'admin_proportion', 'assessment_proportion')
+    list_display = ('package', 'module', 'staff', 'contact_proportion', 'admin_proportion', 'assessment_proportion')
+    list_filter = ('package__name',)
     
 class WorkPackageAdmin(admin.ModelAdmin):
     list_display = ('name', 'startdate', 'enddate', 'draft', 'archive')
