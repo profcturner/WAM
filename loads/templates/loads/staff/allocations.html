@@ -4,13 +4,40 @@
 <h2>Package {{package}}</h2>
 
 
-<form method="post" action="">
-  <table>
-    {% csrf_token %}
-    {{ formset.as_table }}
-  </table>
+<form id="allocationForm" method="post" action="">
+  {% csrf_token %}
+  <input type="submit" value="Submit" />
+  <table border="0" cellpadding="0" cellspacing="0">
+          <tbody>
+            <tr>
+              <th>Module</th><th>Contact</br>Percentage</th><th>Admin</br>Percentage</th><th>Assessment</br>Percentage</th>
+            </tr>
+              {% for form in formset.forms %}
+              {% for hidden in form.hidden_fields %} {{ hidden }} {% endfor %}
+              <tr>
+                 <td>{{ form.module }} {% if form.instance.pk %}{{ form.DELETE }}{% endif %}</td>
+                 <td>{{ form.contact_proportion }}</td>
+                 <td>{{ form.admin_proportion }}</td>
+                 <td>{{ form.assessment_proportion }}</td>
+              </tr>
+              {% endfor %}
+          </tbody>
+      </table>
+      {{ formset.management_form }}
   <input type="submit" value="Submit" />
 </form>
+
+
+{% load staticfiles %}
+
+<!-- Include formset plugin - including jQuery dependency -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="{% static 'loads/jquery.formset.js' %}"></script>
+<script type="text/javascript">
+    $(function() {
+        $('#allocationForm tbody tr').formset();
+    })
+</script>
 
 
 {% include "loads/footer.html" %}

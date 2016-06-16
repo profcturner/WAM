@@ -447,11 +447,20 @@ def staff_module_allocation(request, staff_id, package_id):
     """
     Allows a user to update their own profile.
     """
+    #TODO: Check permission against a specific WorkPackage (is the logged in user in it?)
+    #TODO: We will need to restrict the module lookup for this package to the right package.
+    
     staff = get_object_or_404(Staff, pk=staff_id)
     package = get_object_or_404(WorkPackage, pk=package_id)
     
+    permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm('loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
+        
+    if not permission:
+        return HttpResponseRedirect('/forbidden/')
+    
     AllocationFormSet = modelformset_factory(ModuleStaff,
-        fields=('module', 'contact_proportion', 'admin_proportion', 'assessment_proportion'))
+        fields=('module', 'contact_proportion', 'admin_proportion', 'assessment_proportion'),
+        can_delete=True)
         
     if request.method == "POST":
         formset = AllocationFormSet(
@@ -459,9 +468,17 @@ def staff_module_allocation(request, staff_id, package_id):
             queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff),
         )
         if formset.is_valid():
-            formset.save()
-            # Do something.
-            
+            formset.save(commit=False)
+            for form in formset:
+                # Some fields are missing, so don't do a full save yet
+                allocation = form.save(commit=False)
+                # Fix the fields
+                allocation.staff = staff
+                allocation.package = package
+            # Now do a real save
+            formset.save(commit=True)    
+                
+                
         # redirect to the activites page
         #TODO this might just be a different package from this one, note.
         
