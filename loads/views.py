@@ -453,14 +453,24 @@ def staff_module_allocation(request, staff_id, package_id):
     #TODO: Check permission against a specific WorkPackage (is the logged in user in it?
     #TODO: Basically no validation yet, either intraform or interform (latter should check for dupes)
     
+    # Fetch the staff user associated with the person requesting
+    user_staff = get_object_or_404(Staff, user=request.user)
+    # And the staff member we are going to act on
     staff = get_object_or_404(Staff, pk=staff_id)
+    # And the package we are going to act on
     package = get_object_or_404(WorkPackage, pk=package_id)
     
+    # If either the logged in user or target user aren't in the package, this is forbidden
+    if package not in user_staff.get_all_packages() or package not in staff.get_all_packages():
+        return HttpResponseRedirect('/forbidden/')
+        
+    # The logged in user should be able to do this via the Admin interface, or disallow.
     permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm('loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
         
     if not permission:
         return HttpResponseRedirect('/forbidden/')
     
+    # Get a formset with only the choosable fields
     AllocationFormSet = modelformset_factory(ModuleStaff,
         fields=('module', 'contact_proportion', 'admin_proportion', 'assessment_proportion'),
         can_delete=True)
@@ -470,6 +480,7 @@ def staff_module_allocation(request, staff_id, package_id):
             request.POST, request.FILES,
             queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff),
         )
+        # We need to tweak the queryset to only allow modules in the package
         for form in formset:
             form.fields['module'].queryset = Module.objects.filter(package=package)
         if formset.is_valid():
@@ -491,6 +502,7 @@ def staff_module_allocation(request, staff_id, package_id):
         return HttpResponseRedirect(url)
     else:
         formset = AllocationFormSet(queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff))
+        # Again, only allow modules in the package
         for form in formset:
             form.fields['module'].queryset = Module.objects.filter(package=package)
         
