@@ -27,6 +27,7 @@ from .forms import CourseworkTrackerForm
 from .forms import StaffWorkPackageForm
 from .forms import MigrateWorkPackageForm
 
+
 from django.contrib.auth.models import User, Group
 
 def index(request):
@@ -447,8 +448,8 @@ def staff_module_allocation(request, staff_id, package_id):
     """
     Allows a user to update their own profile.
     """
-    #TODO: Check permission against a specific WorkPackage (is the logged in user in it?)
-    #TODO: We will need to restrict the module lookup for this package to the right package.
+    #TODO: Check permission against a specific WorkPackage (is the logged in user in it?
+    #TODO: Basically no validation yet, either intraform or interform (latter should check for dupes)
     
     staff = get_object_or_404(Staff, pk=staff_id)
     package = get_object_or_404(WorkPackage, pk=package_id)
@@ -467,6 +468,8 @@ def staff_module_allocation(request, staff_id, package_id):
             request.POST, request.FILES,
             queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff),
         )
+        for form in formset:
+            form.fields['module'].queryset = Module.objects.filter(package=package)
         if formset.is_valid():
             formset.save(commit=False)
             for form in formset:
@@ -486,6 +489,8 @@ def staff_module_allocation(request, staff_id, package_id):
         return HttpResponseRedirect(url)
     else:
         formset = AllocationFormSet(queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff))
+        for form in formset:
+            form.fields['module'].queryset = Module.objects.filter(package=package)
         
     return render(request, 'loads/staff/allocations.html', {'staff': staff, 'package':package, 'formset': formset})
     
