@@ -192,7 +192,9 @@ def activities(request, staff_id):
 def tasks_index(request):
     '''Obtains a list of all non archived tasks'''
     # Fetch the tasks assigned against the specific user of the staff member
-    tasks = Task.objects.all().exclude(archive=True).order_by('deadline')
+    staff = get_object_or_404(Staff, user=request.user)
+    tasks = staff.get_all_tasks()
+    #tasks = Task.objects.all().exclude(archive=True).order_by('deadline')
     
     augmented_tasks = []
     for task in tasks:
