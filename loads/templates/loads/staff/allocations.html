@@ -15,12 +15,25 @@
               {% for form in formset.forms %}
               {% for hidden in form.hidden_fields %} {{ hidden }} {% endfor %}
               <tr>
-                 <td>{{ form.module }} {% if form.instance.pk %}{{ form.DELETE }}{% endif %}</td>
-                 <td>{{ form.contact_proportion }}</td>
-                 <td>{{ form.admin_proportion }}</td>
-                 <td>{{ form.assessment_proportion }}</td>
+                 <td>{{ form.module }} {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
+                   {% for error in form.module.errors %} <span class="error_message">{{ error|escape }}</span> {% endfor %} </td>
+                 <td>{{ form.contact_proportion }}
+                   {% for error in form.contact_proportion.errors %} <span class="error_message">{{ error|escape }}</span> {% endfor %} </td>
+                 <td>{{ form.admin_proportion }}
+                   {% for error in form.admin_proportion.errors %} <span class="error_message">{{ error|escape }}</span> {% endfor %} </td>
+                 <td>{{ form.assessment_proportion }}
+                   {% for error in form.assessment_proportion.errors %} <span class="error_message">{{ error|escape }}</span> {% endfor %} </td>
               </tr>
+              
               {% endfor %}
+              
+              {% if formset.non_form_errors %}
+              <tr><td colspan="4"><span class="error_message">
+                {% for error in formset.non_form_errors %}
+                  {{ error|escape }}
+                {% endfor %}
+              </span></td></tr>
+              {% endif %}
           </tbody>
       </table>
       {{ formset.management_form }}

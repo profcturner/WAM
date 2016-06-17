@@ -1,11 +1,13 @@
 from django import forms
 from django.forms import ModelForm
+from django.forms import BaseModelFormSet
 
 from .models import Staff
 from .models import TaskCompletion
 from .models import ExamTracker
 from .models import CourseworkTracker
 from .models import WorkPackage
+
 
 class MigrateWorkPackageForm(forms.Form):
     '''This form allows for material in one Work Package to another'''
@@ -46,4 +48,53 @@ class CourseworkTrackerForm(ModelForm):
         model = CourseworkTracker
         # Only one field is on the form, the rest are passed in before
         fields = ['progress']
+        
+        
+class BaseModuleStaffByStaffFormSet(BaseModelFormSet):
+    def clean(self):
+        """
+        Adds validation to check that no two links have the same anchor or URL
+        and that all links have both an anchor and URL.
+        """
+        if any(self.errors):
+            return
+
+        modules = []
+        duplicates = False
+
+        for form in self.forms:
+            if form.cleaned_data:
+                module = form.cleaned_data['module']
+
+                if module in modules:
+                    duplicates = True
+                modules.append(module)
+            
+                contact_proportion = form.cleaned_data['contact_proportion']
+                if contact_proportion < 0 or contact_proportion > 100:
+                    raise forms.ValidationError(
+                        'Contact proportion must be a valid percentage',
+                        code='invalid_contact_proportion'
+                    )
+                    
+                admin_proportion = form.cleaned_data['admin_proportion']
+                if admin_proportion < 0 or admin_proportion > 100:
+                    raise forms.ValidationError(
+                        'Admin proportion must be a valid percentage',
+                        code='invalid_admin_proportion'
+                    )
+                    
+                assessment_proportion = form.cleaned_data['assessment_proportion']
+                if assessment_proportion < 0 or assessment_proportion > 100:
+                    raise forms.ValidationError(
+                        'Contact proportion must be a valid percentage',
+                        code='invalid_assessment_proportion'
+                    )
+
+            if duplicates:
+                raise forms.ValidationError(
+                    'Modules should not appear more than once.',
+                    code='duplicate_modules'
+                )
+
         

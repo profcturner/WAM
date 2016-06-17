@@ -41,6 +41,14 @@ a:hover {
   color:#990000;
 }
 
+.error_message{
+  padding:0.5em;
+  border: 1px red dotted;
+  margin: 0.2em;
+  background:#ffdddd;
+  color:#990000;
+}
+
 
 
 #content_block 

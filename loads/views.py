@@ -26,6 +26,7 @@ from .forms import ExamTrackerForm
 from .forms import CourseworkTrackerForm
 from .forms import StaffWorkPackageForm
 from .forms import MigrateWorkPackageForm
+from .forms import BaseModuleStaffByStaffFormSet
 
 
 from django.contrib.auth.models import User, Group
@@ -452,8 +453,6 @@ def staff_module_allocation(request, staff_id, package_id):
     """
     Allows a user to update their own profile.
     """
-    #TODO: Check permission against a specific WorkPackage (is the logged in user in it?
-    #TODO: Basically no validation yet, either intraform or interform (latter should check for dupes)
     
     # Fetch the staff user associated with the person requesting
     user_staff = get_object_or_404(Staff, user=request.user)
@@ -473,7 +472,7 @@ def staff_module_allocation(request, staff_id, package_id):
         return HttpResponseRedirect('/forbidden/')
     
     # Get a formset with only the choosable fields
-    AllocationFormSet = modelformset_factory(ModuleStaff,
+    AllocationFormSet = modelformset_factory(ModuleStaff, formset=BaseModuleStaffByStaffFormSet,
         fields=('module', 'contact_proportion', 'admin_proportion', 'assessment_proportion'),
         can_delete=True)
         
@@ -495,13 +494,12 @@ def staff_module_allocation(request, staff_id, package_id):
                 allocation.package = package
             # Now do a real save
             formset.save(commit=True)    
-                
-                
-        # redirect to the activites page
-        #TODO this might just be a different package from this one, note.
+                   
+            # redirect to the activites page
+            #TODO this might just be a different package from this one, note.
         
-        url = reverse('activities', args=[staff_id])
-        return HttpResponseRedirect(url)
+            url = reverse('activities', args=[staff_id])
+            return HttpResponseRedirect(url)
     else:
         formset = AllocationFormSet(queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff))
         # Again, only allow modules in the package
