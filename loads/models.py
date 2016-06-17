@@ -219,6 +219,14 @@ class Staff(models.Model):
         all_tasks = user_tasks | group_tasks
         
         return all_tasks
+        
+        
+    def get_all_packages(self):
+        ''''Get all the packages that are relevant for a staff member'''
+        groups = Group.objects.all().filter(user=self.user)
+        packages = WorkPackage.objects.all().filter(groups__in=groups).distinct()
+        
+        return packages
     
             
     class Meta:

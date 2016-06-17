@@ -57,11 +57,13 @@ def loads(request):
     # And therefore the package enabled for that user
     
     package = staff.package
-    if not package:
+
+    # If either the workpackage for the member of staff is undefined
+    # or it's set to a package they are not "in" send them to the chooser
+    if not package or package not in staff.get_all_packages():
         url = reverse('workpackage_change')
         return HttpResponseRedirect(url)
         
-    
     total = 0.0
     total_staff = 0
     group_data = []
@@ -501,15 +503,13 @@ def workpackage_change(request):
     staff = get_object_or_404(Staff, user=request.user)
     
     # Get all workpackages that touch on the staff member's group
-    packages = WorkPackage.objects.all().distinct()
-    
-    #target_by_groups = User.objects.all().filter(groups__in=target_groups).distinct().order_by('last_name')
-    #all_targets = task.get_all_targets()
+    packages = staff.get_all_packages()
     
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request and the given staff
         form = StaffWorkPackageForm(request.POST, instance = staff)
+        form.fields['package'].queryset = packages
         # check whether it's valid:
         if form.is_valid():
             form.save()
@@ -521,6 +521,7 @@ def workpackage_change(request):
     # if a GET (or any other method) we'll create a form from the current logged in user
     else:
         form = StaffWorkPackageForm(instance = staff)
+        form.fields['package'].queryset = packages
 
     return render(request, 'loads/workpackage.html', {'form': form, 'staff': staff})
 
@@ -529,7 +530,6 @@ def workpackage_migrate(request):
     """Allows a user to change their current active workpackage"""
     # Get the member of staff for the logged in user
     staff = get_object_or_404(Staff, user=request.user)
-    # TODO Check that this staff member is in the two WorkPackages
     
     # Check for a valid permission at this stage
     can_override = (request.user.has_perm('loads.add_activity')
@@ -538,17 +538,17 @@ def workpackage_migrate(request):
         
     if not can_override:
         return HttpResponseRedirect('/forbidden/')
-    
+        
     # Get all workpackages that touch on the staff member's group
-    packages = WorkPackage.objects.all().distinct()
-    
-    #target_by_groups = User.objects.all().filter(groups__in=target_groups).distinct().order_by('last_name')
-    #all_targets = task.get_all_targets()
-    
+    packages = staff.get_all_packages()
+        
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request and the given staff
         form = MigrateWorkPackageForm(request.POST)
+        form.fields['source_package'].queryset = packages
+        form.fields['destination_package'].queryset = packages
+
         # check whether it's valid:
         if form.is_valid():
 
@@ -571,6 +571,8 @@ def workpackage_migrate(request):
     # if a GET (or any other method) we'll create a form from the current logged in user
     else:
         form = MigrateWorkPackageForm()
+        form.fields['source_package'].queryset = packages
+        form.fields['destination_package'].queryset = packages
 
     return render(request, 'loads/workpackages/migrate.html', {'form': form, 'staff': staff})
 
