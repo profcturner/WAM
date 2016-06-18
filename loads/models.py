@@ -213,7 +213,7 @@ class Staff(models.Model):
     
         # And those assigned against the group
         groups = Group.objects.all().filter(user=self.user)
-        group_tasks = Task.objects.all().filter(groups__in=groups).distinct().order_by('deadline')
+        group_tasks = Task.objects.all().filter(groups__in=groups).exclude(archive=True).distinct().order_by('deadline')
     
         # Combine them
         all_tasks = user_tasks | group_tasks
