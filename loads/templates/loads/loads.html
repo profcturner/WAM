@@ -15,7 +15,7 @@
         <th  width="30%">Staff Name</th><th  width="8%">First Semester</th><th  width="8%">Second Semester</th><th  width="8%">Third Semester</th><th  width="8%">Total</th><th  width="8%">Scaled</th><th width="8%">Activities</th><th width="8%">Tasks</th>
       </tr>
       {% for staff, total, first, second, third, scaled in group_list %}
-      <tr class="{% cycle 'row1' 'row2' %}">
+      <tr class="{{forloop.counter|divisibleby:2|yesno:"row2,row1"}}">
         <th>{{ staff }}</th>
         <td>{{ first|stringformat:".2f" }}</td>
         <td>{{ second|stringformat:".2f" }}</td>
