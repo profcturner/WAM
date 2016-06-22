@@ -8,7 +8,7 @@
       Details
     </th>
     <td>
-      {{ task.details}}
+      {{ task.details|urlize|linebreaksbr }}
     </td>
   </tr>
   <tr>
@@ -47,7 +47,7 @@
 </table>
 
 <p>
-Please confirm completion of this task by {{ staff }}. The date and time you take this action is already recorded and any comment is optional. 
+Please confirm completion of this task by {{ staff }}. The date and time you record this action is already noted and any other comment is optional. 
 </p>
 
 <form action="" method="post">
