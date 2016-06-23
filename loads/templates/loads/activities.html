@@ -42,7 +42,7 @@
         <td>{{ first|stringformat:".2f" }}</td>
         <td>{{ second|stringformat:".2f" }}</td>
         <td>{{ third|stringformat:".2f" }}</td>
-        <td>{{ total }}</td>
+        <td>{{ total|stringformat:".2f" }}</td>
       </tr>      
       {% endfor %}
     </table>
@@ -60,7 +60,7 @@
         <th>{{ semester1_total|stringformat:".2f" }}</th>
         <th>{{ semester2_total|stringformat:".2f" }}</th>
         <th>{{ semester3_total|stringformat:".2f" }}</th>
-        <th>{{ total }}</th>        
+        <th>{{ total|stringformat:".2f" }}</th>        
       </tr>
     </table>
 
