@@ -10,6 +10,7 @@ from django.contrib.auth.models import User
 # Import given models
 
 from .models import Activity
+from .models import ActivitySet
 from .models import ActivityType
 from .models import ActivityGenerator
 from .models import Body
@@ -30,6 +31,8 @@ from .models import WorkPackage
 
 # Some code to augment the admin views in some cases
 
+class ActivitySetAdmin(admin.ModelAdmin):
+    list_display = ('name', 'created')
 
 class ModuleAdmin(admin.ModelAdmin):
     list_display = ('package', 'module_code', 'module_name', 'semester')
@@ -69,6 +72,7 @@ class UserAdmin(UserAdmin):
 
 admin.site.register(Activity, ActivityAdmin)
 admin.site.register(ActivityGenerator)
+admin.site.register(ActivitySet, ActivitySetAdmin)
 admin.site.register(ActivityType)
 admin.site.register(Body)
 admin.site.register(Campus)
