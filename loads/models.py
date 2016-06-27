@@ -67,6 +67,10 @@ class WorkPackage(models.Model):
                 multiplier from contact hours to admin hours
     contact_assessment_scaling
                 multiplier from contact hours to assessment hours
+    working_days
+                the expected working days in the package (i.e. leaving out leave)
+    days_in_week
+                the number of working days in a week (usually 5)
     '''
 
     name = models.CharField(max_length=100)
@@ -80,6 +84,8 @@ class WorkPackage(models.Model):
     credit_contact_scaling = models.FloatField(default=8/20)
     contact_admin_scaling = models.FloatField(default=1)
     contact_assessment_scaling = models.FloatField(default=1)
+    working_days = models.PositiveIntegerField(default=228)
+    days_in_week = models.PositiveIntegerField(default=5)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
@@ -377,14 +383,68 @@ class ActivityGenerator(models.Model):
 
     # These are more associated with the set, activity_set is here as
     # it will be generated not read from this model
-    activity_set = models.ForeignKey('ActivitySet', null=True, blank=True)
+    activity_set = models.ForeignKey('ActivitySet', null=True, blank=True, on_delete=models.SET_NULL)
     details = models.TextField()
     targets = models.ManyToManyField(Staff, blank=True)
     groups = models.ManyToManyField(Group, blank=True)
 
 
+    def get_all_targets(self):
+        """obtains all targets for a generator whether by user or group, returns a list of valid targets"""
+        # These are staff objects
+        target_by_users = self.targets.all().order_by('user__last_name')
+        target_groups = self.groups.all()
+        # These are user objects
+        target_by_groups = User.objects.all().filter(groups__in=target_groups).distinct().order_by('last_name')
+
+        # Start to build a queryset, starting with targetted users
+        all_targets = target_by_users
+
+        # Add each collection of staff members implicated by group
+        for user in target_by_groups:
+            staff = Staff.objects.all().filter(user=user)
+            all_targets = all_targets | staff
+
+        # Use distinct to clean up any duplicates
+        all_targets = all_targets.distinct()
+
+        return all_targets
+
+    
+    def generate_activities(self):
+        """Generate all Activities for this"""
+        # If there are existing activities, we need to delete them.
+        if(self.activity_set):
+            self.activity_set.delete()
+            #TODO: check cascade behaviour!
+
+        # Create a new ActivitySet
+        activity_set = ActivitySet(name=self.name)
+        activity_set.save()
+
+        # Update the current record to hold the new activity set
+        self.activity_set=activity_set
+        self.save()
+
+        # Now force generation for each allocation against the project
+        for staff in self.get_all_targets():
+            # Now create the Activity
+            activity = Activity(name=self.name,
+                    hours=self.hours,
+                    percentage=self.percentage,
+                    hours_percentage=self.hours_percentage,
+                    semester=self.semester,
+                    activity_type = self.activity_type,
+                    comment = self.comment,
+                    staff=staff,
+                    package=self.package,
+                    activity_set=activity_set
+            )
+            activity.save()
+
+
     def __str__(self):
-        return str(self.name) + "(" + str(self.package) + ")"
+        return str(self.name) + " (" + str(self.package) + ")"
 
 
 class Campus(models.Model):
@@ -609,8 +669,6 @@ class TaskCompletion(models.Model):
         return self.task.name + ' completed by ' + str(self.staff) + ' on ' + str(self.when)
 
 
-
-
 class Resource(models.Model):
     '''A file resource to be made available for staff
 
@@ -729,6 +787,9 @@ class Body(models.Model):
     def __str__(self):
         return str(self.name)
 
+    class Meta:
+        verbose_name_plural = "bodies"
+
 
 class Project(models.Model):
     """Significant, often multi staff projects. Research grants would be a common example
@@ -746,10 +807,31 @@ class Project(models.Model):
     end = models.DateField()
     body = models.ForeignKey(Body)
     activity_type = models.ForeignKey(ActivityType)
-    activity_set = models.ForeignKey(ActivitySet, blank=True, null=True)
+    activity_set = models.ForeignKey(ActivitySet, blank=True, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
-        return str(self.name) + "(" + str(self.body) + ")"
+        return str(self.name) + ' (' + str(self.body) + ')'
+
+    def generate_activities(self):
+        """Generate all the Activity records associated with the project"""
+
+        # If there are existing activities, we need to delete them.
+        if(self.activity_set):
+            self.activity_set.delete()
+            #TODO: check cascade behaviour!
+
+        # Create a new ActivitySet
+        activity_set = ActivitySet(name=self.name)
+        activity_set.save()
+
+        # Update the current record to hold the new activity set
+        self.activity_set=activity_set
+        self.save()
+
+        # Now force generation for each allocation against the project
+        project_staff = ProjectStaff.objects.all.filter(project=self)
+        for allocation in project_staff:
+            allocation.generate_activities(activity_set)
 
 
 class ProjectStaff(models.Model):
@@ -772,4 +854,56 @@ class ProjectStaff(models.Model):
     hours_per_week = models.FloatField()
 
     def __str__(self):
-        return str(self.staff) + ' (' + str(self.grant) + ')'
+        return str(self.staff) + ' (' + str(self.project) + ')'
+
+    def generate_activities(self, activity_set):
+        """Create activities associated with this allocation"""
+        #TODO: Currently creates activities equally mapped on semesters, could be refined
+        #TODO: If workpackages overlap in timing or staff, hours may be double counted
+        #TODO: If there is project time outside any workpackage it will be "lost"
+        #TODO: Also there is no protection for overlapping allocations for the same staff member
+
+        work_done = []
+        # Get all the work packages for the staff member and go through each
+        packages = self.staff.get_all_packages()
+        for package in packages:
+            # Work out the overlap of the project with this package
+            if start < self.package.start:
+                this_package_start = start
+            else:
+                this_package_start = self.start
+            if end > self.package.end:
+                this_package_end = end
+            else:
+                this_package_end = self.end
+            
+            in_package_days = (this_package_end - this_package_start).days
+            if not in_package_days:
+                # No days in this package, move along...
+                continue
+
+            all_package_days = (self.package.end - self.package.start).days        
+            # Get total working days taking into account leave and weekends
+            working_days = self.package.working_days * in_package_days / all_package_days 
+            # Get weeks by dividing by number of working days in a week (usually 5)
+            working_weeks = working_days / self.package.days_in_week
+            hours = working_weeks * self.hours_per_week
+
+            # Now create the Activity
+            activity = Activity(name=self.project.name,
+                    hours=hours,
+                    percentage=0,
+                    hours_percentage=Activity.HOURS,
+                    semester='1,2,3',
+                    activity_type = self.project.activity_type,
+                    comment = 'Auto Generated from Project',
+                    staff=self.staff,
+                    package=package,
+                    activity_set=activity_set
+            )
+            activity.save()
+
+
+    class Meta:
+        verbose_name_plural = "project staff"
+

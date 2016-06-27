@@ -39,3 +39,5 @@ db.sqlite3
 tmtags
 
 tmtagsHistory
+
+db.sqlite3.backup

@@ -11,6 +11,8 @@ from django.contrib.auth.models import User
 
 from .models import Activity
 from .models import ActivityType
+from .models import ActivityGenerator
+from .models import Body
 from .models import Campus
 from .models import Category
 from .models import CourseworkTracker
@@ -18,6 +20,8 @@ from .models import ExamTracker
 from .models import Module
 from .models import ModuleSize
 from .models import ModuleStaff
+from .models import Project
+from .models import ProjectStaff
 from .models import Staff
 from .models import Task
 from .models import TaskCompletion
@@ -25,6 +29,7 @@ from .models import Resource
 from .models import WorkPackage
 
 # Some code to augment the admin views in some cases
+
 
 class ModuleAdmin(admin.ModelAdmin):
     list_display = ('package', 'module_code', 'module_name', 'semester')
@@ -62,8 +67,10 @@ class UserAdmin(UserAdmin):
     inlines = (StaffInline, )
 
 
-admin.site.register(ActivityType)
 admin.site.register(Activity, ActivityAdmin)
+admin.site.register(ActivityGenerator)
+admin.site.register(ActivityType)
+admin.site.register(Body)
 admin.site.register(Campus)
 admin.site.register(Category)
 admin.site.register(CourseworkTracker)
@@ -71,6 +78,8 @@ admin.site.register(ExamTracker)
 admin.site.register(Module, ModuleAdmin)
 admin.site.register(ModuleStaff, ModuleStaffAdmin)
 admin.site.register(ModuleSize)
+admin.site.register(Project)
+admin.site.register(ProjectStaff)
 admin.site.register(Staff, StaffAdmin)
 admin.site.register(Task, TaskAdmin)
 admin.site.register(TaskCompletion, TaskCompletionAdmin)
