@@ -285,6 +285,9 @@ class ActivitySet(models.Model):
     
     name = models.CharField(max_length=300)
     created = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.name
 
 
 class Activity(models.Model):
@@ -419,7 +422,7 @@ class ActivityGenerator(models.Model):
             #TODO: check cascade behaviour!
 
         # Create a new ActivitySet
-        activity_set = ActivitySet(name=self.name)
+        activity_set = ActivitySet(name=self.name + " (" + str(self.package) + ")")
         activity_set.save()
 
         # Update the current record to hold the new activity set
@@ -829,7 +832,7 @@ class Project(models.Model):
         self.save()
 
         # Now force generation for each allocation against the project
-        project_staff = ProjectStaff.objects.all.filter(project=self)
+        project_staff = ProjectStaff.objects.all().filter(project=self)
         for allocation in project_staff:
             allocation.generate_activities(activity_set)
 
@@ -868,12 +871,12 @@ class ProjectStaff(models.Model):
         packages = self.staff.get_all_packages()
         for package in packages:
             # Work out the overlap of the project with this package
-            if start < self.package.start:
-                this_package_start = start
+            if self.start < package.startdate:
+                this_package_start = package.startdate
             else:
                 this_package_start = self.start
-            if end > self.package.end:
-                this_package_end = end
+            if self.end > package.enddate:
+                this_package_end = package.enddate
             else:
                 this_package_end = self.end
             
@@ -882,11 +885,11 @@ class ProjectStaff(models.Model):
                 # No days in this package, move along...
                 continue
 
-            all_package_days = (self.package.end - self.package.start).days        
+            all_package_days = (package.enddate - package.startdate).days        
             # Get total working days taking into account leave and weekends
-            working_days = self.package.working_days * in_package_days / all_package_days 
+            working_days = package.working_days * in_package_days / all_package_days 
             # Get weeks by dividing by number of working days in a week (usually 5)
-            working_weeks = working_days / self.package.days_in_week
+            working_weeks = working_days / package.days_in_week
             hours = working_weeks * self.hours_per_week
 
             # Now create the Activity
