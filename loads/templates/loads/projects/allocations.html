@@ -1,0 +1,62 @@
+{% include "loads/header.html" %}
+
+<h2>Manage Allocations for {{project}}</h2>
+
+
+<form method="post" action="">
+  {% csrf_token %}
+  <input type="submit" value="Submit" />
+  <table border="0" cellpadding="0" cellspacing="0">
+  {{ project_form.as_table }}
+  </table>
+  {{ formset.management_form }}
+  <table id="allocationForm" border="0" cellpadding="0" cellspacing="0">
+          <tbody>
+            <tr>
+              <th>Staff</th><th>Start Date</th><th>End Date</th><th>Hours Per Week</th>
+            </tr>
+ 
+              {% for form in formset.forms %}
+              
+              <tr>
+                {% for hidden in form.hidden_fields %} {{ hidden }} {% endfor %}
+                 <td>{{ form.staff }} {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
+                   {% for error in form.staff.errors %} <span class="error_message">{{ error|escape }}</span> {% endfor %} </td>
+                 <td>{{ form.start }}
+                   {% for error in form.start.errors %} <span class="error_message">{{ error|escape }}</span> {% endfor %} </td>
+                 <td>{{ form.end }}
+                   {% for error in form.end.errors %} <span class="error_message">{{ error|escape }}</span> {% endfor %} </td>
+                 <td>{{ form.hours_per_week }}
+                   {% for error in form.hours_per_week.errors %} <span class="error_message">{{ error|escape }}</span> {% endfor %}
+                 </td>
+              </tr>
+
+              {% endfor %}
+              
+              {% if formset.non_form_errors %}
+              <tr><td colspan="4"><span class="error_message">
+                {% for error in formset.non_form_errors %}
+                  {{ error|escape }}
+                {% endfor %}
+              </span></td></tr>
+              {% endif %}
+          </tbody>
+      </table>
+      
+  <input type="submit" value="Submit" />
+</form>
+
+
+{% load staticfiles %}
+
+<!-- Include formset plugin - including jQuery dependency -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="{% static 'loads/jquery.formset.js' %}"></script>
+<script type="text/javascript">
+$(function() {
+    $('#allocationForm tbody tr').formset();
+})
+</script>
+
+
+{% include "loads/footer.html" %}

@@ -6,6 +6,7 @@ from .models import Staff
 from .models import TaskCompletion
 from .models import ExamTracker
 from .models import CourseworkTracker
+from .models import Project
 from .models import WorkPackage
 
 
@@ -50,6 +51,13 @@ class CourseworkTrackerForm(ModelForm):
         fields = ['progress']
         
         
+        
+class ProjectForm(ModelForm):
+    class Meta:
+        model = Project
+        fields = ['name', 'activity_type', 'body', 'start', 'end']
+
+
 class BaseModuleStaffByStaffFormSet(BaseModelFormSet):
     def clean(self):
         """

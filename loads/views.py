@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404, render
 from django.core.urlresolvers import reverse
 from django.forms import modelformset_factory
-
+from django.contrib import messages
 
 # Create your views here.
 
@@ -19,6 +19,8 @@ from .models import Module
 from .models import ModuleStaff
 from .models import ExamTracker
 from .models import CourseworkTracker
+from .models import Project
+from .models import ProjectStaff
 from .models import WorkPackage
 
 from .forms import TaskCompletionForm
@@ -26,6 +28,7 @@ from .forms import ExamTrackerForm
 from .forms import CourseworkTrackerForm
 from .forms import StaffWorkPackageForm
 from .forms import MigrateWorkPackageForm
+from .forms import ProjectForm
 from .forms import BaseModuleStaffByStaffFormSet
 
 
@@ -421,7 +424,7 @@ def modules_index(request):
         'package': package,
     })
     return HttpResponse(template.render(context))
-    
+
 
 def modules_details(request, module_id):
     """Detailed information on a given module"""
@@ -450,9 +453,7 @@ def modules_details(request, module_id):
     
     
 def staff_module_allocation(request, staff_id, package_id):
-    """
-    Allows a user to update their own profile.
-    """
+    """Edit the allocation of modules to a staff member"""
     
     # Fetch the staff user associated with the person requesting
     user_staff = get_object_or_404(Staff, user=request.user)
@@ -479,7 +480,7 @@ def staff_module_allocation(request, staff_id, package_id):
     if request.method == "POST":
         formset = AllocationFormSet(
             request.POST, request.FILES,
-            queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff),
+            queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff).orderby(module),
         )
         # We need to tweak the queryset to only allow modules in the package
         for form in formset:
@@ -507,8 +508,108 @@ def staff_module_allocation(request, staff_id, package_id):
             form.fields['module'].queryset = Module.objects.filter(package=package)
         
     return render(request, 'loads/staff/allocations.html', {'staff': staff, 'package':package, 'formset': formset})
+
+
+def projects_index(request):
+    '''Obtains a list of all non archived projects'''
+    # Fetch the tasks assigned against the specific user of the staff member
+    staff = get_object_or_404(Staff, user=request.user)
+    projects = Project.objects.all()
     
+                    
+    template = loader.get_template('loads/projects/index.html')
+    context = RequestContext(request, {
+        'projects': projects,
+    })
+    return HttpResponse(template.render(context))
+
+
+def projects_details(request, project_id):
+    """Allows a Project and allocated staff to be edited"""
     
+    # Fetch the staff user associated with the person requesting
+    user_staff = get_object_or_404(Staff, user=request.user)
+
+    # And the project we are going to act on
+    project = get_object_or_404(Project, pk=project_id)
+    
+    #TODO: Establish sensible permissions
+    # If either the logged in user or target user aren't in the package, this is forbidden
+    #if package not in user_staff.get_all_packages() or package not in staff.get_all_packages():
+    #    return HttpResponseRedirect('/forbidden/')
+        
+    # The logged in user should be able to do this via the Admin interface, or disallow.
+    #permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm('loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
+    permission = True
+    if not permission:
+        return HttpResponseRedirect('/forbidden/')
+    
+    # Get a formset with only the choosable fields
+    ProjectStaffFormSet = modelformset_factory(ProjectStaff, #formset=BaseModuleStaffByStaffFormSet,
+        fields=('staff', 'start', 'end', 'hours_per_week'),
+        can_delete=True)
+        
+    if request.method == "POST":
+        project_form = ProjectForm(request.POST, instance=project)
+        formset = ProjectStaffFormSet(
+            request.POST, request.FILES,
+            queryset=ProjectStaff.objects.filter(project=project),
+        )
+        if project_form.is_valid():
+            project_form.save()
+
+        if formset.is_valid():
+            formset.save(commit=False)
+            for form in formset:
+                # Some fields are missing, so don't do a full save yet
+                allocation = form.save(commit=False)
+                # Fix the fields
+                allocation.project = project
+            # Now do a real save
+            formset.save(commit=True)    
+                   
+            # redirect to the activites page
+            #TODO this might just be a different package from this one, note.
+        
+            url = reverse('projects_index')
+            return HttpResponseRedirect(url)
+    else:
+        project_form = ProjectForm(instance=project)
+        formset = ProjectStaffFormSet(queryset=ProjectStaff.objects.filter(project=project))
+        # Again, only allow modules in the package
+        #for form in formset:
+         #   form.fields['module'].queryset = Module.objects.filter(package=package)
+        
+    return render(request, 'loads/projects/allocations.html', {'project':project, 'project_form':project_form, 'formset': formset})
+    
+
+def projects_generate_activities(request, project_id):
+    """(Re)generate all activities for a project"""
+    
+    # Fetch the staff user associated with the person requesting
+    user_staff = get_object_or_404(Staff, user=request.user)
+
+    # And the project we are going to act on
+    project = get_object_or_404(Project, pk=project_id)
+    
+    #TODO: Establish sensible permissions
+    # If either the logged in user or target user aren't in the package, this is forbidden
+    #if package not in user_staff.get_all_packages() or package not in staff.get_all_packages():
+    #    return HttpResponseRedirect('/forbidden/')
+        
+    # The logged in user should be able to do this via the Admin interface, or disallow.
+    #permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm('loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
+    permission = True
+    if not permission:
+        return HttpResponseRedirect('/forbidden/')
+        
+    project.generate_activities()
+    messages.success(request, 'Activities Regenerated.')
+    url = reverse('projects_index')
+    return HttpResponseRedirect(url)
+    
+
+
 def workpackage_change(request):
     """Allows a user to change their current active workpackage"""
     # Get the member of staff for the logged in user

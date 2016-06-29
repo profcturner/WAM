@@ -37,6 +37,10 @@
 		<li class="menutop">
       <a title="click to access section: Modules" class="{% active request modules_index %}" href="{% url 'modules_index' %}">Modules</a>
     </li>
+		<li class="menutop">
+      <a title="click to access section: Projects" class="{% active request projects_index %}" href="{% url 'projects_index' %}">Projects</a>
+    </li>
+
 	</ul>
 </div>
 
@@ -49,6 +53,14 @@
 </div>	
 
 {% endcomment %}
+
+{% if messages %}
+<div id="messages">
+    {% for message in messages %}
+        <p>{{ message }}</p>
+    {% endfor %}
+</div>
+{% endif %}
 
 </div>
 

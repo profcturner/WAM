@@ -1,0 +1,26 @@
+{% include "loads/header.html" %}
+  
+
+{% if projects %}
+    <table border="1">
+      <tr>
+        <th>Project Name</th><th>Activity Type</th><th>Start</th><th>End</th><th>Details</th><th>Generate Activities</th>
+      </tr>
+      {% for project in projects %}
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <th>{{ project.name }}</th>
+        <td>{{ project.activity_type }}</td>
+        <td>{{ project.start }}</td>
+        <td>{{ project.end }}</td>
+        <td><a href="{% url 'projects_details' project.id %}">Details</a></td>
+        <td><a href="{% url 'projects_generate_activities' project.id %}">Generate Activities</a></td>
+      </tr>      
+      {% endfor %}
+    </table>
+    
+    <p>{{ projects|length}} active project{{projects|length|pluralize}}.</p>
+{% else %}
+    <p>No unarchived projects are available.</p>
+{% endif %}
+
+{% include "loads/footer.html" %}

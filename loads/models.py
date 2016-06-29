@@ -792,6 +792,7 @@ class Body(models.Model):
 
     class Meta:
         verbose_name_plural = "bodies"
+        ordering = ['name']
 
 
 class Project(models.Model):
@@ -835,6 +836,10 @@ class Project(models.Model):
         project_staff = ProjectStaff.objects.all().filter(project=self)
         for allocation in project_staff:
             allocation.generate_activities(activity_set)
+
+
+    class Meta:
+        ordering = ['name', '-start']
 
 
 class ProjectStaff(models.Model):
@@ -909,4 +914,5 @@ class ProjectStaff(models.Model):
 
     class Meta:
         verbose_name_plural = "project staff"
+        ordering = ['staff', '-start']
 
