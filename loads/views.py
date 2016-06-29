@@ -532,17 +532,11 @@ def projects_details(request, project_id):
 
     # And the project we are going to act on
     project = get_object_or_404(Project, pk=project_id)
-    
-    #TODO: Establish sensible permissions
-    # If either the logged in user or target user aren't in the package, this is forbidden
-    #if package not in user_staff.get_all_packages() or package not in staff.get_all_packages():
-    #    return HttpResponseRedirect('/forbidden/')
+
         
-    # The logged in user should be able to do this via the Admin interface, or disallow.
-    #permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm('loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
-    permission = True
-    if not permission:
-        return HttpResponseRedirect('/forbidden/')
+    # The logged in user should be able to do this via the Admin interface, or disallow changes (views ok)
+    permission = request.user.has_perm('loads.change_project') and request.user.has_perm('loads.change_projectstaff') and request.user.has_perm('loads.delete_projectstaff') and request.user.has_perm('loads.add_projectstaff')
+
     
     # Get a formset with only the choosable fields
     ProjectStaffFormSet = modelformset_factory(ProjectStaff, #formset=BaseModuleStaffByStaffFormSet,
@@ -550,6 +544,8 @@ def projects_details(request, project_id):
         can_delete=True)
         
     if request.method == "POST":
+        if not permission:
+            return HttpResponseRedirect('/forbidden/')
         project_form = ProjectForm(request.POST, instance=project)
         formset = ProjectStaffFormSet(
             request.POST, request.FILES,
