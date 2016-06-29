@@ -480,7 +480,7 @@ def staff_module_allocation(request, staff_id, package_id):
     if request.method == "POST":
         formset = AllocationFormSet(
             request.POST, request.FILES,
-            queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff).orderby(module),
+            queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff)
         )
         # We need to tweak the queryset to only allow modules in the package
         for form in formset:
