@@ -7,13 +7,7 @@
 <title>Workload Modelling</title>
     
 <div id="header">
-<!--[if lte IE 8]>
-      <a class="brand-only" href="http://www.ulster.ac.uk" tabindex="1"><img src="//cdn.ulster.ac.uk/home/ulster-frontend/img/microsites/ulster-university-logo.png" alt="Ulster University">Ulster University <span>Workload Modelling</span></a>
-<![endif]-->
-<!--[if gte IE 9]><!-->
-  <a class="brand-only ulster-university" href="http://www.ulster.ac.uk" tabindex="1">Ulster University Ulster University <span>Workload Modelling</span></a>
-<!--<![endif]-->
-
+  <div id="institution_logo"><img src="//cdn.ulster.ac.uk/home/ulster-frontend/img/microsites/ulster-university-logo.png" height="62px" title="Institution Logo"/><span>Workload Modelling</span></div>
 {% load tags %}
 {% load tz %}
 
@@ -21,6 +15,7 @@
 {% url 'loads' as loads %}
 {% url 'tasks_index' as tasks_index %}
 {% url 'modules_index' as modules_index %}
+{% url 'projects_index' as projects_index %}
 
 
 <div id="menu">
@@ -44,15 +39,15 @@
 	</ul>
 </div>
 
-{% comment some more work to do later %}
-
 <div id="submenu">
-  <ul> 
-	  <div id="username">Username</div>
+  <ul>
+    {% comment %} 
+    <li><a href="">hello</a></li>
+    {% endcomment %}
 	</ul>
 </div>	
 
-{% endcomment %}
+</div>
 
 {% if messages %}
 <div id="messages">
@@ -62,7 +57,7 @@
 </div>
 {% endif %}
 
-</div>
+
 
 <div id="content_block">
 

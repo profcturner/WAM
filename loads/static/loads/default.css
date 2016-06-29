@@ -116,10 +116,29 @@ a:hover {
 #header 
 {
   background-color: #f4f4f4;
-  height: 110px;
-  padding-left: 20px;
+  height: 140px;
+  /*padding-left: 20px;*/
   padding-top: 20px;
   margin-bottom: 20px;
+}
+
+#institution_logo
+{
+    padding-left: 20px;
+}
+
+#institution_logo span
+{
+  
+  color:#1a2a4f;
+  position:relative;
+  left:10px;
+  top:-25px;
+  border-left:1px solid #bba461;
+  margin-left:20px;
+  padding-left:20px;
+  font-size:18px;
+  text-indent:0
 }
 
 #page_title {
@@ -213,7 +232,7 @@ tr.alt {
 }
 
 #menu {
-width: 1400px;
+width: 1600px;
 clear:both;
 
 }
