@@ -876,17 +876,11 @@ class ProjectStaff(models.Model):
         packages = self.staff.get_all_packages()
         for package in packages:
             # Work out the overlap of the project with this package
-            if self.start < package.startdate:
-                this_package_start = package.startdate
-            else:
-                this_package_start = self.start
-            if self.end > package.enddate:
-                this_package_end = package.enddate
-            else:
-                this_package_end = self.end
+            start_overlap = max(package.startdate, self.start)
+            end_overlap = min(package.enddate, self.end)
             
-            in_package_days = (this_package_end - this_package_start).days
-            if not in_package_days:
+            in_package_days = (end_overlap - start_overlap).days
+            if in_package_days <= 0:
                 # No days in this package, move along...
                 continue
 
