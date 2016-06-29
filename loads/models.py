@@ -892,7 +892,7 @@ class ProjectStaff(models.Model):
             hours = working_weeks * self.hours_per_week
 
             # Now create the Activity
-            activity = Activity(name=self.project.name,
+            activity = Activity(name=str(self.project),
                     hours=hours,
                     percentage=0,
                     hours_percentage=Activity.HOURS,
