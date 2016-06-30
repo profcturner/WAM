@@ -6,19 +6,33 @@
 <h1>This is a DRAFT allocation and may be incomplete.</h1>
 {% endif %}  
 
+<h2>Loads By Modules</h2>
 {% if combined_list %}
     <table border="1">
       <tr>
-        <th>Module Code</th><th>Module Name</th><th>Contact<br />Proportion</th><th>Admin<br />Proportion</th><th>Assessment<br />Proportion</th><th>Extra Hours</th>
+        <th>Module Code</th>
+        <th>Module Name</th>
+        <th>Contact<br />Hours</th>
+        <th>Contact<br />Proportion</th>
+        <th>Admin<br />Hours</th>
+        <th>Admin<br />Proportion</th>
+        <th>Assessment<br />Hours</th>
+        <th>Assessment<br />Proportion</th>
+        <th>Extra Hours</th>
+        <th>Details</th>
       </tr>
-      {% for module, contact_proportion, admin_proportion, assessment_proportion, extra_hours in combined_list %}
+      {% for module, contact_hours, contact_proportion, admin_hours, admin_proportion, assessment_hours, assessment_proportion, extra_hours in combined_list %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ module.module_code }}</th>
         <td>{{ module.module_name }}</td>
+        <td>{{ contact_hours }}</td>
         <td><span {% if contact_proportion != 100 %}style="color:red"{% endif %}>{{ contact_proportion }}</span></td>
+        <td>{{ admin_hours }}
         <td><span {% if admin_proportion != 100 %}style="color:red"{% endif %}>{{ admin_proportion }}</td>
+        <td>{{ assessment_hours }}
         <td><span {% if assessment_proportion != 100 %}style="color:red"{% endif %}>{{ assessment_proportion }}</td>
         <td>{{ extra_hours }}</td>
+        <td><a href="{% url 'modules_details' module.id %}">Details</a></td>
       </tr>      
       {% endfor %}
     </table>

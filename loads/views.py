@@ -138,12 +138,15 @@ def loads_modules(request):
 
         activities = Activity.objects.all().filter(module=module)
         for activity in activities:
-            hours_per_semester = activity.get_hours_by_semester()
+            hours_per_semester = activity.hours_by_semester()
             extra_hours += hours_per_semester[0]
             
         module_info = [module,
+                       module.get_contact_hours(),
                        contact_proportion,
+                       module.get_admin_hours(),
                        admin_proportion,
+                       module.get_assessment_hours(),
                        assessment_proportion,
                        extra_hours]
 
