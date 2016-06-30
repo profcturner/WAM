@@ -120,6 +120,8 @@ class WorkPackage(models.Model):
             # Copy Modules
             modules = Module.objects.all().filter(package=package)
             for module in modules:
+                # Grab the associated allocations before the key changes
+                modulestaff = ModuleStaff.objects.all().filter(module=module)
                 # Invalidate the primary key to force save
                 module.pk = None
                 # Point the new instance at the current package
@@ -128,7 +130,6 @@ class WorkPackage(models.Model):
                 changes += "  Module {} copied...<br />".format(str(module))
                 # And now copy Module Allocations if needed
                 if options['modulestaff']:
-                    modulestaff = ModuleStaff.objects.all().filter(package=package).filter(module=module)
                     for allocation in modulestaff:
                         # Invalidate the module key
                         allocation.pk = None
