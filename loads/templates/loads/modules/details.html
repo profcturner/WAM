@@ -19,6 +19,38 @@
       {{ module.module_name }}
     </td>
   </tr>
+  <tr>
+    <th>
+      Module Credits
+    </th>
+    <td>
+      {{ module.credits }}
+    </td>
+  </tr>
+  <tr>
+    <th>
+      Module Size
+    </th>
+    <td>
+      {{ module.size }}
+    </td>
+  </tr>
+  <tr>
+    <th>
+      Module Name
+    </th>
+    <td>
+      {{ module.module_name }}
+    </td>
+  </tr>
+  <tr>
+    <th>
+      Hours
+    </th>
+    <td>
+      Contact Hours: {{ contact_hours }}; Admin Hours {{ admin_hours }}; Assessment_Hours {{ assessment_hours }}
+    </td>
+  </tr>
 </table>
 
 <h2>Related Activity Information</h2>
@@ -27,7 +59,28 @@
 
 {% if package.draft %}
 <h1>This is a DRAFT allocation and may be incomplete.</h1>
-{% endif %}  
+{% endif %}
+
+{% if modulestaff %}
+    <table border="1">
+      <tr>
+        <th>Staff Member</th>
+        <th>Contact<br />Proportion</th>
+        <th>Admin<br />Proportion</th>
+        <th>Assessment<br />Proportion</th>
+      </tr>
+      {% for allocation in modulestaff %}
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <th>{{ allocation.staff }}</th>
+        <td>{{ allocation.contact_proportion }}</td>
+        <td>{{ allocation.admin_proportion }}</td>
+        <td>{{ allocation.assessment_proportion }}</td>
+      </tr>
+      {% endfor %}      
+    </table>
+{% else %}
+  <p>No allocations of staff recorded for this module.</p>  
+{% endif %}
   
 {% if activities %}
     <table border="1">

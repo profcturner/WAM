@@ -486,12 +486,17 @@ def modules_details(request, module_id):
     
     # Get all associated activities, exam and coursework trackers
     activities = Activity.objects.all().filter(module=module).filter(package=package).order_by('name')
+    modulestaff = ModuleStaff.objects.all().filter(module=module).filter(package=package)
     exam_trackers = ExamTracker.objects.all().filter(module=module).order_by('created')
     coursework_trackers = CourseworkTracker.objects.all().filter(module=module).order_by('created')
     
     template = loader.get_template('loads/modules/details.html')
     context = RequestContext(request, {
         'module': module,
+        'contact_hours': module.get_contact_hours(),
+        'admin_hours': module.get_admin_hours(),
+        'assessment_hours': module.get_assessment_hours(),
+        'modulestaff': modulestaff,
         'activities': activities,
         'exam_trackers': exam_trackers,
         'coursework_trackers': coursework_trackers,
