@@ -111,6 +111,7 @@ def loads(request):
         'total': total,
         'average': average,
         'package': package,
+        'loads_menu': True,
     })
     return HttpResponse(template.render(context))
     
@@ -158,6 +159,7 @@ def loads_modules(request):
     context = RequestContext(request, {
         'combined_list': combined_list,
         'package': package,
+        'loads_menu': True,
     })
     return HttpResponse(template.render(context))
 
