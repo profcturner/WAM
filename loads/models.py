@@ -128,7 +128,7 @@ class WorkPackage(models.Model):
                 changes += "  Module {} copied...<br />".format(str(module))
                 # And now copy Module Allocations if needed
                 if options['modulestaff']:
-                    modulestaff = ModuleStaff.objects.all().filter()
+                    modulestaff = ModuleStaff.objects.all().filter(package=package).filter(module=module)
                     for allocation in modulestaff:
                         # Invalidate the module key
                         allocation.pk = None
