@@ -25,13 +25,13 @@
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ module.module_code }}</th>
         <td>{{ module.module_name }}</td>
-        <td>{{ contact_hours }}</td>
+        <td>{{ contact_hours|stringformat:".2f" }}</td>
         <td><span {% if contact_proportion != 100 %}style="color:red"{% endif %}>{{ contact_proportion }}%</span></td>
-        <td>{{ admin_hours }}
+        <td>{{ admin_hours|stringformat:".2f" }}
         <td><span {% if admin_proportion != 100 %}style="color:red"{% endif %}>{{ admin_proportion }}%</td>
-        <td>{{ assessment_hours }}
+        <td>{{ assessment_hours|stringformat:".2f" }}
         <td><span {% if assessment_proportion != 100 %}style="color:red"{% endif %}>{{ assessment_proportion }}%</td>
-        <td>{{ extra_hours }}</td>
+        <td>{{ extra_hours|stringformat:".2f" }}</td>
         <td><a href="{% url 'modules_details' module.id %}">Details</a></td>
       </tr>      
       {% endfor %}
