@@ -48,7 +48,7 @@
       Hours
     </th>
     <td>
-      Contact Hours: {{ contact_hours }}; Admin Hours {{ admin_hours }}; Assessment_Hours {{ assessment_hours }}
+      Total Hours: {{ total_hours|stringformat:".2f" }}; Contact Hours: {{ contact_hours|stringformat:".2f" }}; Admin Hours {{ admin_hours|stringformat:".2f" }}; Assessment_Hours {{ assessment_hours|stringformat:".2f" }}
     </td>
   </tr>
 </table>
@@ -61,6 +61,7 @@
 <h1>This is a DRAFT allocation and may be incomplete.</h1>
 {% endif %}
 
+<h2>Module Staff Allocations</h2>
 {% if modulestaff %}
     <table border="1">
       <tr>
@@ -72,16 +73,25 @@
       {% for allocation in modulestaff %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ allocation.staff }}</th>
-        <td>{{ allocation.contact_proportion }}</td>
-        <td>{{ allocation.admin_proportion }}</td>
-        <td>{{ allocation.assessment_proportion }}</td>
+        <td>{{ allocation.contact_proportion }}%</td>
+        <td>{{ allocation.admin_proportion }}%</td>
+        <td>{{ allocation.assessment_proportion }}%</td>
       </tr>
-      {% endfor %}      
+      {% endfor %}    
+      <tr>
+        <th>Total</th>
+        <th><span {% if total_contact_proportion != 100 %}style="color:red"{% endif %}>{{ total_contact_proportion }}%</span></th>
+        <th><span {% if total_admin_proportion != 100 %}style="color:red"{% endif %}>{{ total_admin_proportion }}%</span></th>  
+        <th><span {% if total_assessment_proportion != 100 %}style="color:red"{% endif %}>{{ total_assessment_proportion }}%</span></th> 
+      </tr>  
     </table>
+    
+    <p><a href="{% url 'module_staff_allocation' package.id module.id %}">Edit Allocations</a></p>
 {% else %}
-  <p>No allocations of staff recorded for this module.</p>  
+  <p>No allocations of staff recorded for this module. <a href="{% url 'module_staff_allocation' package.id module.id %}">(Edit)</a></p>  
 {% endif %}
-  
+
+<h2>Custom Activities</h2>
 {% if activities %}
     <table border="1">
       <tr>
@@ -97,7 +107,7 @@
     </table>
     
 {% else %}
-    <p>No activities recorded for this module.</p>
+    <p>No custom activities recorded for this module.</p>
 {% endif %}
 
 <h2>Exam Tracker</h2>

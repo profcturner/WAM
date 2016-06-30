@@ -105,4 +105,72 @@ class BaseModuleStaffByStaffFormSet(BaseModelFormSet):
                     code='duplicate_modules'
                 )
 
+
+class BaseModuleStaffByModuleFormSet(BaseModelFormSet):
+    def clean(self):
+        """
+        Adds validation to check that no two links have the same anchor or URL
+        and that all links have both an anchor and URL.
+        """
+        if any(self.errors):
+            return
+
+        staff_members = []
+        contact_total = 0
+        admin_total = 0
+        assessment_total = 0
         
+        duplicates = False
+
+        for form in self.forms:
+            if form.cleaned_data:
+                staff = form.cleaned_data['staff']
+
+                if staff in staff_members:
+                    duplicates = True
+                staff_members.append(staff)
+            
+                contact_proportion = form.cleaned_data['contact_proportion']
+                contact_total += contact_proportion
+                if contact_proportion < 0 or contact_proportion > 100:
+                    raise forms.ValidationError(
+                        'Contact proportion must be a valid percentage',
+                        code='invalid_contact_proportion'
+                    )
+
+                admin_proportion = form.cleaned_data['admin_proportion']
+                admin_total += admin_proportion
+                if admin_proportion < 0 or admin_proportion > 100:
+                    raise forms.ValidationError(
+                        'Admin proportion must be a valid percentage',
+                        code='invalid_admin_proportion'
+                    )
+                    
+                assessment_proportion = form.cleaned_data['assessment_proportion']
+                assessment_total += assessment_proportion
+                if assessment_proportion < 0 or assessment_proportion > 100:
+                    raise forms.ValidationError(
+                        'Contact proportion must be a valid percentage',
+                        code='invalid_assessment_proportion'
+                    )
+
+            if duplicates:
+                raise forms.ValidationError(
+                    'Staff members should not appear more than once.',
+                    code='duplicate_staff'
+                )
+            if contact_total > 100:
+                raise forms.ValidationError(
+                    'Contact proportions are over 100%',
+                    code='invalid_contact_total'
+                )
+            if admin_total > 100:
+                raise forms.ValidationError(
+                    'Admin proportions are over 100%',
+                    code='invalid_contact_total'
+                )
+            if assessment_total > 100:
+                raise forms.ValidationError(
+                    'Assessment proportions are over 100%',
+                    code='invalid_contact_total'
+                )

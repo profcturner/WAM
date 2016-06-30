@@ -33,6 +33,7 @@ urlpatterns = [
     url(r'^modules/details/(?P<module_id>[0-9]+)$', views.modules_details, name='modules_details'),
     url(r'^modules/examtracker/(?P<module_id>[0-9]+)$', views.exam_track_progress, name='exam_track_progress'),
     url(r'^modules/courseworktracker/(?P<module_id>[0-9]+)$', views.coursework_track_progress, name='coursework_track_progress'),
+    url(r'^modules/allocations/(?P<package_id>[0-9]+)/(?P<module_id>[0-9]+)$', views.module_staff_allocation, name='module_staff_allocation'),
     url(r'^projects/index/$', views.projects_index, name='projects_index'),
     url(r'^projects/detail/(?P<project_id>[0-9]+)$', views.projects_details, name='projects_details'),
     url(r'^projects/generate_activities/(?P<project_id>[0-9]+)$', views.projects_generate_activities, name='projects_generate_activities'),

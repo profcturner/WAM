@@ -29,6 +29,7 @@ from .forms import CourseworkTrackerForm
 from .forms import StaffWorkPackageForm
 from .forms import MigrateWorkPackageForm
 from .forms import ProjectForm
+from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
 
 
@@ -437,6 +438,65 @@ def coursework_track_progress(request, module_id):
 
     return render(request, 'loads/modules/courseworktracker.html', {'form': form, 'module': module})
 
+
+def module_staff_allocation(request, module_id, package_id):
+    """Edit the allocation of staff to a module member"""
+    
+    # Fetch the staff user associated with the person requesting
+    user_staff = get_object_or_404(Staff, user=request.user)
+    # And the module we are going to act on
+    module = get_object_or_404(Module, pk=module_id)
+    # And the package we are going to act on
+    package = get_object_or_404(WorkPackage, pk=package_id)
+    
+    # If either the logged in user or target user aren't in the package, this is forbidden
+    if package not in user_staff.get_all_packages():
+        return HttpResponseRedirect('/forbidden/')
+        
+    # The logged in user should be able to do this via the Admin interface, or disallow.
+    permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm('loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
+        
+    if not permission:
+        return HttpResponseRedirect('/forbidden/')
+    
+    # Get a formset with only the choosable fields
+    AllocationFormSet = modelformset_factory(ModuleStaff, formset=BaseModuleStaffByModuleFormSet,
+        fields=('staff', 'contact_proportion', 'admin_proportion', 'assessment_proportion'),
+        can_delete=True)
+        
+    if request.method == "POST":
+        formset = AllocationFormSet(
+            request.POST, request.FILES,
+            queryset=ModuleStaff.objects.filter(package=package).filter(module=module)
+        )
+        # We need to tweak the queryset to only allow staff in the package
+        for form in formset:
+            form.fields['staff'].queryset = package.get_all_staff()
+        if formset.is_valid():
+            formset.save(commit=False)
+            for form in formset:
+                # Some fields are missing, so don't do a full save yet
+                allocation = form.save(commit=False)
+                # Fix the fields
+                allocation.module = module
+                allocation.package = package
+            # Now do a real save
+            formset.save(commit=True)    
+                   
+            # redirect to the activites page
+            #TODO this might just be a different package from this one, note.
+        
+            url = reverse('modules_details', args=[module_id])
+            return HttpResponseRedirect(url)
+    else:
+        formset = AllocationFormSet(queryset=ModuleStaff.objects.filter(package=package).filter(module=module))
+        # Again, only allow staff members in the package
+        for form in formset:
+            form.fields['staff'].queryset = package.get_all_staff()
+        
+    return render(request, 'loads/modules/allocations.html', {'module': module, 'package':package, 'formset': formset})
+
+
     
 def modules_index(request):
     """Shows a high level list of modules"""
@@ -490,9 +550,19 @@ def modules_details(request, module_id):
     exam_trackers = ExamTracker.objects.all().filter(module=module).order_by('created')
     coursework_trackers = CourseworkTracker.objects.all().filter(module=module).order_by('created')
     
+    total_contact_proportion = 0
+    total_admin_proportion = 0
+    total_assessment_proportion = 0
+    for allocation in modulestaff:
+        total_contact_proportion += allocation.contact_proportion
+        total_admin_proportion += allocation.admin_proportion
+        total_assessment_proportion += allocation.assessment_proportion
+        
+    
     template = loader.get_template('loads/modules/details.html')
     context = RequestContext(request, {
         'module': module,
+        'total_hours' : module.get_all_hours(),
         'contact_hours': module.get_contact_hours(),
         'admin_hours': module.get_admin_hours(),
         'assessment_hours': module.get_assessment_hours(),
@@ -501,6 +571,9 @@ def modules_details(request, module_id):
         'exam_trackers': exam_trackers,
         'coursework_trackers': coursework_trackers,
         'package': package,
+        'total_contact_proportion': total_contact_proportion,
+        'total_admin_proportion': total_admin_proportion,
+        'total_assessment_proportion': total_assessment_proportion,
     })
     return HttpResponse(template.render(context))
     
