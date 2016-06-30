@@ -23,6 +23,7 @@ urlpatterns = [
     url(r'^workpackage/change/$', views.workpackage_change, name='workpackage_change'),
     url(r'^workpackage/migrate/$', views.workpackage_migrate, name='workpackage_migrate'),    
     url(r'^loads/$', views.loads, name='loads'),
+    url(r'^loads/modules/$', views.loads_modules, name='loads_modules'),
     url(r'^activities/(?P<staff_id>[0-9]+)$', views.activities, name='activities'),
     url(r'^tasks/index/$', views.tasks_index, name='tasks_index'),
     url(r'^tasks/completion/(?P<task_id>[0-9]+)/(?P<staff_id>[0-9]+)$', views.tasks_completion, name='tasks_completion'),    

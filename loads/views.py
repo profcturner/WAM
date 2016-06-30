@@ -114,6 +114,51 @@ def loads(request):
     return HttpResponse(template.render(context))
     
     
+def loads_modules(request):
+    """Shows allocation information by modules"""
+    # Fetch the staff user associated with the person requesting
+    staff = get_object_or_404(Staff, user=request.user)
+    # And therefore the package enabled for that user
+    package = staff.package
+
+    modules = Module.objects.all().filter(package=package).order_by('module_code')
+
+    combined_list = []
+    for module in modules:
+        # Get Allocation information
+        module_staff = ModuleStaff.objects.all().filter(module=module)
+        contact_proportion = 0
+        admin_proportion = 0
+        assessment_proportion = 0
+        extra_hours = 0
+        for allocation in module_staff:
+            contact_proportion += allocation.contact_proportion
+            admin_proportion += allocation.admin_proportion
+            assessment_proportion += allocation.assessment_proportion
+
+        activities = Activity.objects.all().filter(module=module)
+        for activity in activities:
+            hours_per_semester = activity.get_hours_by_semester()
+            extra_hours += hours_per_semester[0]
+            
+        module_info = [module,
+                       contact_proportion,
+                       admin_proportion,
+                       assessment_proportion,
+                       extra_hours]
+
+
+        combined_list.append(module_info)
+    
+    template = loader.get_template('loads/loads/modules.html')
+    context = RequestContext(request, {
+        'combined_list': combined_list,
+        'package': package,
+    })
+    return HttpResponse(template.render(context))
+
+
+
 def activities(request, staff_id):
     '''Show the activities for a given staff member'''
     # Fetch the staff user associated with the person requesting
