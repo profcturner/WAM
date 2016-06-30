@@ -467,7 +467,7 @@ def module_staff_allocation(request, module_id, package_id):
     if request.method == "POST":
         formset = AllocationFormSet(
             request.POST, request.FILES,
-            queryset=ModuleStaff.objects.filter(package=package).filter(module=module)
+            queryset=ModuleStaff.objects.filter(package=package).filter(module=module).orderby('staff__user__last_name')
         )
         # We need to tweak the queryset to only allow staff in the package
         for form in formset:
@@ -489,7 +489,7 @@ def module_staff_allocation(request, module_id, package_id):
             url = reverse('modules_details', args=[module_id])
             return HttpResponseRedirect(url)
     else:
-        formset = AllocationFormSet(queryset=ModuleStaff.objects.filter(package=package).filter(module=module))
+        formset = AllocationFormSet(queryset=ModuleStaff.objects.filter(package=package).filter(module=module).order_by('staff__user__last_name'))
         # Again, only allow staff members in the package
         for form in formset:
             form.fields['staff'].queryset = package.get_all_staff()

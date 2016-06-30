@@ -142,25 +142,16 @@ class WorkPackage(models.Model):
             changes += "{} modules copied...<br />".format(len(modules))
 
         return changes
-        
+
+
     def get_all_staff(self):
         """obtains all staff related to by a package"""
-        groups = self.groups.all()
+        target_groups = self.groups.all()
         # These are user objects
-        users_by_groups = User.objects.all().filter(groups__in=groups).distinct().order_by('last_name')
-
-        # An empty query set to append to.
-        all_targets = Staff.objects.none()
-        # Add each collection of staff members implicated by group
-        for user in users_by_groups:
-            staff = Staff.objects.all().filter(user=user)
-            all_targets = all_targets | staff
-
-        # Use distinct to clean up any duplicates
-        all_targets = all_targets.distinct()
-
-        return all_targets
-    
+        users_by_groups = User.objects.all().filter(groups__in=target_groups).distinct().order_by('last_name')
+        # Get the matching staff objects
+        staff = Staff.objects.all().filter(user__in=users_by_groups).distinct().order_by('user__last_name')
+        return staff
 
 
     class Meta:
