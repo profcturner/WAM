@@ -1,0 +1,33 @@
+{% include "loads/header.html" %}
+
+<h2>Activity Generators</h2>
+
+<p>Activity Generators are used to allocated activities to a numbers of staff members at the same time. The created activities
+  are linked in an Activity Set, if the Set is deleted all those related Activities will be deleted as well. Note that each
+  time you generate activities another set is created, the old one is <strong>not</strong> deleted. This is to allow you to,
+  for instance, add multiple PhD supervisions. You can change the target groups and users between each generation. You can
+  change other details too, but this is not recommended, better to create another generator.
+</p>
+
+{% if generators %}
+    <table border="1">
+      <tr>
+        <th>Generator Name</th>
+        <th>Activity Type</th>
+        <th>Generate Activities</th>
+      </tr>
+      {% for generator in generators %}
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <th>{{ generator.name }}</th>
+        <td>{{ generator.activity_type }}</td>
+        <td><a href="{% url 'generators_generate_activities' generator.id %}">Generate Activities</a></td>
+      </tr>      
+      {% endfor %}
+    </table>
+    
+    <p>{{ generators|length}} active generator{{projects|length|pluralize}} in the selected work package.</p>
+{% else %}
+    <p>No activity generators are available in this work package.</p>
+{% endif %}
+
+{% include "loads/footer.html" %}

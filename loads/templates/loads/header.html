@@ -16,6 +16,7 @@
 {% url 'tasks_index' as tasks_index %}
 {% url 'modules_index' as modules_index %}
 {% url 'projects_index' as projects_index %}
+{% url 'generators_index' as generators_index %}
 
 
 <div id="menu">
@@ -35,7 +36,9 @@
 		<li class="menutop">
       <a title="click to access section: Projects" class="{% active request projects_index %}" href="{% url 'projects_index' %}">Projects</a>
     </li>
-
+		<li class="menutop">
+      <a title="click to access section: Generators" class="{% active request generators_index %}" href="{% url 'generators_index' %}">Generators</a>
+    </li>
 	</ul>
 </div>
 

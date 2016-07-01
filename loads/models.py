@@ -14,6 +14,7 @@ from django.utils.timezone import utc
 #TODO: Needs more elegant handling than this
 ACADEMIC_YEAR = '2015/2016'
 
+
 def divide_by_semesters(total_hours, semester_string):
     """divide hours equally between targeted semesters
 
@@ -143,7 +144,6 @@ class WorkPackage(models.Model):
 
         return changes
 
-
     def get_all_staff(self):
         """obtains all staff related to by a package"""
         target_groups = self.groups.all()
@@ -152,7 +152,6 @@ class WorkPackage(models.Model):
         # Get the matching staff objects
         staff = Staff.objects.all().filter(user__in=users_by_groups).distinct().order_by('user__last_name')
         return staff
-
 
     class Meta:
         ordering = ['name', '-startdate']
@@ -241,14 +240,12 @@ class Staff(models.Model):
 
         return all_tasks
 
-
     def get_all_packages(self):
         ''''Get all the packages that are relevant for a staff member'''
         groups = Group.objects.all().filter(user=self.user)
         packages = WorkPackage.objects.all().filter(groups__in=groups).distinct()
 
         return packages
-
 
     class Meta:
         verbose_name_plural = 'staff'
@@ -284,21 +281,6 @@ class ActivityType(models.Model):
 
     class Meta:
         ordering = ['name']
-
-
-class ActivitySet(models.Model):
-    """Groups a set of automatically generated activities, to be deleted or regenerated in future.
-    This may reflect materials produced by ActivityGenerator objects, or Grant objects and thus may
-    span groups of Staff and/or WorkPackages. This is used to abstract that connection.
-    
-    name        taken from the appropriate generator
-    created     an automatically generated timestamp when the set was created"""
-    
-    name = models.CharField(max_length=300)
-    created = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return self.name
 
 
 class Activity(models.Model):
@@ -353,13 +335,14 @@ class Activity(models.Model):
             total_hours = self.percentage * self.package.nominal_hours / 100
 
         return divide_by_semesters(total_hours, self.semester)
+
     class Meta:
         verbose_name_plural = "activities"
 
 
 class ActivityGenerator(models.Model):
     """Allows activities common to a number of staff members to be bulk generated and allocated
-    
+
     Some fields are those from an Activity
 
     name             is the name of the activity
@@ -370,8 +353,7 @@ class ActivityGenerator(models.Model):
     activity_type    see the related Model
     comment          any short comment or note
     package          the WorkPackage this activity belongs to
-    activity_set     the associated activity_set if this activity is auto generated
-    
+
     details          more detail of the activities
     targets          individual staff for which these activities will be generated
     groups           groups of staff for which these activities will be generated
@@ -395,13 +377,10 @@ class ActivityGenerator(models.Model):
     comment = models.CharField(max_length=200, default='', blank=True)
     package = models.ForeignKey(WorkPackage)
 
-    # These are more associated with the set, activity_set is here as
-    # it will be generated not read from this model
-    activity_set = models.ForeignKey('ActivitySet', null=True, blank=True, on_delete=models.SET_NULL)
+    # These are more associated with the set
     details = models.TextField()
     targets = models.ManyToManyField(Staff, blank=True)
     groups = models.ManyToManyField(Group, blank=True)
-
 
     def get_all_targets(self):
         """obtains all targets for a generator whether by user or group, returns a list of valid targets"""
@@ -424,21 +403,17 @@ class ActivityGenerator(models.Model):
 
         return all_targets
 
-    
     def generate_activities(self):
         """Generate all Activities for this"""
         # If there are existing activities, we need to delete them.
-        if(self.activity_set):
-            self.activity_set.delete()
-            #TODO: check cascade behaviour!
+        #if(self.activity_set):
+        #    self.activity_set.delete()
+        #    #TODO: check cascade behaviour!
 
-        # Create a new ActivitySet
-        activity_set = ActivitySet(name=self.name + " (" + str(self.package) + ")")
+        # Create a new ActivitySet, point it back at this generator
+        activity_set = ActivitySet(name=self.name + " (" + str(self.package) + ")",
+                                   generator=self)
         activity_set.save()
-
-        # Update the current record to hold the new activity set
-        self.activity_set=activity_set
-        self.save()
 
         # Now force generation for each allocation against the project
         for staff in self.get_all_targets():
@@ -456,9 +431,11 @@ class ActivityGenerator(models.Model):
             )
             activity.save()
 
-
     def __str__(self):
         return str(self.name) + " (" + str(self.package) + ")"
+
+    class Meta:
+        ordering = ['name']
 
 
 class Campus(models.Model):
@@ -701,7 +678,6 @@ class Resource(models.Model):
     modified = models.DateTimeField(auto_now=True)
     downloads = models.PositiveSmallIntegerField(default=0)
 
-
     def __str__(self):
         return self.name
 
@@ -822,7 +798,6 @@ class Project(models.Model):
     end = models.DateField()
     body = models.ForeignKey(Body)
     activity_type = models.ForeignKey(ActivityType)
-    activity_set = models.ForeignKey(ActivitySet, blank=True, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return str(self.name) + ' (' + str(self.body) + ')'
@@ -830,24 +805,18 @@ class Project(models.Model):
     def generate_activities(self):
         """Generate all the Activity records associated with the project"""
 
-        # If there are existing activities, we need to delete them.
-        if(self.activity_set):
-            self.activity_set.delete()
-            #TODO: check cascade behaviour!
+        # If there are existing activities, we need to delete them. Find linked sets.
+        # Cascade will kill linked activities
+        ActivitySet.objects.all().filter(project=self).delete()
 
         # Create a new ActivitySet
-        activity_set = ActivitySet(name=self.name)
+        activity_set = ActivitySet(name=self.name, project=self)
         activity_set.save()
-
-        # Update the current record to hold the new activity set
-        self.activity_set=activity_set
-        self.save()
 
         # Now force generation for each allocation against the project
         project_staff = ProjectStaff.objects.all().filter(project=self)
         for allocation in project_staff:
             allocation.generate_activities(activity_set)
-
 
     class Meta:
         ordering = ['name', '-start']
@@ -916,8 +885,25 @@ class ProjectStaff(models.Model):
             )
             activity.save()
 
-
     class Meta:
         verbose_name_plural = "project staff"
         ordering = ['staff', '-start']
 
+
+class ActivitySet(models.Model):
+    """Groups a set of automatically generated activities, to be deleted or regenerated in future.
+    This may reflect materials produced by ActivityGenerator objects, or Grant objects and thus may
+    span groups of Staff and/or WorkPackages. This is used to abstract that connection.
+    
+    name        taken from the appropriate generator
+    created     an automatically generated timestamp when the set was created
+    project     if the set is associated with a project, this is that key
+    generator   if the set is associated with a generator, this is that key"""
+    
+    name = models.CharField(max_length=300)
+    created = models.DateTimeField(auto_now_add=True)
+    project = models.ForeignKey(Project, blank=True, null=True)
+    generator = models.ForeignKey(ActivityGenerator, blank=True, null=True)
+    
+    def __str__(self):
+        return self.name

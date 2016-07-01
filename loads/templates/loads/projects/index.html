@@ -1,5 +1,17 @@
 {% include "loads/header.html" %}
   
+<h2>Projects</h2>
+
+<p>
+  Projects are used to help allocate activities to a number of members of staff at the same time, where those staff are working
+  on a common project, albeit with potentially different allocations. Projects are time bound, and so can create allocations
+  across different work packages as appropriate. Generating activities for projects <strong>will delete existing allocations
+  for the project and create a new set</strong>.
+  
+  Generated activities are placed in an Activity Set, deleting the set will delete all the related allocations.
+  
+  The usual use case for this is something like a research grant.
+</p>
 
 {% if projects %}
     <table border="1">

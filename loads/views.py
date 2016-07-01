@@ -11,6 +11,7 @@ from django.template import RequestContext, loader
 
 from .models import ACADEMIC_YEAR
 
+from .models import ActivityGenerator
 from .models import Staff
 from .models import Task
 from .models import Activity
@@ -638,6 +639,43 @@ def staff_module_allocation(request, staff_id, package_id):
     return render(request, 'loads/staff/allocations.html', {'staff': staff, 'package':package, 'formset': formset})
 
 
+def generators_index(request):
+    '''Obtains a list of all ActivityGenerators in the User's selected WorkPackage'''
+
+    # Fetch the staff user associated with the person requesting
+    user_staff = get_object_or_404(Staff, user=request.user)
+    # And the staff member we are going to act on
+    staff = get_object_or_404(Staff, user=request.user)
+
+    generators = ActivityGenerator.objects.all().filter(package=staff.package)
+
+    template = loader.get_template('loads/generators/index.html')
+    context = RequestContext(request, {
+        'generators': generators,
+    })
+    return HttpResponse(template.render(context))
+
+
+def generators_generate_activities(request, generator_id):
+    """(Re)generate all activities for a given Activity Generator"""
+    
+    # Fetch the staff user associated with the person requesting
+    user_staff = get_object_or_404(Staff, user=request.user)
+    staff = get_object_or_404(Staff, user=request.user)
+    # And the generator
+    generator = get_object_or_404(ActivityGenerator, pk=generator_id)
+    
+    # If either the logged in user or target user aren't in the package, this is forbidden
+    if staff.package not in user_staff.get_all_packages() or not request.user.has_perm('loads.add_activity'):
+        return HttpResponseRedirect('/forbidden/')
+
+        
+    generator.generate_activities()
+    messages.success(request, 'Activities Regenerated.')
+    url = reverse('generators_index')
+    return HttpResponseRedirect(url)
+
+
 def projects_index(request):
     '''Obtains a list of all non archived projects'''
     # Fetch the tasks assigned against the specific user of the staff member
@@ -722,8 +760,7 @@ def projects_generate_activities(request, project_id):
     #    return HttpResponseRedirect('/forbidden/')
         
     # The logged in user should be able to do this via the Admin interface, or disallow.
-    #permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm('loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
-    permission = True
+    permission = request.user.has_perm('loads.add_projectstaff') and request.user.has_perm('loads.change_projectstaff') and request.user.has_perm('loads.delete_projectstaff')
     if not permission:
         return HttpResponseRedirect('/forbidden/')
         
