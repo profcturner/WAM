@@ -516,6 +516,7 @@ class Module(models.Model):
     admin_hours = models.PositiveSmallIntegerField(blank=True)
     assessment_hours = models.PositiveSmallIntegerField(blank=True)
     package = models.ForeignKey('WorkPackage')
+    details = models.TextField(blank=True, null=True)
 
     def get_contact_hours(self):
         """returns the contact hours for the module
