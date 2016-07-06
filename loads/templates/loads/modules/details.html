@@ -45,12 +45,31 @@
   </tr>
   <tr>
     <th>
+      Semester
+    </th>
+    <td>
+      {{ module.semester }}
+    </td>
+  </tr>
+  <tr>
+    <th>
       Hours
     </th>
     <td>
       Total Hours: {{ total_hours|stringformat:".2f" }}; Contact Hours: {{ contact_hours|stringformat:".2f" }}; Admin Hours {{ admin_hours|stringformat:".2f" }}; Assessment_Hours {{ assessment_hours|stringformat:".2f" }}
     </td>
   </tr>
+  {% if module.details %}
+  <tr>
+    <th>
+      Other Details
+    </th>
+    <td>
+      {{ module.details|urlize|linebreaksbr }}
+    </td>
+  </tr>
+  {% end %}
+  
 </table>
 
 <h2>Related Activity Information</h2>
