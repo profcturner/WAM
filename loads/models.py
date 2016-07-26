@@ -512,9 +512,9 @@ class Module(models.Model):
     semester = models.CommaSeparatedIntegerField(max_length=10)
     credits = models.PositiveSmallIntegerField(default=20)
     size = models.ForeignKey('ModuleSize')
-    contact_hours = models.PositiveSmallIntegerField(blank=True)
-    admin_hours = models.PositiveSmallIntegerField(blank=True)
-    assessment_hours = models.PositiveSmallIntegerField(blank=True)
+    contact_hours = models.PositiveSmallIntegerField(blank=True, null=True)
+    admin_hours = models.PositiveSmallIntegerField(blank=True, null=True)
+    assessment_hours = models.PositiveSmallIntegerField(blank=True, null=True)
     package = models.ForeignKey('WorkPackage')
     details = models.TextField(blank=True, null=True)
 
@@ -523,10 +523,11 @@ class Module(models.Model):
 
         If the override is set, this is returns, otherwise an assumption is made
         """
-        if self.contact_hours:
-            hours = self.contact_hours
-        else:
+        if self.contact_hours is None:
             hours = self.credits * self.package.credit_contact_scaling
+        else:
+            hours = self.contact_hours
+            
         return hours
 
     def get_contact_hours_by_semester(self):
@@ -535,10 +536,10 @@ class Module(models.Model):
 
     def get_admin_hours(self):
         '''returns the total admin hours'''
-        if self.admin_hours:
-            hours = self.admin_hours
-        else:
+        if self.admin_hours is None:
             hours = self.get_contact_hours() * self.package.contact_admin_scaling * self.size.admin_scaling
+        else:
+            hours = self.admin_hours
         return hours
 
     def get_admin_hours_by_semester(self):
@@ -547,10 +548,10 @@ class Module(models.Model):
 
     def get_assessment_hours(self):
         '''returns the total assessment hours'''
-        if self.assessment_hours:
-            hours = self.assessment_hours
-        else:
+        if self.assessment_hours is None:
             hours = self.get_contact_hours() * self.package.contact_assessment_scaling * self.size.assessment_scaling
+        else:
+            hours = self.assessment_hours
         return hours
 
     def get_assessment_hours_by_semester(self):
