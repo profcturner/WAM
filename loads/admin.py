@@ -36,7 +36,7 @@ class ActivitySetAdmin(admin.ModelAdmin):
 
 class ModuleAdmin(admin.ModelAdmin):
     list_display = ('package', 'module_code', 'module_name', 'semester')
-    list_filter = ('package__name',)
+    list_filter = ('package__name','semester')
     
 class ActivityAdmin(admin.ModelAdmin):
     list_display = ('package', 'name', 'module', 'staff', 'hours', 'percentage', 'semester', 'activity_type', 'is_allocated')
