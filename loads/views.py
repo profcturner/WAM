@@ -143,6 +143,8 @@ def loads_modules(request, semesters, staff_details=False):
     # if a GET (or any other method) we'll create a form from the current logged in user
     else:
         form = LoadsByModulesForm()
+        # If semesters came via get, let's populate the form
+        form.fields['semesters'].initial = semesters        
         brief_details=False
 
 
