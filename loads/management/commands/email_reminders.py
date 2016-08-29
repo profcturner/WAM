@@ -66,7 +66,7 @@ class Command(BaseCommand):
         if not staff.is_active():
           if verbosity > 2:
             self.stdout.write('  considering: {}'.format(str(staff)))
-            self.stdout.write('    user marked in active, skipping...')
+            self.stdout.write('    user marked inactive, skipping...')
           return False
 
         # Get all the tasks for this member of staff who must be active now
