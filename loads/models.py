@@ -227,6 +227,10 @@ class Staff(models.Model):
         hours_by_semester = self.hours_by_semester(package)
         return hours_by_semester[0]
 
+    def is_active(self):
+      '''Maps to whether the underlying user is active'''
+      return self.user.is_active
+
     def get_all_tasks(self):
         '''Returns a queryset of all unarchived tasks linked to this staff member'''
         user_tasks = Task.objects.all().filter(targets=self).exclude(archive=True).distinct().order_by('deadline')

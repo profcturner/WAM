@@ -76,6 +76,7 @@ def loads(request):
     # Go through each group in turn
     for group in staff.package.groups.all():
         group_list = []
+        group_size = 0
         group_total = 0.0
         group_average = 0.0
         group_allocated_staff = 0
@@ -86,14 +87,18 @@ def loads(request):
         staff_list = Staff.objects.all().filter(user__in=users).order_by('user__last_name')
         for staff in staff_list:
             load_info = staff.hours_by_semester(package=package)
+            # Check any staff member with no load is active, if not, skip them
+            if not staff.is_active() and load_info[0] == 0:
+                continue
             combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3], 100*load_info[0]/staff.fte]
             group_list.append(combined_item)
             group_total += load_info[0]
+            group_size += 1
             if load_info[0]:
                 # Also count staff with allocated hours
                 group_allocated_staff += 1
-        if len(staff_list):
-            group_average = group_total / len(staff_list)
+        if group_size:
+            group_average = group_total / group_size
         if group_allocated_staff:
             group_allocated_average = group_total / group_allocated_staff
         group_data.append([group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average])
@@ -116,7 +121,7 @@ def loads(request):
     return HttpResponse(template.render(context))
     
     
-def loads_modules(request):
+def loads_modules(request, staff_details=False):
     """Shows allocation information by modules"""
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
@@ -150,8 +155,8 @@ def loads_modules(request):
                        admin_proportion,
                        module.get_assessment_hours(),
                        assessment_proportion,
-                       extra_hours]
-
+                       extra_hours,
+                       module_staff]
 
         combined_list.append(module_info)
     
@@ -160,9 +165,58 @@ def loads_modules(request):
         'combined_list': combined_list,
         'package': package,
         'loads_menu': True,
+        'staff_details' : staff_details,
     })
     return HttpResponse(template.render(context))
 
+
+def loads_modules_staff_details(request, staff_details=True):
+    """Shows allocation information by modules"""
+    # Fetch the staff user associated with the person requesting
+    staff = get_object_or_404(Staff, user=request.user)
+    # And therefore the package enabled for that user
+    package = staff.package
+
+    modules = Module.objects.all().filter(package=package).order_by('module_code')
+
+    combined_list = []
+    for module in modules:
+        # Get Allocation information
+        module_staff = ModuleStaff.objects.all().filter(module=module)
+        contact_proportion = 0
+        admin_proportion = 0
+        assessment_proportion = 0
+        extra_hours = 0
+        for allocation in module_staff:
+            contact_proportion += allocation.contact_proportion
+            admin_proportion += allocation.admin_proportion
+            assessment_proportion += allocation.assessment_proportion
+
+        activities = Activity.objects.all().filter(module=module)
+        for activity in activities:
+            hours_per_semester = activity.hours_by_semester()
+            extra_hours += hours_per_semester[0]
+            
+        module_info = [module,
+                       module.get_contact_hours(),
+                       contact_proportion,
+                       module.get_admin_hours(),
+                       admin_proportion,
+                       module.get_assessment_hours(),
+                       assessment_proportion,
+                       extra_hours,
+                       module_staff]
+
+        combined_list.append(module_info)
+    
+    template = loader.get_template('loads/loads/modules.html')
+    context = RequestContext(request, {
+        'combined_list': combined_list,
+        'package': package,
+        'loads_menu': True,
+        'staff_details' : staff_details,
+    })
+    return HttpResponse(template.render(context))
 
 
 def activities(request, staff_id):
@@ -304,8 +358,10 @@ def tasks_details(request, task_id):
         # Is it complete? Look for a completion model
         completion = TaskCompletion.objects.all().filter(staff=target).filter(task=task)
         if len(completion) == 0:
-            combined_item = [target, False]
-            combined_list_incomplete.append(combined_item)
+            # Not complete, but only add the target if they aren't active
+            if target.is_active():
+                combined_item = [target, False]
+                combined_list_incomplete.append(combined_item)
         else:
             combined_item = [target, completion[0]]
             combined_list_complete.append(combined_item)

@@ -24,6 +24,7 @@ urlpatterns = [
     url(r'^workpackage/migrate/$', views.workpackage_migrate, name='workpackage_migrate'),    
     url(r'^loads/$', views.loads, name='loads'),
     url(r'^loads/modules/$', views.loads_modules, name='loads_modules'),
+    url(r'^loads/modules/staff_details/$', views.loads_modules_staff_details, name='loads_modules_staff_details'),
     url(r'^activities/(?P<staff_id>[0-9]+)$', views.activities, name='activities'),
     url(r'^generators/index/$', views.generators_index, name='generators_index'),
     url(r'^generators/generate_activities/(?P<generator_id>[0-9]+)$', views.generators_generate_activities, name='generators_generate_activities'),

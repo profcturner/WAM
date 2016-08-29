@@ -61,6 +61,15 @@ class Command(BaseCommand):
     def email_tasks_by_staff(self, staff, options, urgent_only='false'):
         """docstring for email_tasks_by_staff"""
         verbosity = options['verbosity']
+        
+        # If the member of staff is inactive (perhaps retired, skip them)
+        if not staff.is_active():
+          if verbosity > 2:
+            self.stdout.write('  considering: {}'.format(str(staff)))
+            self.stdout.write('    user marked in active, skipping...')
+          return False
+
+        # Get all the tasks for this member of staff who must be active now
         all_tasks = staff.get_all_tasks()
 
         # We will create separate lists for those tasks that are complete
