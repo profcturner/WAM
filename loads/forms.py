@@ -2,6 +2,8 @@ from django import forms
 from django.forms import ModelForm
 from django.forms import BaseModelFormSet
 
+from django.core.validators import RegexValidator
+
 from .models import Staff
 from .models import TaskCompletion
 from .models import ExamTracker
@@ -17,6 +19,26 @@ class MigrateWorkPackageForm(forms.Form):
     copy_activities = forms.BooleanField(required=False)
     copy_modules = forms.BooleanField(required=False)
     copy_modulestaff = forms.BooleanField(required=False)
+
+
+class LoadsByModulesForm(forms.Form):
+    '''This prompts for comma separated semesters used for some restrictions'''
+    semesters = forms.CharField(
+        max_length=10,
+        #help_text='Comma separated list of semesters to show',
+        required=False,
+        validators=[
+            RegexValidator(
+                regex='^[0-9,]*$',
+                message='Semesters must be comma separated numbers',
+                code='invalid_semesters'
+            ),
+        ]
+    )
+    brief_details = forms.BooleanField(
+        required=False
+    )
+    
 
 
 class StaffWorkPackageForm(ModelForm):

@@ -46,7 +46,7 @@
   <ul>
     {% if loads_menu %} 
     <li><a href="{% url 'loads' %}">Loads By Staff</a></li>
-    <li><a href="{% url 'loads_modules' %}">Loads By Modules</a></li>
+    <li><a href="{% url 'loads_modules' semesters='' %}">Loads By Modules</a></li>
     {% endif %}
 	</ul>
 </div>	

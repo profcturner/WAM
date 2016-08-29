@@ -4,9 +4,15 @@
 
 {% if package.draft %}
 <h1>This is a DRAFT allocation and may be incomplete.</h1>
-{% endif %}  
+{% endif %}
 
-<h2>Loads By Modules in Semesters {{ semesters }}</h2>
+<form action="" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Submit" />
+</form>    
+
+<h2>Loads By Modules {% if valid_semesters %}(Restricted to those in Semester{{valid_semesters_length_plaralise}} {% for semester in valid_semesters %}{% if forloop.first %}{% else %}{% if forloop.last %} and {% else %}, {% endif %}{% endif %}{{semester}}{% endfor %}) {% endif %}</h2>
 {% if combined_list %}
     <table border="1">
       <tr>

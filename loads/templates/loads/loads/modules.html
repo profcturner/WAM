@@ -4,9 +4,15 @@
 
 {% if package.draft %}
 <h1>This is a DRAFT allocation and may be incomplete.</h1>
-{% endif %}  
+{% endif %}
 
-<h2>Loads By Modules</h2>
+<form action="" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Submit" />
+</form>    
+
+<h2>Loads By Modules {% if valid_semesters %}(Restricted to those in Semester{{valid_semesters_length_plaralise}} {% for semester in valid_semesters %}{% if forloop.first %}{% else %}{% if forloop.last %} and {% else %}, {% endif %}{% endif %}{{semester}}{% endfor %}) {% endif %}</h2>
 {% if combined_list %}
     <table border="1">
       <tr>
@@ -21,7 +27,7 @@
         <th>Extra Hours</th>
         <th>Details</th>
       </tr>
-      {% for module, contact_hours, contact_proportion, admin_hours, admin_proportion, assessment_hours, assessment_proportion, extra_hours in combined_list %}
+      {% for module, contact_hours, contact_proportion, admin_hours, admin_proportion, assessment_hours, assessment_proportion, extra_hours, module_staff in combined_list %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ module.module_code }}</th>
         <td>{{ module.module_name }}</td>
@@ -32,7 +38,15 @@
         <td>{{ assessment_hours|stringformat:".2f" }}
         <td><span {% if assessment_proportion != 100 %}style="color:red"{% endif %}>{{ assessment_proportion }}%</td>
         <td>{{ extra_hours|stringformat:".2f" }}</td>
+        {% if brief_details %}
+        <td>
+        {% for allocation in module_staff %}
+          <strong>{{ allocation.staff }}</strong><br />Contact {{ allocation.contact_proportion }}%; Admin {{ allocation.admin_proportion }}%; Assessment {{ allocation.assessment_proportion }}% <br/>
+        {% endfor %}
+        </td>
+        {% else %}
         <td><a href="{% url 'modules_details' module.id %}">Details</a></td>
+        {% endif %}
       </tr>      
       {% endfor %}
     </table>

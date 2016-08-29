@@ -23,6 +23,7 @@ from .models import Project
 from .models import ProjectStaff
 from .models import WorkPackage
 
+from .forms import LoadsByModulesForm
 from .forms import TaskCompletionForm
 from .forms import ExamTrackerForm
 from .forms import CourseworkTrackerForm
@@ -121,17 +122,49 @@ def loads(request):
     return HttpResponse(template.render(context))
     
     
-def loads_modules(request, staff_details=False):
+def loads_modules(request, semesters, staff_details=False):
     """Shows allocation information by modules"""
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
     package = staff.package
-
     modules = Module.objects.all().filter(package=package).order_by('module_code')
+    
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request
+        form = LoadsByModulesForm(request.POST)
+
+        # check whether it's valid:
+        if form.is_valid():
+            semesters = form.cleaned_data['semesters']
+            brief_details = form.cleaned_data['brief_details']
+
+    # if a GET (or any other method) we'll create a form from the current logged in user
+    else:
+        form = LoadsByModulesForm()
+        brief_details=False
+
+
+    # Check for any semester limitations, split by comma if something is actually there
+    if semesters:
+      valid_semesters = semesters.split(',')
+    else:
+      valid_semesters = list()
 
     combined_list = []
     for module in modules:
+        # Is it valid for the semester, i.e. are and of its semesters in the passed in one?
+        if len(valid_semesters):
+            module_semesters = module.semester.split(',')
+            valid_semester = False
+            for m_sem in module_semesters:
+                for v_sem in valid_semesters:
+                    if m_sem == v_sem:
+                        valid_semester = True
+            if not valid_semester:
+              continue
+            
         # Get Allocation information
         module_staff = ModuleStaff.objects.all().filter(module=module)
         contact_proportion = 0
@@ -162,6 +195,9 @@ def loads_modules(request, staff_details=False):
     
     template = loader.get_template('loads/loads/modules.html')
     context = RequestContext(request, {
+        'form': form,
+        'brief_details': brief_details,
+        'valid_semesters': valid_semesters,
         'combined_list': combined_list,
         'package': package,
         'loads_menu': True,
@@ -172,24 +208,31 @@ def loads_modules(request, staff_details=False):
 
 def loads_modules_staff_details(request, semesters, staff_details=True):
     """Shows allocation information by modules"""
+    # TODO deprecated and will be removed, functionality rolling into loads_modules
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
     package = staff.package
-    valid_semesters = semesters.split(',')
     modules = Module.objects.all().filter(package=package).order_by('module_code')
+
+    # Check for any semester limitations, split by comma if something is actually there
+    if semesters:
+      valid_semesters = semesters.split(',')
+    else:
+      valid_semesters = list()
 
     combined_list = []
     for module in modules:
         # Is it valid for the semester, i.e. are and of its semesters in the passed in one?
-        module_semesters = module.semester.split(',')
-        valid_semester = False
-        for m_sem in module_semesters:
-            for v_sem in valid_semesters:
-                if m_sem == v_sem:
-                    valid_semester = True
-        if not valid_semester:
-            continue
+        if len(valid_semesters):
+            module_semesters = module.semester.split(',')
+            valid_semester = False
+            for m_sem in module_semesters:
+                for v_sem in valid_semesters:
+                    if m_sem == v_sem:
+                        valid_semester = True
+            if not valid_semester:
+              continue
         
         # Get Allocation information
         module_staff = ModuleStaff.objects.all().filter(module=module)
@@ -221,7 +264,7 @@ def loads_modules_staff_details(request, semesters, staff_details=True):
     
     template = loader.get_template('loads/loads/modules_staff_details.html')
     context = RequestContext(request, {
-        'semesters' : semesters,
+        'valid_semesters' : valid_semesters,
         'combined_list': combined_list,
         'package': package,
         'loads_menu': True,
