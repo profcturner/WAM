@@ -47,6 +47,7 @@ class StaffAdmin(admin.ModelAdmin):
     
 class TaskAdmin(admin.ModelAdmin):
     list_display = ('name', 'category', 'deadline')
+    list_filter = ('archive','category')
     
 class TaskCompletionAdmin(admin.ModelAdmin):
     list_display = ('task', 'staff', 'when', 'comment')
