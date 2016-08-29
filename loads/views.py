@@ -170,17 +170,27 @@ def loads_modules(request, staff_details=False):
     return HttpResponse(template.render(context))
 
 
-def loads_modules_staff_details(request, staff_details=True):
+def loads_modules_staff_details(request, semesters, staff_details=True):
     """Shows allocation information by modules"""
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
     package = staff.package
-
+    valid_semesters = semesters.split(',')
     modules = Module.objects.all().filter(package=package).order_by('module_code')
 
     combined_list = []
     for module in modules:
+        # Is it valid for the semester, i.e. are and of its semesters in the passed in one?
+        module_semesters = module.semester.split(',')
+        valid_semester = False
+        for m_sem in module_semesters:
+            for v_sem in valid_semesters:
+                if m_sem == v_sem:
+                    valid_semester = True
+        if not valid_semester:
+            continue
+        
         # Get Allocation information
         module_staff = ModuleStaff.objects.all().filter(module=module)
         contact_proportion = 0
@@ -211,6 +221,7 @@ def loads_modules_staff_details(request, staff_details=True):
     
     template = loader.get_template('loads/loads/modules_staff_details.html')
     context = RequestContext(request, {
+        'semesters' : semesters,
         'combined_list': combined_list,
         'package': package,
         'loads_menu': True,
