@@ -209,7 +209,7 @@ def loads_modules_staff_details(request, staff_details=True):
 
         combined_list.append(module_info)
     
-    template = loader.get_template('loads/loads/modules.html')
+    template = loader.get_template('loads/loads/modules_staff_details.html')
     context = RequestContext(request, {
         'combined_list': combined_list,
         'package': package,
