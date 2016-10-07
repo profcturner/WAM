@@ -184,13 +184,13 @@ th {
 
 thead th,
 tfoot td {
-    color: #666;
-    padding: 2px 5px;
-    font-size: 11px;
-    background: #e1e1e1 url(../img/nav-bg.gif) top left repeat-x;
+    background: white;
+    font-size: 12px;
+    font-weight: bold;
     border-left: 1px solid #ddd;
     border-bottom: 1px solid #ddd;
 }
+
 
 tfoot td {
     border-bottom: none;
@@ -510,5 +510,8 @@ text-decoration: none;
   float:left;
 }
 
-
-
+.floatingHeader {
+  position: fixed;
+  top: 0;
+  visibility: hidden;
+}

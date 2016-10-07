@@ -1,5 +1,9 @@
 {% include "loads/header.html" %}
 
+{% load staticfiles %}
+<!-- Include formset plugin - including jQuery dependency -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="{% static 'loads/persist-headers.js' %}"></script>
 <p>Selected Work Package : {{package}} <a href="{%url 'workpackage_change' %}">(Change Package)</a></p>
 
 {% if package.draft %}
@@ -14,8 +18,9 @@
 
 <h2>Loads By Modules {% if valid_semesters %}(Restricted to those in Semester{{valid_semesters_length_plaralise}} {% for semester in valid_semesters %}{% if forloop.first %}{% else %}{% if forloop.last %} and {% else %}, {% endif %}{% endif %}{{semester}}{% endfor %}) {% endif %}</h2>
 {% if combined_list %}
-    <table border="1">
-      <tr>
+    <table border="1" class="persist-area">
+      <thead>
+      <tr class="persist-header">
         <th>Module Code</th>
         <th>Module Name</th>
         <th>Contact<br />Hours</th>
@@ -27,6 +32,8 @@
         <th>Extra Hours</th>
         <th>Details</th>
       </tr>
+    </thead>
+    <tbody>
       {% for module, contact_hours, contact_proportion, admin_hours, admin_proportion, assessment_hours, assessment_proportion, extra_hours, module_staff in combined_list %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ module.module_code }}</th>
@@ -49,6 +56,7 @@
         {% endif %}
       </tr>      
       {% endfor %}
+    </tbody>
     </table>
     
   <p>Total of {{ combined_list|length}} module{{combined_list|length|pluralize}}.

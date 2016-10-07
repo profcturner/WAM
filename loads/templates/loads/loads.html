@@ -1,5 +1,10 @@
 {% include "loads/header.html" %}
 
+{% load staticfiles %}
+<!-- Include formset plugin - including jQuery dependency -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="{% static 'loads/persist-headers.js' %}"></script>
+
 <p>Selected Work Package : {{package}} <a href="{%url 'workpackage_change' %}">(Change Package)</a></p>
 
 {% if package.draft %}
@@ -10,10 +15,13 @@
   {% for group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average in group_data %}
   <h2>{{group}}</h2>
     {% if group_list %}
-    <table border="1" width="90%" style="max-width: 900px;">
-      <tr>
-        <th  width="30%">Staff Name</th><th  width="8%">First Semester</th><th  width="8%">Second Semester</th><th  width="8%">Third Semester</th><th  width="8%">Total</th><th  width="8%">Scaled</th><th width="8%">Activities</th><th width="8%">Tasks</th>
-      </tr>
+    <table border="1" width="90%" style="max-width: 900px;" class="persist-area">
+      <thead>
+        <tr class="persist-header">
+          <th  width="30%">Staff Name</th><th  width="8%">First Semester</th><th  width="8%">Second Semester</th><th  width="8%">Third Semester</th><th  width="8%">Total</th><th  width="8%">Scaled</th><th width="8%">Activities</th><th width="8%">Tasks</th>
+        </tr>
+      </thead>
+    <tbody>
       {% for staff, total, first, second, third, scaled in group_list %}
       <tr class="{{forloop.counter|divisibleby:2|yesno:"row2,row1"}}">
         <th>{{ staff }}</th>
@@ -26,6 +34,7 @@
         <td><a href="{% url 'tasks_bystaff' staff.id %}">Tasks</a></td>
       </tr>      
       {% endfor %}
+    </tbody>
     </table>
     <p>
       Total hours for all activities in this group is {{ group_total }}, with 
@@ -47,5 +56,6 @@
 {% endif %}
 
 <p><a href="{% url 'loads_modules' semesters='' %}">Loads by Modules</a>.</p>
+
 
 {% include "loads/footer.html" %}
