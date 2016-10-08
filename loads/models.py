@@ -12,7 +12,7 @@ from django.utils.timezone import utc
 #from . import helper_functions
 
 #TODO: Needs more elegant handling than this
-ACADEMIC_YEAR = '2015/2016'
+ACADEMIC_YEAR = '2016/2017'
 
 
 def divide_by_semesters(total_hours, semester_string):
@@ -155,6 +155,24 @@ class WorkPackage(models.Model):
 
     class Meta:
         ordering = ['name', '-startdate']
+
+
+class ExternalExaminer(models.Model):
+    '''Augments the Django user model with external examiner details
+
+    user            the Django user object, a one to one link
+    title           the title of the member of staff (Dr, Mr etc)
+    staff_number    the staff number (may be an associate code)
+    package         the active work package to edit or display
+    '''
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=100)
+    staff_number = models.CharField(max_length=20)
+    package = models.ForeignKey(WorkPackage, null=True, on_delete=models.SET_NULL)
+
+    def __str__(self):
+        return self.title + ' ' + self.user.first_name + ' ' + self.user.last_name
 
 
 class Staff(models.Model):
@@ -495,6 +513,29 @@ class ModuleSize(models.Model):
         return str(self.text)
 
 
+class Programme(models.Model):
+    '''Basic information about a programme of study
+
+    programme_code  the code for the programme (e.g. 7644)
+    programme_name  the name of the programme
+    examiners       all the external examiners associated with the programme
+    package         the package this programme is associated with
+    directors
+    '''
+
+    programme_code = models.CharField(max_length=10)
+    programme_name = models.CharField(max_length=200)
+    examiners = models.ManyToManyField(ExternalExaminer, blank=True)
+    package = models.ForeignKey('WorkPackage')
+    directors = models.ManyToManyField(Staff, blank=True)
+
+    def __str__(self):
+        return str(self.programme_code) + ': ' + str(self.programme_name)
+
+    class Meta:
+        ordering = ['programme_name']
+
+
 class Module(models.Model):
     '''Basic information about a module
 
@@ -506,6 +547,9 @@ class Module(models.Model):
     admin_hours     admin hours, blank for automatic calculation
     assessment_hours    assessment, hours, blank for automatic calculation
     package         the package this module (instance) is associated with
+    programmes      the programmes the module belongs to
+    lead_programme  a main programme for the purposes of external examination
+    moderators      any staff members who can moderate this module's assessments
 
     Eventually augmenting this from CMS would be useful
     '''
@@ -521,6 +565,10 @@ class Module(models.Model):
     assessment_hours = models.PositiveSmallIntegerField(blank=True, null=True)
     package = models.ForeignKey('WorkPackage')
     details = models.TextField(blank=True, null=True)
+    #programmes = models.ManyToManyField(Programme, blank=True)
+    lead_programme = models.ForeignKey(Programme, blank=True, null=True)
+    moderators = models.ManyToManyField(Staff, blank=True)
+
 
     def get_contact_hours(self):
         """returns the contact hours for the module
@@ -683,6 +731,42 @@ class Resource(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     downloads = models.PositiveSmallIntegerField(default=0)
+
+    def __str__(self):
+        return self.name
+
+
+class AssessmentResourceType(models.Model):
+    '''Type of assessment file (e.g. exam, solution etc)'''
+    
+    name = models.CharField(max_length=200)
+    
+    def __str__(self):
+        return self.name
+
+
+class AssessmentResource(models.Model):
+    '''A file resource to be made available for staff
+
+    name        A descriptive name for the resource
+    details     Optional extended details
+    resource    The file information
+    category    See the Category model
+    created     When the resource was added
+    modified    When the resource was modified
+    downloads   A download counter
+    owner       The uploader
+    '''
+
+    name = models.CharField(max_length=200)
+    details = models.TextField(blank=True)
+    resource = models.FileField(upload_to='assessments/%Y/%m/%d/')
+    module = models.ForeignKey(Module)
+    resource_type = models.ForeignKey(AssessmentResourceType)
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    downloads = models.PositiveSmallIntegerField(default=0)
+    owner = models.ForeignKey(Staff)
 
     def __str__(self):
         return self.name

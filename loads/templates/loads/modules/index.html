@@ -9,14 +9,13 @@
 {% if combined_list %}
     <table border="1">
       <tr>
-        <th>Module Code</th><th>Module Name</th><th>Exam</th><th>Coursework</th><th>Details</th>
+        <th>Module Code</th><th>Module Name</th><th>Most Recent Assessment Resource</th><th>Details</th>
       </tr>
-      {% for module, exam, coursework in combined_list %}
+      {% for module, resource in combined_list %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ module.module_code }}</th>
         <td>{{ module.module_name }}</td>
-        <td>{% if exam %}{{exam.get_progress_display}} ({{ exam.created }}){% else %}No Information{% endif %}</td>
-        <td>{% if coursework %}{{coursework.get_progress_display}} ({{ coursework.created }}){% else %}No Information{% endif %}</td>
+        <td>{% if resource %}{{resource.resource_type}} ({{ resource.created }}){% else %}No Information{% endif %}</td>
         <td><a href="{% url 'modules_details' module.id %}">Details</a></td>
       </tr>      
       {% endfor %}

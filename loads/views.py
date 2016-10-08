@@ -1,4 +1,8 @@
+import os
+import mimetypes
+
 from django.shortcuts import get_object_or_404, render
+from django.http import Http404
 from django.core.urlresolvers import reverse
 from django.forms import modelformset_factory
 from django.contrib import messages
@@ -11,18 +15,21 @@ from django.template import RequestContext, loader
 from .models import ACADEMIC_YEAR
 
 from .models import ActivityGenerator
+from .models import AssessmentResource
 from .models import Staff
 from .models import Task
 from .models import Activity
 from .models import TaskCompletion
 from .models import Module
 from .models import ModuleStaff
+from .models import Programme
 from .models import ExamTracker
 from .models import CourseworkTracker
 from .models import Project
 from .models import ProjectStaff
 from .models import WorkPackage
 
+from .forms import AssessmentResourceForm
 from .forms import LoadsByModulesForm
 from .forms import TaskCompletionForm
 from .forms import ExamTrackerForm
@@ -54,6 +61,57 @@ def forbidden(request):
     })
     return HttpResponse(template.render(context))
     
+
+def download_assessment_resource(request, resource_id):
+    """Download an assessment resource"""
+    # Fetch the staff user associated with the person requesting
+    staff = get_object_or_404(Staff, user=request.user)
+    # And the resource object
+    resource = get_object_or_404(AssessmentResource, pk=resource_id)
+    # And the moderators
+    moderators = resource.module.moderators.all()
+    
+    # Assume a lack of permissions
+    permission = False
+    
+    # The owner can download
+    if not permission:
+        if staff == resource.owner:
+            permission = True
+        
+    # A moderator can download
+    if not permission:
+        for moderator in moderators:
+            if staff == moderator:
+                permission = True 
+    
+    # External Examiners can download
+    if not permission:
+        #lead_programme = get_object_or_404(Programme, pk=resource.module.lead_programme)
+        examiners = resource.module.lead_programme.examiners.all()
+        for examiner in examiners:
+            if staff == examiner:
+                permission = True
+      
+    if not permission:
+        raise Http404
+    
+    resource.downloads += 1
+    resource.save()
+    
+    # Get the base filename, and try and work out the type
+    filename = os.path.basename(resource.resource.name)
+    file_mimetype = mimetypes.guess_type(filename)
+    
+    # Start a response
+    response = HttpResponse(resource.resource.file, content_type=file_mimetype)
+
+    # Let's suggest the filename
+    response['Content-Disposition'] = 'attachment; filename=%s' % filename
+    response['X-Sendfile'] = filename
+    #response['Content-Length'] = os.stat(settings.MEDIA_ROOT + os.sep + resource.resource.name).st_size 
+    return response
+
 
 def loads(request):
     '''Show the loads for all members of staff'''
@@ -418,6 +476,43 @@ def tasks_completion(request, task_id, staff_id):
         'urgent': task.is_urgent(),'staff': staff})
 
 
+def add_assessment_resource(request, module_id):
+    """Provide a form for uploading a module resource"""
+    # Fetch the staff user associated with the person requesting
+    staff = get_object_or_404(Staff, user=request.user)
+    # Get the module itself
+    module = get_object_or_404(Module, pk=module_id)
+
+    # Check for a valid permission at this stage
+    can_override = request.user.has_perm('loads.add_assessment_resource')
+    if not can_override:
+        return HttpResponseRedirect('/forbidden/')
+    
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request
+        form = AssessmentResourceForm(request.POST, request.FILES)
+
+        # check whether it's valid:
+        if form.is_valid():
+
+            new_item = form.save(commit=False)
+            new_item.owner = staff
+            new_item.module = module
+            
+            new_item.save()
+            form.save_m2m()
+            url = reverse('modules_details', kwargs={'module_id': module_id})
+            return HttpResponseRedirect(url)
+
+
+    # if a GET (or any other method) we'll create a form from the current logged in user
+    else:
+        form = AssessmentResourceForm()
+
+    return render(request, 'loads/modules/add_assessment_resource.html', {'form': form, 'staff': staff, 'module':module})
+
+
 def exam_track_progress(request, module_id):
     """Processes recording of an exam QA tracking event"""
     # Get the module itself
@@ -556,21 +651,15 @@ def modules_index(request):
     
     combined_list = []
     for module in modules:
-        # get the most recent exam tracker and coursework tracker
-        exam_trackers = ExamTracker.objects.all().filter(module=module).order_by('-created')[:1]
-        coursework_trackers = CourseworkTracker.objects.all().filter(module=module).order_by('-created')[:1]
+        # get the most recent assessment resource
+        resources = AssessmentResource.objects.all().filter(module=module).order_by('-created')[:1]
         
-        if len(exam_trackers) > 0:
-            exam_tracker = exam_trackers[0]
+        if len(resources) > 0:
+            resource = resources[0]
         else:
-            exam_tracker = False
+            resource = False
 
-        if len(coursework_trackers) > 0:
-            coursework_tracker = coursework_trackers[0]
-        else:
-            coursework_tracker = False
-
-        combined_item = [module, exam_tracker, coursework_tracker]
+        combined_item = [module, resource]
         combined_list.append(combined_item)
     
     template = loader.get_template('loads/modules/index.html')
@@ -594,6 +683,7 @@ def modules_details(request, module_id):
     # Get all associated activities, exam and coursework trackers
     activities = Activity.objects.all().filter(module=module).filter(package=package).order_by('name')
     modulestaff = ModuleStaff.objects.all().filter(module=module).filter(package=package)
+    assessment_resources = AssessmentResource.objects.all().filter(module=module).order_by('-created')
     exam_trackers = ExamTracker.objects.all().filter(module=module).order_by('created')
     coursework_trackers = CourseworkTracker.objects.all().filter(module=module).order_by('created')
     
@@ -615,6 +705,7 @@ def modules_details(request, module_id):
         'assessment_hours': module.get_assessment_hours(),
         'modulestaff': modulestaff,
         'activities': activities,
+        'assessment_resources': assessment_resources,
         'exam_trackers': exam_trackers,
         'coursework_trackers': coursework_trackers,
         'package': package,
@@ -742,6 +833,7 @@ def projects_details(request, project_id):
 
     # And the project we are going to act on
     project = get_object_or_404(Project, pk=project_id)
+    package = user_staff.package
 
         
     # The logged in user should be able to do this via the Admin interface, or disallow changes (views ok)
@@ -782,12 +874,14 @@ def projects_details(request, project_id):
     else:
         project_form = ProjectForm(instance=project)
         formset = ProjectStaffFormSet(queryset=ProjectStaff.objects.filter(project=project))
+        for form in formset:
+            form.fields['staff'].queryset = package.get_all_staff()
         # Again, only allow modules in the package
         #for form in formset:
          #   form.fields['module'].queryset = Module.objects.filter(package=package)
         
     return render(request, 'loads/projects/allocations.html', {'project':project, 'project_form':project_form, 'formset': formset})
-    
+
 
 def projects_generate_activities(request, project_id):
     """(Re)generate all activities for a project"""

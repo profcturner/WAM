@@ -4,6 +4,8 @@ from django.forms import BaseModelFormSet
 
 from django.core.validators import RegexValidator
 
+from .models import AssessmentResource
+from .models import AssessmentResourceType
 from .models import Staff
 from .models import TaskCompletion
 from .models import ExamTracker
@@ -38,7 +40,14 @@ class LoadsByModulesForm(forms.Form):
     brief_details = forms.BooleanField(
         required=False
     )
+
     
+class AssessmentResourceForm(ModelForm):
+    '''This form is used to upload an assessment resource'''
+    class Meta:
+        model=AssessmentResource
+        # A number of fields are automatically handled
+        fields = ['name', 'details', 'resource_type', 'resource']
 
 
 class StaffWorkPackageForm(ModelForm):

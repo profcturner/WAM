@@ -129,6 +129,32 @@
     <p>No custom activities recorded for this module.</p>
 {% endif %}
 
+<h2>Assessment Resources</h2>
+  
+{% if assessment_resources %}
+    <table border="1">
+      <tr>
+        <th>Resource Type</th><th>Name</th><th>Owner</th><th>Created</th><th>View</th>
+      </tr>
+      {% for resource in assessment_resources %}
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <td>{{ resource.resource_type }}</td>
+        <td>{{ resource.name }}</td>
+        <td>{{ resource.owner }}</td>
+        <td>{{ resource.created }}</td>
+        <td><a href="{% url 'download_assessment_resource' resource.id %}">View</a></td>
+      </tr>
+      {% endfor %}      
+    </table>
+    
+{% else %}
+    <p>No assessment resources recorded for this module.</p>
+{% endif %}
+<p>
+Click <a href="{% url 'add_assessment_resource' module.id %}">here</a> to add another assessment resource.
+</p>
+
+
 <h2>Exam Tracker</h2>
   
 {% if exam_trackers %}
