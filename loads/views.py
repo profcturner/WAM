@@ -2,7 +2,6 @@ import os
 import mimetypes
 
 from django.shortcuts import get_object_or_404, render
-from django.http import Http404
 from django.core.urlresolvers import reverse
 from django.forms import modelformset_factory
 from django.contrib import messages
@@ -85,16 +84,15 @@ def download_assessment_resource(request, resource_id):
             if staff == moderator:
                 permission = True 
     
-    # External Examiners can download
+    # External Examiners can download if they are the lead
     if not permission:
-        #lead_programme = get_object_or_404(Programme, pk=resource.module.lead_programme)
         examiners = resource.module.lead_programme.examiners.all()
         for examiner in examiners:
             if staff == examiner:
                 permission = True
       
     if not permission:
-        raise Http404
+        return HttpResponseRedirect('/forbidden/')
     
     resource.downloads += 1
     resource.save()
