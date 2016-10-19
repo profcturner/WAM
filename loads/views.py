@@ -86,10 +86,11 @@ def download_assessment_resource(request, resource_id):
     
     # External Examiners can download if they are the lead
     if not permission:
-        examiners = resource.module.lead_programme.examiners.all()
-        for examiner in examiners:
-            if staff == examiner:
-                permission = True
+        if resource.module.lead_programme:
+            examiners = resource.module.lead_programme.examiners.all()
+            for examiner in examiners:
+                if staff == examiner:
+                    permission = True
       
     if not permission:
         return HttpResponseRedirect('/forbidden/')
