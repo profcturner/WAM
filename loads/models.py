@@ -12,6 +12,7 @@ from django.utils.timezone import utc
 #from . import helper_functions
 
 #TODO: Needs more elegant handling than this
+# This is actually deprecated and will be removed at some point
 ACADEMIC_YEAR = '2016/2017'
 
 
