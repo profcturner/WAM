@@ -482,9 +482,9 @@ def add_assessment_resource(request, module_id):
     module = get_object_or_404(Module, pk=module_id)
 
     # Check for a valid permission at this stage
-    can_override = request.user.has_perm('loads.add_assessment_resource')
-    if not can_override:
-        return HttpResponseRedirect('/forbidden/')
+    #can_override = request.user.has_perm('loads.add_assessment_resource')
+    #if not can_override:
+    #    return HttpResponseRedirect('/forbidden/')
     
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
