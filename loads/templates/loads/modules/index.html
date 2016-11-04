@@ -9,12 +9,13 @@
 {% if combined_list %}
     <table border="1">
       <tr>
-        <th>Module Code</th><th>Module Name</th><th>Most Recent Assessment Resource</th><th>Details</th>
+        <th>Module Code</th><th>Module Name</th><th>Relationship</th><th>Most Recent Assessment Resource</th><th>Details</th>
       </tr>
-      {% for module, resource in combined_list %}
+      {% for module, relationship, resource in combined_list %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ module.module_code }}</th>
         <td>{{ module.module_name }}</td>
+        <td>{% for relation in relationship %}{% if relation == 'team_member' %}Team{% endif %}{% if relation == 'moderator' %}Moderator{% endif %}{% endfor %} </td>
         <td>{% if resource %}{{resource.resource_type}} ({{ resource.created }}){% else %}No Information{% endif %}</td>
         <td><a href="{% url 'modules_details' module.id %}">Details</a></td>
       </tr>      

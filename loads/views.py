@@ -650,6 +650,18 @@ def modules_index(request):
     
     combined_list = []
     for module in modules:
+        # Store all relationships to the modules
+        relationship = []
+        
+        # Is the logged in user on the teaching team?
+        module_staff = ModuleStaff.objects.all().filter(module=module).filter(staff=staff)
+        if len(module_staff):
+            relationship.append('team_member')
+        
+        # Is the logged in user a moderator?
+        if staff in module.moderators.all():
+            relationship.append('moderator')
+        
         # get the most recent assessment resource
         resources = AssessmentResource.objects.all().filter(module=module).order_by('-created')[:1]
         
@@ -658,7 +670,7 @@ def modules_index(request):
         else:
             resource = False
 
-        combined_item = [module, resource]
+        combined_item = [module, relationship, resource]
         combined_list.append(combined_item)
     
     template = loader.get_template('loads/modules/index.html')
