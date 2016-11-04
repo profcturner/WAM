@@ -102,6 +102,9 @@ class BaseModuleStaffByStaffFormSet(BaseModelFormSet):
         duplicates = False
 
         for form in self.forms:
+            if form in self.deleted_forms:
+                continue
+                
             if form.cleaned_data:
                 module = form.cleaned_data['module']
 
@@ -154,6 +157,9 @@ class BaseModuleStaffByModuleFormSet(BaseModelFormSet):
         duplicates = False
 
         for form in self.forms:
+            if form in self.deleted_forms:
+                continue
+                
             if form.cleaned_data:
                 staff = form.cleaned_data['staff']
 
