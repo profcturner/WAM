@@ -59,7 +59,7 @@ def forbidden(request):
     context = RequestContext(request, {
     })
     return HttpResponse(template.render(context))
-    
+
 
 def download_assessment_resource(request, resource_id):
     """Download an assessment resource"""
@@ -93,7 +93,7 @@ def download_assessment_resource(request, resource_id):
                     permission = True
       
     if not permission:
-        return HttpResponseRedirect('/forbidden/')
+        return HttpResponseRedirect(reverse('forbidden'))
     
     resource.downloads += 1
     resource.save()
@@ -445,7 +445,7 @@ def tasks_completion(request, task_id, staff_id):
     is_current_user = (request.user == staff.user)
     can_override = request.user.has_perm('loads.add_taskcompletion')
     if not (is_current_user or can_override):
-        return HttpResponseRedirect('/forbidden/')
+        return HttpResponseRedirect(reverse('forbidden'))
     
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
@@ -485,7 +485,7 @@ def add_assessment_resource(request, module_id):
     # Check for a valid permission at this stage
     #can_override = request.user.has_perm('loads.add_assessment_resource')
     #if not can_override:
-    #    return HttpResponseRedirect('/forbidden/')
+    #    return HttpResponseRedirect(reverse('forbidden'))
     
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
@@ -520,7 +520,7 @@ def exam_track_progress(request, module_id):
     # Check for a valid permission at this stage
     can_override = request.user.has_perm('loads.add_examtracker')
     if not can_override:
-        return HttpResponseRedirect('/forbidden/')
+        return HttpResponseRedirect(reverse('forbidden'))
     
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
@@ -554,7 +554,7 @@ def coursework_track_progress(request, module_id):
     # Check for a valid permission at this stage
     can_override = request.user.has_perm('loads.add_courseworktracker')
     if not can_override:
-        return HttpResponseRedirect('/forbidden/')
+        return HttpResponseRedirect(reverse('forbidden'))
     
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
@@ -592,13 +592,13 @@ def module_staff_allocation(request, module_id, package_id):
     
     # If either the logged in user or target user aren't in the package, this is forbidden
     if package not in user_staff.get_all_packages():
-        return HttpResponseRedirect('/forbidden/')
+        return HttpResponseRedirect(reverse('forbidden'))
         
     # The logged in user should be able to do this via the Admin interface, or disallow.
     permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm('loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
         
     if not permission:
-        return HttpResponseRedirect('/forbidden/')
+        return HttpResponseRedirect(reverse('forbidden'))
     
     # Get a formset with only the choosable fields
     AllocationFormSet = modelformset_factory(ModuleStaff, formset=BaseModuleStaffByModuleFormSet,
@@ -727,13 +727,13 @@ def staff_module_allocation(request, staff_id, package_id):
     
     # If either the logged in user or target user aren't in the package, this is forbidden
     if package not in user_staff.get_all_packages() or package not in staff.get_all_packages():
-        return HttpResponseRedirect('/forbidden/')
+        return HttpResponseRedirect(reverse('forbidden'))
         
     # The logged in user should be able to do this via the Admin interface, or disallow.
     permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm('loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
         
     if not permission:
-        return HttpResponseRedirect('/forbidden/')
+        return HttpResponseRedirect(reverse('forbidden'))
     
     # Get a formset with only the choosable fields
     AllocationFormSet = modelformset_factory(ModuleStaff, formset=BaseModuleStaffByStaffFormSet,
@@ -801,7 +801,7 @@ def generators_generate_activities(request, generator_id):
     
     # If either the logged in user or target user aren't in the package, this is forbidden
     if staff.package not in user_staff.get_all_packages() or not request.user.has_perm('loads.add_activity'):
-        return HttpResponseRedirect('/forbidden/')
+        return HttpResponseRedirect(reverse('forbidden'))
 
         
     generator.generate_activities()
@@ -846,7 +846,7 @@ def projects_details(request, project_id):
         
     if request.method == "POST":
         if not permission:
-            return HttpResponseRedirect('/forbidden/')
+            return HttpResponseRedirect(reverse('forbidden'))
         project_form = ProjectForm(request.POST, instance=project)
         formset = ProjectStaffFormSet(
             request.POST, request.FILES,
@@ -894,12 +894,12 @@ def projects_generate_activities(request, project_id):
     #TODO: Establish sensible permissions
     # If either the logged in user or target user aren't in the package, this is forbidden
     #if package not in user_staff.get_all_packages() or package not in staff.get_all_packages():
-    #    return HttpResponseRedirect('/forbidden/')
+    #    return HttpResponseRedirect(reverse('forbidden'))
         
     # The logged in user should be able to do this via the Admin interface, or disallow.
     permission = request.user.has_perm('loads.add_projectstaff') and request.user.has_perm('loads.change_projectstaff') and request.user.has_perm('loads.delete_projectstaff')
     if not permission:
-        return HttpResponseRedirect('/forbidden/')
+        return HttpResponseRedirect(reverse('forbidden'))
         
     project.generate_activities()
     messages.success(request, 'Activities Regenerated.')
@@ -948,7 +948,7 @@ def workpackage_migrate(request):
         and request.user.has_perm('loads_add_modulestaff'))
         
     if not can_override:
-        return HttpResponseRedirect('/forbidden/')
+        return HttpResponseRedirect(reverse('forbidden'))
         
     # Get all workpackages that touch on the staff member's group
     packages = staff.get_all_packages()
