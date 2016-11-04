@@ -102,6 +102,7 @@ class BaseModuleStaffByStaffFormSet(BaseModelFormSet):
         duplicates = False
 
         for form in self.forms:
+            # If the form is deleted, don't validate, it's data is about to be nuked
             if form in self.deleted_forms:
                 continue
                 
@@ -157,6 +158,7 @@ class BaseModuleStaffByModuleFormSet(BaseModelFormSet):
         duplicates = False
 
         for form in self.forms:
+            # If the form is deleted, don't validate, it's data is about to be nuked
             if form in self.deleted_forms:
                 continue
                 
