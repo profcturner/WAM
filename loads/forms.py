@@ -18,9 +18,12 @@ class MigrateWorkPackageForm(forms.Form):
     '''This form allows for material in one Work Package to another'''
     source_package = forms.ModelChoiceField(queryset=WorkPackage.objects.all())
     destination_package = forms.ModelChoiceField(queryset=WorkPackage.objects.all())
-    copy_activities = forms.BooleanField(required=False)
-    copy_modules = forms.BooleanField(required=False)
-    copy_modulestaff = forms.BooleanField(required=False)
+    copy_modules = forms.BooleanField(required=False, initial=True)
+    copy_modulestaff = forms.BooleanField(required=False, initial=True)
+    copy_activities_generated = forms.BooleanField(required=False, initial=True)
+    copy_activities_custom = forms.BooleanField(required=False, initial=True)
+    copy_activities_modules = forms.BooleanField(required=False, initial=True)
+    generate_projects = forms.BooleanField(required=False, initial=True)
 
 
 class LoadsByModulesForm(forms.Form):
