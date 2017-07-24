@@ -2,8 +2,22 @@
 
 <h2>Migrate WorkPackage {{ source_package }} to {{ destination_package }}</h2>
 
+{% if changes %}
+    <table border="1">
+      <tr>
+        <th>Outcome</th><th>Type</th><th>Name</th>
+      </tr>
 
-{{ changes|safe }}
-
+{% for outcome, type, name in changes %}
+  <tr class="{{forloop.counter|divisibleby:2|yesno:"row2,row1"}}">
+        <th>{{ outcome|safe }}</th>
+        <td>{{ type|safe }}</td>
+        <td>{{ name|safe }}</td>
+  </tr>      
+{% endfor %}
+</table>
+{% else %}
+No outcome information!?
+{% endif %}
 
 {% include "loads/footer.html" %}

@@ -15,6 +15,7 @@ from .models import ACADEMIC_YEAR
 
 from .models import ActivityGenerator
 from .models import AssessmentResource
+from .models import AssessmentStaff
 from .models import Staff
 from .models import Task
 from .models import Activity
@@ -46,19 +47,18 @@ def index(request):
     '''Main index page for non admin views'''
  
     template = loader.get_template('loads/index.html')
-    context = RequestContext(request, {
+    context = {
         'home_page': True,
-    })
-    return HttpResponse(template.render(context))
+    }
+    return HttpResponse(template.render(context, request))
 
 
 def forbidden(request):
     '''General permissions failure warning'''
  
     template = loader.get_template('loads/forbidden.html')
-    context = RequestContext(request, {
-    })
-    return HttpResponse(template.render(context))
+
+    return HttpResponse(template.render({}, request))
 
 
 def download_assessment_resource(request, resource_id):
@@ -67,11 +67,14 @@ def download_assessment_resource(request, resource_id):
     staff = get_object_or_404(Staff, user=request.user)
     # And the resource object
     resource = get_object_or_404(AssessmentResource, pk=resource_id)
-    # And the moderators
-    moderators = resource.module.moderators.all()
     
     # Assume a lack of permissions
     permission = False
+    
+    # Specifically designated assessment staff can download
+    if not permission:
+        if len(AssessmentStaff.objects.all().filter(staff=staff).filter(package=resource.module.package)):
+            permission = True
     
     # The owner can download
     if not permission:
@@ -80,7 +83,7 @@ def download_assessment_resource(request, resource_id):
         
     # A moderator can download
     if not permission:
-        for moderator in moderators:
+        for moderator in resource.module.moderators.all():
             if staff == moderator:
                 permission = True 
     
@@ -169,14 +172,14 @@ def loads(request):
         average = 0
         
     template = loader.get_template('loads/loads.html')
-    context = RequestContext(request, {
+    context = {
         'group_data' : group_data,
         'total': total,
         'average': average,
         'package': package,
         'loads_menu': True,
-    })
-    return HttpResponse(template.render(context))
+    }
+    return HttpResponse(template.render(context, request))
     
     
 def loads_modules(request, semesters, staff_details=False):
@@ -253,7 +256,7 @@ def loads_modules(request, semesters, staff_details=False):
         combined_list.append(module_info)
     
     template = loader.get_template('loads/loads/modules.html')
-    context = RequestContext(request, {
+    context = {
         'form': form,
         'brief_details': brief_details,
         'valid_semesters': valid_semesters,
@@ -261,8 +264,8 @@ def loads_modules(request, semesters, staff_details=False):
         'package': package,
         'loads_menu': True,
         'staff_details' : staff_details,
-    })
-    return HttpResponse(template.render(context))
+    }
+    return HttpResponse(template.render(context, request))
 
 
 def activities(request, staff_id):
@@ -331,7 +334,7 @@ def activities(request, staff_id):
         total += c_hours_proportion + as_hours_proportion + ad_hours_proportion
         
     template = loader.get_template('loads/activities.html')
-    context = RequestContext(request, {
+    context = {
         'staff': staff,
         'combined_list': combined_list,
         'combined_list_modules': combined_list_modules,
@@ -340,8 +343,8 @@ def activities(request, staff_id):
         'semester3_total': semester3_total,
         'total': total,
         'package': package,
-    })
-    return HttpResponse(template.render(context))
+    }
+    return HttpResponse(template.render(context, request))
 
 
 def tasks_index(request):
@@ -356,10 +359,10 @@ def tasks_index(request):
         augmented_tasks.append([task, task.is_urgent(), task.is_overdue()])
                     
     template = loader.get_template('loads/tasks/index.html')
-    context = RequestContext(request, {
+    context = {
         'augmented_tasks': augmented_tasks,
-    })
-    return HttpResponse(template.render(context))
+    }
+    return HttpResponse(template.render(context, request))
             
 
 def tasks_bystaff(request, staff_id):
@@ -383,12 +386,12 @@ def tasks_bystaff(request, staff_id):
             
             
     template = loader.get_template('loads/tasks/bystaff.html')
-    context = RequestContext(request, {
+    context = {
         'staff': staff,
         'combined_list_complete': combined_list_complete,
         'combined_list_incomplete': combined_list_incomplete,
-    })
-    return HttpResponse(template.render(context))
+    }
+    return HttpResponse(template.render(context, request))
 
     
 def tasks_details(request, task_id):
@@ -420,15 +423,15 @@ def tasks_details(request, task_id):
             
                             
     template = loader.get_template('loads/tasks/details.html')
-    context = RequestContext(request, {
+    context = {
         'task': task,
         'overdue': task.is_overdue(),
         'urgent': task.is_urgent(),
         'combined_list_complete': combined_list_complete,
         'combined_list_incomplete' : combined_list_incomplete,
         'percentage_complete' : percentage_complete
-    })
-    return HttpResponse(template.render(context))
+    }
+    return HttpResponse(template.render(context, request))
     
     
 def tasks_completion(request, task_id, staff_id):
@@ -674,11 +677,11 @@ def modules_index(request):
         combined_list.append(combined_item)
     
     template = loader.get_template('loads/modules/index.html')
-    context = RequestContext(request, {
+    context = {
         'combined_list': combined_list,
         'package': package,
-    })
-    return HttpResponse(template.render(context))
+    }
+    return HttpResponse(template.render(context, request))
 
 
 def modules_details(request, module_id):
@@ -708,7 +711,7 @@ def modules_details(request, module_id):
         
     
     template = loader.get_template('loads/modules/details.html')
-    context = RequestContext(request, {
+    context = {
         'module': module,
         'total_hours' : module.get_all_hours(),
         'contact_hours': module.get_contact_hours(),
@@ -723,8 +726,8 @@ def modules_details(request, module_id):
         'total_contact_proportion': total_contact_proportion,
         'total_admin_proportion': total_admin_proportion,
         'total_assessment_proportion': total_assessment_proportion,
-    })
-    return HttpResponse(template.render(context))
+    }
+    return HttpResponse(template.render(context, request))
     
     
 def staff_module_allocation(request, staff_id, package_id):
@@ -796,10 +799,10 @@ def generators_index(request):
     generators = ActivityGenerator.objects.all().filter(package=staff.package)
 
     template = loader.get_template('loads/generators/index.html')
-    context = RequestContext(request, {
+    context = {
         'generators': generators,
-    })
-    return HttpResponse(template.render(context))
+    }
+    return HttpResponse(template.render(context, request))
 
 
 def generators_generate_activities(request, generator_id):
@@ -830,10 +833,10 @@ def projects_index(request):
     
                     
     template = loader.get_template('loads/projects/index.html')
-    context = RequestContext(request, {
+    context = {
         'projects': projects,
-    })
-    return HttpResponse(template.render(context))
+    }
+    return HttpResponse(template.render(context, request))
 
 
 def projects_details(request, project_id):
@@ -949,6 +952,15 @@ def workpackage_change(request):
     return render(request, 'loads/workpackage.html', {'form': form, 'staff': staff})
 
 
+    copy_modules = forms.BooleanField(required=False)
+    copy_modulestaff = forms.BooleanField(required=False)
+    copy_activities_generated = forms.BooleanField(required=False)
+    copy_activities_custom = forms.BooleanField(required=False)
+    copy_activities_modules = forms.BooleanField(required=False)
+    generate_projects = forms.BooleanField(required=False)
+
+
+
 def workpackage_migrate(request):
     """Allows a user to change their current active workpackage"""
     # Get the member of staff for the logged in user
@@ -975,21 +987,25 @@ def workpackage_migrate(request):
         # check whether it's valid:
         if form.is_valid():
 
-            options = {'activities': form.cleaned_data['copy_activities'],
-                'modules': form.cleaned_data['copy_modules'],
-                'modulestaff': form.cleaned_data['copy_modulestaff'], }
+            options = {'modules': form.cleaned_data['copy_modules'],
+                'modulestaff': form.cleaned_data['copy_modulestaff'],
+                'activities_generated': form.cleaned_data['copy_activities_generated'],
+                'activities_custom': form.cleaned_data['copy_activities_custom'],
+                'activities_modules': form.cleaned_data['copy_activities_modules'],
+                'projects' : form.cleaned_data['generate_projects'],}
+                
             destination_package = form.cleaned_data['destination_package']
             source_package = form.cleaned_data['source_package']
             changes = destination_package.clone_from(source_package, options)
             
             template = loader.get_template('loads/workpackages/migrate_results.html')
-            context = RequestContext(request, {
+            context = {
                 'source_package': source_package,
                 'destination_package': destination_package,
                 'options': options,
                 'changes': changes,
-            })
-            return HttpResponse(template.render(context))
+            }
+            return HttpResponse(template.render(context, request))
 
     # if a GET (or any other method) we'll create a form from the current logged in user
     else:
