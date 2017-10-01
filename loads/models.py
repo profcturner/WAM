@@ -896,6 +896,7 @@ class AssessmentResource(models.Model):
     name        A descriptive name for the resource
     details     Optional extended details
     resource    The file information
+    module      The module associated
     category    See the Category model
     created     When the resource was added
     modified    When the resource was modified
