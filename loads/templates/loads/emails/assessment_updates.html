@@ -1,0 +1,34 @@
+{% if moderated_items or examined_items %}
+<p>There are new assessment items that may be relevant to you, since your last login.</p>
+
+    <table style="border-collapse: collapse; border-color: #ccc;" border="1">
+      <tr>
+        <th style="text-align: left;">Module</th>
+        <th style="text-align: left;">Name</th>
+        <th style="text-align: left;">Type</th>
+      </tr>
+      {% if moderated_items %}
+      <tr style="padding: 5px"><th colspan="3">Items for which you are a moderator</th></tr>
+      {% for item in moderated_items %}
+      <tr style="background: {% cycle '#EDF3FE' '#FFFFFF' %};">
+        <th style="text-align: left; padding: 5px">{{ item.module }}</th>
+        <td style="text-align: left; padding: 5px">{{ item.name }}</td>
+        <td style="text-align: left; padding: 5px;">{{ item.resource_type }}</td>
+      </tr>      
+      {% endfor %}
+      {% endif %}
+      {% if examined_items %}
+      <tr style="padding: 5px"><th colspan="3">Items for which you are the lead External Examiner</th></tr>
+      {% for item in examined_items %}
+      <tr style="background: {% cycle '#EDF3FE' '#FFFFFF' %};">
+        <th style="text-align: left; padding: 5px">{{ item.module }}</th>
+        <td style="text-align: left; padding: 5px">{{ item.name }}</td>
+        <td style="text-align: left; padding: 5px;">{{ item.resource_type }}</td>
+      </tr>      
+      {% endfor %}
+      {% endif %}
+    </table>
+    
+{% else %}
+    <p>No updates are noted for {{ staff }}.</p>
+{% endif %}

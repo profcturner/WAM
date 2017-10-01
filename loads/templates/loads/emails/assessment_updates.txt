@@ -1,0 +1,18 @@
+{% if moderated_items or examined_items %}
+
+There are new assessment items that may be relevant to you, since your last login.
+
+Items for which you are a moderator
+
+{% for item in moderated_items %}
+* {{ item.name }}, {{ item.module }} ({{ item.resource_type }})
+{% endfor %}
+
+{% for item in examined_items %}
+* {{ item.name }}, {{ item.module }} ({{ item.resource_type }})
+{% endfor %}      
+
+{% else %}
+
+No updates are noted for {{ staff }}.
+{% endif %}
