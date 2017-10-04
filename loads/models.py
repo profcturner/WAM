@@ -710,8 +710,8 @@ class Module(models.Model):
     assessment_hours = models.PositiveSmallIntegerField(blank=True, null=True)
     package = models.ForeignKey('WorkPackage')
     details = models.TextField(blank=True, null=True)
-    #programmes = models.ManyToManyField(Programme, blank=True)
-    lead_programme = models.ForeignKey(Programme, blank=True, null=True)
+    programmes = models.ManyToManyField(Programme, blank=True, related_name='modules')
+    lead_programme = models.ForeignKey(Programme, blank=True, null=True, related_name='lead_modules')
     moderators = models.ManyToManyField(Staff, blank=True)
 
 
