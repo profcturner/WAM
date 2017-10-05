@@ -155,53 +155,6 @@ Click <a href="{% url 'add_assessment_resource' module.id %}">here</a> to add an
 </p>
 
 
-<h2>Exam Tracker</h2>
-  
-{% if exam_trackers %}
-    <table border="1">
-      <tr>
-        <th>Academic Year</th><th>Progress</th><th>Timestamp</th>
-      </tr>
-      {% for tracker in exam_trackers %}
-      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <th>{{ tracker.academic_year }}</th>
-        <td>{{ tracker.get_progress_display }}</td>
-        <td>{{ tracker.created }}</td>
-      </tr>
-      {% endfor %}      
-    </table>
-    
-{% else %}
-    <p>No exam trackers recorded for this module.</p>
-{% endif %}
-
-<p>
-Click <a href="{% url 'exam_track_progress' module.id %}">here</a> to record another tracking event.
-</p>
-
-<h2>Coursework Tracker</h2>
-  
-{% if coursework_trackers %}
-    <table border="1">
-      <tr>
-        <th>Academic Year</th><th>Progress</th><th>Timestamp</th>
-      </tr>
-      {% for tracker in coursework_trackers %}
-      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <th>{{ tracker.academic_year }}</th>
-        <td>{{ tracker.get_progress_display }}</td>
-        <td>{{ tracker.created }}</td>
-      </tr>
-      {% endfor %}      
-    </table>
-    
-{% else %}
-    <p>No coursework trackers recorded for this module.</p>
-{% endif %}
-
-<p>
-Click <a href="{% url 'coursework_track_progress' module.id %}">here</a> to record another tracking event.
-</p>
 
 
 {% include "loads/footer.html" %}
