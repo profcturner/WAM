@@ -5,6 +5,8 @@ import datetime
 from django.db import models
 from django.contrib.auth.models import User, Group
 
+from django.core.validators import validate_comma_separated_integer_list
+
 # code to handle timezones
 from django.utils.timezone import utc
 
@@ -475,7 +477,7 @@ class Activity(models.Model):
     hours = models.PositiveSmallIntegerField()
     percentage = models.PositiveSmallIntegerField()
     hours_percentage = models.CharField(max_length=1, choices=HOURPERCENTAGE_CHOICES, default=HOURS)
-    semester = models.CommaSeparatedIntegerField(max_length=10)
+    semester = models.CharField(max_length=10, validators=[validate_comma_separated_integer_list])
     activity_type = models.ForeignKey('ActivityType')
     module = models.ForeignKey('Module', blank=True, null=True)
     comment = models.CharField(max_length=200, default='', blank=True)
@@ -538,7 +540,7 @@ class ActivityGenerator(models.Model):
     hours = models.PositiveSmallIntegerField()
     percentage = models.PositiveSmallIntegerField()
     hours_percentage = models.CharField(max_length=1, choices=HOURPERCENTAGE_CHOICES, default=HOURS)
-    semester = models.CommaSeparatedIntegerField(max_length=10)
+    semester = models.CharField(max_length=10, validators=[validate_comma_separated_integer_list])
     activity_type = models.ForeignKey('ActivityType')
     module = models.ForeignKey('Module', blank=True, null=True)
     comment = models.CharField(max_length=200, default='', blank=True)
@@ -702,7 +704,7 @@ class Module(models.Model):
     module_code = models.CharField(max_length=10)
     module_name = models.CharField(max_length=200)
     campus = models.ForeignKey('Campus')
-    semester = models.CommaSeparatedIntegerField(max_length=10)
+    semester = models.CharField(max_length=10, validators=[validate_comma_separated_integer_list])
     credits = models.PositiveSmallIntegerField(default=20)
     size = models.ForeignKey('ModuleSize')
     contact_hours = models.PositiveSmallIntegerField(blank=True, null=True)
