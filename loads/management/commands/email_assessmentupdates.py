@@ -124,7 +124,7 @@ class Command(BaseCommand):
             'staff': staff,
             'moderated_items': moderated_items,
             'examined_items': examined_items,
-
+            'external_examiner': external_examiner,
             'base_url' : settings.WAM_URL, 
         };
 
