@@ -310,6 +310,11 @@ class ExternalExaminer(models.Model):
         return self.title + ' ' + self.user.first_name + ' ' + self.user.last_name
 
 
+    def is_active(self):
+      '''Maps to whether the underlying user is active'''
+      return self.user.is_active
+
+
     def get_examined_programmes(self):
         examined_programmes = Programme.objects.all().filter(examiners=self).distinct()
         return(examined_programmes)
