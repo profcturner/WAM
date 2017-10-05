@@ -310,6 +310,11 @@ class ExternalExaminer(models.Model):
         return self.title + ' ' + self.user.first_name + ' ' + self.user.last_name
 
 
+    def get_examined_programmes(self):
+        examined_programmes = Programme.objects.all().filter(examiners=self).distinct()
+        return(examined_programmes)
+
+
 class Staff(models.Model):
     '''Augments the Django user model with staff details
 
