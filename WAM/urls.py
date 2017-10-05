@@ -25,6 +25,7 @@ urlpatterns = [
     url(r'^loads/$', views.loads, name='loads'),
     url(r'^loads/modules/(?P<semesters>[0-9,]*)$', views.loads_modules, name='loads_modules'),
     url(r'^activities/(?P<staff_id>[0-9]+)$', views.activities, name='activities'),
+    url(r'^external/modules/index/$', views.external_modules_index, name='external_modules_index'),
     url(r'^generators/index/$', views.generators_index, name='generators_index'),
     url(r'^generators/generate_activities/(?P<generator_id>[0-9]+)$', views.generators_generate_activities, name='generators_generate_activities'),
     url(r'^tasks/index/$', views.tasks_index, name='tasks_index'),

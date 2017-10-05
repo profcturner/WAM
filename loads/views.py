@@ -16,6 +16,7 @@ from .models import ACADEMIC_YEAR
 from .models import ActivityGenerator
 from .models import AssessmentResource
 from .models import AssessmentStaff
+from .models import ExternalExaminer
 from .models import Staff
 from .models import Task
 from .models import Activity
@@ -63,36 +64,60 @@ def forbidden(request):
 
 def download_assessment_resource(request, resource_id):
     """Download an assessment resource"""
-    # Fetch the staff user associated with the person requesting
-    staff = get_object_or_404(Staff, user=request.user)
-    # And the resource object
+    # Get the resource object
     resource = get_object_or_404(AssessmentResource, pk=resource_id)
+    
+    # TODO: this is none too elegant, and could be outsourced
+    # Fetch the staff user associated with the person requesting
+    try:
+        staff = Staff.objects.get(user=request.user)
+        package = staff.package
+    except Staff.DoesNotExist:
+        staff = None
+    
+    # or possibly an external examiner
+    try:
+        examiner = ExternalExaminer.objects.get(user=request.user)
+        package = examiner.package
+    except ExternalExaminer.DoesNotExist:
+        examiner = None
+    
+    # If neither here, time to boot
+    if not staff and not examiner:
+        return HttpResponseRedirect(reverse('forbidden'))
     
     # Assume a lack of permissions
     permission = False
     
-    # Specifically designated assessment staff can download
-    if not permission:
-        if len(AssessmentStaff.objects.all().filter(staff=staff).filter(package=resource.module.package)):
-            permission = True
+    if staff:
+        # Specifically designated assessment staff can download
+        if not permission:
+            if len(AssessmentStaff.objects.all().filter(staff=staff).filter(package=resource.module.package)):
+                permission = True
     
-    # The owner can download
-    if not permission:
-        if staff == resource.owner:
-            permission = True
+        # The owner can download
+        if not permission:
+            if staff == resource.owner:
+                permission = True
         
-    # A moderator can download
-    if not permission:
-        for moderator in resource.module.moderators.all():
-            if staff == moderator:
-                permission = True 
-    
-    # External Examiners can download if they are the lead
-    if not permission:
-        if resource.module.lead_programme:
-            examiners = resource.module.lead_programme.examiners.all()
-            for examiner in examiners:
-                if staff == examiner:
+        # A moderator can download
+        if not permission:
+            for moderator in resource.module.moderators.all():
+                if staff == moderator:
+                    permission = True 
+    if examiner:
+        examined_programmes = examiner.get_examined_programmes()
+        
+        # External Examiners can download if they examine the lead programme
+        if not permission:
+            if resource.module.lead_programme:
+                if resource.module.lead_programme in examined_programmes:
+                    permission = True
+                    
+        # Or if they are an examiner (for information) for another listed programme
+        if not permission:
+            if resource.module.programmes:
+                if any(programme in examined_programmes for programme in resource.module.programmes.all()):
                     permission = True
       
     if not permission:
@@ -684,15 +709,76 @@ def modules_index(request):
     return HttpResponse(template.render(context, request))
 
 
+def external_modules_index(request):
+    """Shows a high level list of modules to an external examiner"""
+    # Fetch the staff user associated with the person requesting
+    external = get_object_or_404(ExternalExaminer, user=request.user)
+    # And therefore the package enabled for that user
+    package = external.package
+    
+    # Get the list of programmes that they examine
+    examined_programmes = external.get_examined_programmes()
+    
+    # Get all the modules in the package, we'll show them all
+    modules = Module.objects.all().filter(package=package).order_by('module_code')
+    
+    combined_list = []
+    for module in modules:
+        # Store all relationships to the modules
+        relationship = []
+        
+        if module.lead_programme in examined_programmes:
+            relationship.append('lead_external')
+            # That's good enough, don't bother checking for other relations
+        else:
+            if any(programme in examined_programmes for programme in module.programmes.all()):
+                relationship.append('external')
+
+        
+        # get the most recent assessment resource
+        resources = AssessmentResource.objects.all().filter(module=module).order_by('-created')[:1]
+        
+        if len(resources) > 0:
+            resource = resources[0]
+        else:
+            resource = False
+
+        combined_item = [module, relationship, resource]
+        combined_list.append(combined_item)
+    
+    template = loader.get_template('loads/modules/index.html')
+    context = {
+        'external': external,
+        'combined_list': combined_list,
+        'package': package,
+    }
+    return HttpResponse(template.render(context, request))
+
+
+
 def modules_details(request, module_id):
     """Detailed information on a given module"""
     # Get the module itself
     module = get_object_or_404(Module, pk=module_id)
     
+    # TODO: this is none too elegant, and could be outsourced
     # Fetch the staff user associated with the person requesting
-    staff = get_object_or_404(Staff, user=request.user)
-    # And therefore the package enabled for that user
-    package = staff.package
+    try:
+        staff = Staff.objects.get(user=request.user)
+        package = staff.package
+    except Staff.DoesNotExist:
+        staff = None
+    
+    # or possibly an external examiner
+    try:
+        external = ExternalExaminer.objects.get(user=request.user)
+        package = external.package
+    except ExternalExaminer.DoesNotExist:
+        external = None
+    
+    # If neither here, time to boot
+    if not staff and not external:
+        return HttpResponseRedirect(reverse('forbidden'))
     
     # Get all associated activities, exam and coursework trackers
     activities = Activity.objects.all().filter(module=module).filter(package=package).order_by('name')
