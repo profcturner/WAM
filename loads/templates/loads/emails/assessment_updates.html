@@ -14,6 +14,7 @@
         <th style="text-align: left; padding: 5px">{{ item.module }}</th>
         <td style="text-align: left; padding: 5px">{{ item.name }}</td>
         <td style="text-align: left; padding: 5px;">{{ item.resource_type }}</td>
+        <td style="text-align: left; padding: 5px;"><a href="{{ base_url }}{% url 'module_details' item.module.id %}">details</a></td>
       </tr>      
       {% endfor %}
       {% endif %}
@@ -24,6 +25,7 @@
         <th style="text-align: left; padding: 5px">{{ item.module }}</th>
         <td style="text-align: left; padding: 5px">{{ item.name }}</td>
         <td style="text-align: left; padding: 5px;">{{ item.resource_type }}</td>
+        <td style="text-align: left; padding: 5px;"><a href="{{ base_url }}{% url 'module_details' item.module.id %}">details</a></td>
       </tr>      
       {% endfor %}
       {% endif %}
