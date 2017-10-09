@@ -799,6 +799,7 @@ def modules_details(request, module_id):
     template = loader.get_template('loads/modules/details.html')
     context = {
         'module': module,
+        'moderators': module.moderators.all(),
         'total_hours' : module.get_all_hours(),
         'contact_hours': module.get_contact_hours(),
         'admin_hours': module.get_admin_hours(),

@@ -69,6 +69,16 @@
     </td>
   </tr>
   {% endif %}
+  {% if moderators %}
+  <tr>
+    <th>
+      Moderators
+    </th>
+    <td>
+      {% for moderator in moderators %}{{ moderator }}{% endfor %}
+    </td>
+  </tr>  
+  {% endif %}
   
 </table>
 
