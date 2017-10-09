@@ -15,7 +15,7 @@
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ module.module_code }}</th>
         <td>{{ module.module_name }}</td>
-        <td>{% if relationship %}<strong>{% for relation in relationship %}{% if relation == 'external' %}External Examiner (Information Only){% endif %}{% if relation == 'lead_external' %}Lead External Examiner{% endif %}{% if relation == 'team_member' %}Team{% endif %}{% if relation == 'moderator' %}Moderator{% endif %}{% endfor %}</strong>{% else %}None{% endif %} </td>
+        <td>{% if relationship %}<strong>{% for relation in relationship %}{% if relation == 'external' %}External Examiner (Information Only){% endif %}{% if relation == 'lead_external' %}Lead External Examiner{% endif %}{% if relation == 'team_member' %}Team{% endif %}{% if relation == 'moderator' %}Moderator{% endif %}{% endfor %}</strong>{% else %}--{% endif %} </td>
         <td>{% if resource %}{{resource.resource_type}} ({{ resource.created }}){% else %}No Information{% endif %}</td>
         <td><a href="{% url 'modules_details' module.id %}">Details</a></td>
       </tr>      
