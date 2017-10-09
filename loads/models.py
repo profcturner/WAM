@@ -318,6 +318,12 @@ class ExternalExaminer(models.Model):
     def get_examined_programmes(self):
         examined_programmes = Programme.objects.all().filter(examiners=self).distinct()
         return(examined_programmes)
+        
+
+class StaffManager(models.Manager):
+    '''Manager for staff to enforce ordering'''
+    def get_queryset(self):
+        return super(StaffManager, self).get_queryset().order_by("user__last_name", "user__first_name")
 
 
 class Staff(models.Model):
@@ -334,6 +340,8 @@ class Staff(models.Model):
     staff_number = models.CharField(max_length=20)
     fte = models.PositiveSmallIntegerField(default=100)
     package = models.ForeignKey(WorkPackage, null=True, on_delete=models.SET_NULL)
+    
+    objects = StaffManager()
 
     def __str__(self):
         return self.title + ' ' + self.user.first_name + ' ' + self.user.last_name
