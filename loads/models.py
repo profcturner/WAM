@@ -321,7 +321,12 @@ class ExternalExaminer(models.Model):
         
 
 class StaffManager(models.Manager):
-    '''Manager for staff to enforce ordering'''
+    '''Manager for staff to enforce ordering
+    
+    The Staff object is linked to the User object, but there seems no way to enforce
+    default ordering by User.last_name short of this.'''
+    #TODO: This may not be necessary in the future if a custom admin intreface is put in place
+    
     def get_queryset(self):
         return super(StaffManager, self).get_queryset().order_by("user__last_name", "user__first_name")
 
@@ -424,7 +429,6 @@ class Staff(models.Model):
 
     class Meta:
         verbose_name_plural = 'staff'
-        order_with_respect_to = 'user'
 
 
 class AssessmentStaff(models.Model):
