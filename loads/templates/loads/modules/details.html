@@ -90,6 +90,14 @@
 <h1>This is a DRAFT allocation and may be incomplete.</h1>
 {% endif %}
 
+{% if package.in_the_past %}
+<h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
+{% endif %} 
+
+{% if package.in_the_future %}
+<h1><span style="color:red">Warning: The currently selected Work Package is in the Future.</span></h1>
+{% endif %}  
+
 <h2>Module Staff Allocations</h2>
 {% if modulestaff %}
     <table border="1">

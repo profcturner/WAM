@@ -287,6 +287,17 @@ class WorkPackage(models.Model):
         # Get the matching staff objects
         staff = Staff.objects.all().filter(user__in=users_by_groups).distinct().order_by('user__last_name')
         return staff
+        
+        
+    def in_the_past(self):
+        """Returns whether the workpackage ended before the current date"""
+        now = datetime.datetime.today().date()
+        return self.enddate < now
+        
+    def in_the_future(self):
+        """Returns whether the workpackage starts after the current date"""
+        now = datetime.datetime.today().date()
+        return now < self.startdate
 
     class Meta:
         ordering = ['name', '-startdate']

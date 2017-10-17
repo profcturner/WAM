@@ -11,6 +11,14 @@
 <h1>This is a DRAFT allocation and may be incomplete.</h1>
 {% endif %}  
 
+{% if package.in_the_past %}
+<h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
+{% endif %} 
+
+{% if package.in_the_future %}
+<h1><span style="color:red">Warning: The currently selected Work Package is in the Future.</span></h1>
+{% endif %}  
+
 {% if group_data %}
   {% for group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average in group_data %}
   <h2>{{group}}</h2>
