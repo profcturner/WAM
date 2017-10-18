@@ -39,6 +39,12 @@ class Command(BaseCommand):
             dest='test-only',
             default=False,
             help='Don\'t actually send emails')
+            
+        parser.add_argument('--include-past',
+            action='store_true',
+            dest='include-past',
+            default=False,
+            help='Include notifications from work packages in the past')
 
             
     def handle(self, *args, **options):
@@ -72,6 +78,7 @@ class Command(BaseCommand):
     def email_updates_by_staff(self, staff, options, urgent_only='false'):
         """email and updates to an individual staff member"""
         verbosity = options['verbosity']
+        include_past = options['include-past']
         
         # If the member of staff is inactive (perhaps retired, skip them)
         if not staff.is_active():
@@ -83,7 +90,9 @@ class Command(BaseCommand):
         # When did the person last login?
         last_login = staff.user.last_login
         
+        # Work out when the person last logged in to see what's considered new
         if last_login == None:
+            # To prevent type errors create a date to compare against in this case
             census_date = datetime.datetime(1970, 1, 1)
             census_date = timezone.make_aware(census_date, timezone.get_current_timezone())
             last_login = "never"
@@ -92,11 +101,16 @@ class Command(BaseCommand):
 
  
         # TODO: Get all the modules for which this staff member is a coordinator
-
+        
+        
         # Get all the modules for which this staff member is a moderator
         moderated = Module.objects.all().filter(moderators=staff)
+        if not options['include-past']:
+            now = datetime.datetime.today().date()
+            moderated = moderated.filter(package__enddate__lte=now)
                 
         moderated_items = AssessmentResource.objects.all().filter(created__gte=census_date).filter(module__in=moderated).distinct()
+        # The staff member won't examine items, but make an empty typed object for the common template
         examined_items = AssessmentResource.objects.none()
         
         if verbosity > 2:
@@ -163,6 +177,9 @@ class Command(BaseCommand):
         
         # Get all the modules for which this staff member is the lead examiner
         examined_modules = Module.objects.all().filter(lead_programme__in=programmes).distinct()
+        if not options['include-past']:
+            now = datetime.datetime.today().date()
+            examined_modules = examined_modules.filter(package__enddate__lte=now)
         
         moderated_items = AssessmentResource.objects.none()
         examined_items = AssessmentResource.objects.all().filter(created__gte=census_date).filter(module__in=examined_modules).distinct()
