@@ -99,6 +99,12 @@ def download_assessment_resource(request, resource_id):
         if not permission:
             if staff == resource.owner:
                 permission = True
+                
+        # People on the teaching team can download
+        if not permission:
+            #TODO: probably safe to remove package filter, since package is implied by module?
+            if len(ModuleStaff.objects.all().filter(package=resource.module.package).filter(module=resource.module).filter(staff=staff)):
+                permission = True
         
         # A moderator can download
         if not permission:
