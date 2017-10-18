@@ -665,6 +665,7 @@ class ModuleStaff(models.Model):
     module = models.ForeignKey('Module')
     staff = models.ForeignKey('Staff')
     package = models.ForeignKey('WorkPackage')
+    #TODO package is implicitly linked by module already...?
 
     contact_proportion = models.PositiveSmallIntegerField()
     admin_proportion = models.PositiveSmallIntegerField()
