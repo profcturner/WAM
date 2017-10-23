@@ -104,7 +104,7 @@ class Command(BaseCommand):
         coordinated = Module.objects.all().filter(coordinator=staff)
         if not options['include-past']:
             now = datetime.datetime.today().date()
-            coordinated = coordinated.filter(package__enddate__lte=now)
+            coordinated = coordinated.exclude(package__enddate__lte=now)
                 
         coordinated_items = AssessmentResource.objects.all().filter(created__gte=census_date).filter(module__in=coordinated).distinct()
         
@@ -112,7 +112,7 @@ class Command(BaseCommand):
         moderated = Module.objects.all().filter(moderators=staff)
         if not options['include-past']:
             now = datetime.datetime.today().date()
-            moderated = moderated.filter(package__enddate__lte=now)
+            moderated = moderated.exclude(package__enddate__lte=now)
                 
         moderated_items = AssessmentResource.objects.all().filter(created__gte=census_date).filter(module__in=moderated).distinct()
         
@@ -185,7 +185,7 @@ class Command(BaseCommand):
         examined_modules = Module.objects.all().filter(lead_programme__in=programmes).distinct()
         if not options['include-past']:
             now = datetime.datetime.today().date()
-            examined_modules = examined_modules.filter(package__enddate__lte=now)
+            examined_modules = examined_modules.exclude(package__enddate__lte=now)
         
         examined_items = AssessmentResource.objects.all().filter(created__gte=census_date).filter(module__in=examined_modules).distinct()
         
