@@ -37,6 +37,7 @@ from .forms import ExamTrackerForm
 from .forms import CourseworkTrackerForm
 from .forms import StaffWorkPackageForm
 from .forms import MigrateWorkPackageForm
+from .forms import ModulesIndexForm
 from .forms import ProjectForm
 from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
@@ -673,7 +674,7 @@ def module_staff_allocation(request, module_id, package_id):
 
 
     
-def modules_index(request):
+def modules_index(request, semesters):
     """Shows a high level list of modules"""
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
@@ -682,8 +683,40 @@ def modules_index(request):
     
     modules = Module.objects.all().filter(package=package).order_by('module_code')
     
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request
+        form = ModulesIndexForm(request.POST)
+
+        # check whether it's valid:
+        if form.is_valid():
+            semesters = form.cleaned_data['semesters']
+
+    # if a GET (or any other method) we'll create a form from the current logged in user
+    else:
+        form = ModulesIndexForm()
+        # If semesters came via get, let's populate the form
+        form.fields['semesters'].initial = semesters        
+
+    # Check for any semester limitations, split by comma if something is actually there
+    if semesters:
+      valid_semesters = semesters.split(',')
+    else:
+      valid_semesters = list()
+
     combined_list = []
     for module in modules:
+        # Is it valid for the semester, i.e. are and of its semesters in the passed in one?
+        if len(valid_semesters):
+            module_semesters = module.semester.split(',')
+            valid_semester = False
+            for m_sem in module_semesters:
+                for v_sem in valid_semesters:
+                    if m_sem == v_sem:
+                        valid_semester = True
+            if not valid_semester:
+              continue
+              
         # Store all relationships to the modules
         relationship = []
         
@@ -709,7 +742,9 @@ def modules_index(request):
     
     template = loader.get_template('loads/modules/index.html')
     context = {
+        'form': form,
         'combined_list': combined_list,
+        'valid_semesters': valid_semesters,
         'package': package,
     }
     return HttpResponse(template.render(context, request))

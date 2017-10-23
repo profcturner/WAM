@@ -8,9 +8,16 @@
 
 {% if package.in_the_future %}
 <h1><span style="color:red">Warning: The currently selected Work Package is in the Future.</span></h1>
-{% endif %}  
- 
+{% endif %}
 
+<form action="" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Submit" />
+</form>    
+
+<h2>Modules {% if valid_semesters %}(Restricted to those in Semester{{valid_semesters_length_plaralise}} {% for semester in valid_semesters %}{% if forloop.first %}{% else %}{% if forloop.last %} and {% else %}, {% endif %}{% endif %}{{semester}}{% endfor %}) {% endif %}</h2>
+ 
 {% if combined_list %}
     <table border="1">
       <tr>
