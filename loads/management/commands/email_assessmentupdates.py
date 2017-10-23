@@ -100,8 +100,13 @@ class Command(BaseCommand):
             census_date = last_login
 
  
-        # TODO: Get all the modules for which this staff member is a coordinator
-        
+        # Get all the modules for which this staff member is a coordinator
+        coordinated = Module.objects.all().filter(coordinator=staff)
+        if not options['include-past']:
+            now = datetime.datetime.today().date()
+            coordinated = coordinated.filter(package__enddate__lte=now)
+                
+        coordinated_items = AssessmentResource.objects.all().filter(created__gte=census_date).filter(module__in=coordinated).distinct()
         
         # Get all the modules for which this staff member is a moderator
         moderated = Module.objects.all().filter(moderators=staff)
@@ -110,18 +115,19 @@ class Command(BaseCommand):
             moderated = moderated.filter(package__enddate__lte=now)
                 
         moderated_items = AssessmentResource.objects.all().filter(created__gte=census_date).filter(module__in=moderated).distinct()
-        # The staff member won't examine items, but make an empty typed object for the common template
-        examined_items = AssessmentResource.objects.none()
         
         if verbosity > 2:
             self.stdout.write('  considering: {}'.format(str(staff)))
             self.stdout.write('    last login time: {}, census date: {}'.format(last_login, census_date))
+            self.stdout.write('    coordinated modules {}, coordinated items {}'.format(
+                len(coordinated), len(coordinated_items)
+            ))
             self.stdout.write('    moderated modules {}, moderated items {}'.format(
                 len(moderated), len(moderated_items)
             ))
                     
         # Don't nag staff with no items
-        if len(moderated_items)+len(examined_items) == 0:
+        if len(coordinated_items)+len(moderated_items) == 0:
             return False
 
         plaintext = get_template('loads/emails/assessment_updates.txt')
@@ -129,8 +135,8 @@ class Command(BaseCommand):
 
         context_dict = {
             'staff': staff,
+            'coordinated_items': coordinated_items,
             'moderated_items': moderated_items,
-            'examined_items': examined_items,
             'external_examiner': False,
             'base_url' : settings.WAM_URL, 
         };
@@ -181,7 +187,6 @@ class Command(BaseCommand):
             now = datetime.datetime.today().date()
             examined_modules = examined_modules.filter(package__enddate__lte=now)
         
-        moderated_items = AssessmentResource.objects.none()
         examined_items = AssessmentResource.objects.all().filter(created__gte=census_date).filter(module__in=examined_modules).distinct()
         
         if verbosity > 2:
@@ -193,7 +198,7 @@ class Command(BaseCommand):
             ))
                     
         # Don't nag staff with no items
-        if len(moderated_items)+len(examined_items) == 0:
+        if len(examined_items) == 0:
             return False
 
         plaintext = get_template('loads/emails/assessment_updates.txt')
@@ -201,7 +206,6 @@ class Command(BaseCommand):
 
         context_dict = {
             'staff': external,
-            'moderated_items': moderated_items,
             'examined_items': examined_items,
             'external_examiner': True,
             'base_url' : settings.WAM_URL, 

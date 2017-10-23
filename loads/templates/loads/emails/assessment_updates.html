@@ -7,6 +7,17 @@
         <th style="text-align: left;">Name</th>
         <th style="text-align: left;">Type</th>
       </tr>
+      {% if coordinated_items %}
+      <tr style="padding: 5px"><th colspan="3">Items for which you are a coordinator</th></tr>
+      {% for item in coordinated_items %}
+      <tr style="background: {% cycle '#EDF3FE' '#FFFFFF' %};">
+        <th style="text-align: left; padding: 5px">{{ item.module }}</th>
+        <td style="text-align: left; padding: 5px">{{ item.name }}</td>
+        <td style="text-align: left; padding: 5px;">{{ item.resource_type }}</td>
+        <td style="text-align: left; padding: 5px;"><a href="{{ base_url }}{% url 'modules_details' item.module.id %}">details</a></td>
+      </tr>      
+      {% endfor %}
+      {% endif %}
       {% if moderated_items %}
       <tr style="padding: 5px"><th colspan="3">Items for which you are a moderator</th></tr>
       {% for item in moderated_items %}

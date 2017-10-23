@@ -730,6 +730,7 @@ class Module(models.Model):
     package         the package this module (instance) is associated with
     programmes      the programmes the module belongs to
     lead_programme  a main programme for the purposes of external examination
+    coordinator     the staff member primarily responsible for the module
     moderators      any staff members who can moderate this module's assessments
 
     Eventually augmenting this from CMS would be useful
@@ -748,7 +749,8 @@ class Module(models.Model):
     details = models.TextField(blank=True, null=True)
     programmes = models.ManyToManyField(Programme, blank=True, related_name='modules')
     lead_programme = models.ForeignKey(Programme, blank=True, null=True, related_name='lead_modules')
-    moderators = models.ManyToManyField(Staff, blank=True)
+    coordinator = models.ForeignKey(Staff, blank=True, null=True, related_name='coordinated_modules')
+    moderators = models.ManyToManyField(Staff, blank=True, related_name='moderated_modules')
 
 
     def get_contact_hours(self):

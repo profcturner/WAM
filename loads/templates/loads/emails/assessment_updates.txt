@@ -1,16 +1,31 @@
-{% if moderated_items or examined_items %}
+{% if moderated_items or examined_items or coordinated_items %}
 
 There are new assessment items that may be relevant to you, since your last login.
 
+{%if coordinated_items %}
+Items for which you are a coordinator
+
+{% for item in coordinated_items %}
+* {{ item.name }}, {{ item.module }} ({{ item.resource_type }})
+{% endfor %}
+{% endif %}
+
+
+{%if moderated_items %}
 Items for which you are a moderator
 
 {% for item in moderated_items %}
 * {{ item.name }}, {{ item.module }} ({{ item.resource_type }})
 {% endfor %}
+{% endif %}
+
+{%if examined_items %}
+Items for which you are an Examiner
 
 {% for item in examined_items %}
 * {{ item.name }}, {{ item.module }} ({{ item.resource_type }})
-{% endfor %}      
+{% endfor %}
+{% endif %}      
 
 {% else %}
 
