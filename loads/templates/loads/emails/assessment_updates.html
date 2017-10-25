@@ -6,9 +6,10 @@
         <th style="text-align: left;">Module</th>
         <th style="text-align: left;">Name</th>
         <th style="text-align: left;">Type</th>
+        <th></th>
       </tr>
       {% if coordinated_items %}
-      <tr style="padding: 5px"><th colspan="3">Items for which you are a coordinator</th></tr>
+      <tr style="padding: 5px"><th colspan="4">Items for which you are a coordinator</th></tr>
       {% for item in coordinated_items %}
       <tr style="background: {% cycle '#EDF3FE' '#FFFFFF' %};">
         <th style="text-align: left; padding: 5px">{{ item.module }}</th>
@@ -19,7 +20,7 @@
       {% endfor %}
       {% endif %}
       {% if moderated_items %}
-      <tr style="padding: 5px"><th colspan="3">Items for which you are a moderator</th></tr>
+      <tr style="padding: 5px"><th colspan="4">Items for which you are a moderator</th></tr>
       {% for item in moderated_items %}
       <tr style="background: {% cycle '#EDF3FE' '#FFFFFF' %};">
         <th style="text-align: left; padding: 5px">{{ item.module }}</th>
@@ -30,7 +31,7 @@
       {% endfor %}
       {% endif %}
       {% if examined_items %}
-      <tr style="padding: 5px"><th colspan="3">Items for which you are the lead External Examiner</th></tr>
+      <tr style="padding: 5px"><th colspan="4">Items for which you are the lead External Examiner</th></tr>
       {% for item in examined_items %}
       <tr style="background: {% cycle '#EDF3FE' '#FFFFFF' %};">
         <th style="text-align: left; padding: 5px">{{ item.module }}</th>
