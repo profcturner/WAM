@@ -45,28 +45,51 @@ class AssessmentResourceTestCase(TestCase):
         user_aD = User.objects.create(username="academicD")
         user_aE = User.objects.create(username="academicE")
         
-        
         user_eA = User.objects.create(username="externalA")
-        
+        user_eB = User.objects.create(username="externalB")
+        user_eC = User.objects.create(username="externalC")
+
         # Create linked Staff and ExternalExaminers
         coordinator = Staff.objects.create(user=user_aA)
         team_member = Staff.objects.create(user=user_aB)
         resource_owner = Staff.objects.create(user=user_aC)
         moderator = Staff.objects.create(user=user_aD)
         other_staff = Staff.objects.create(user=user_aE)
+        
+        lead_examiner = ExternalExaminer.objects.create(user=user_eA)
+        associated_examiner = ExternalExaminer.objects.create(user=user_eB)
+        other_examiner = ExternalExaminer.objects.create(user=user_eC)
 
+        # Create some programmes
+        lead_programme = Programme.objects.create(
+                programme_code="123",
+                programme_name="BSc Breaking Things",
+                package=package)
+                
+        lead_programme.examiners.add(lead_examiner)
+        lead_programme.save()
         
-        external = ExternalExaminer.objects.create(user=user_eA)
-        
+        other_programme = Programme.objects.create(
+                programme_code="456",
+                programme_name="MSc Breaking Things",
+                package=package)
+                
+        other_programme.examiners.add(associated_examiner)
+        other_programme.save()
+
+                
         # Create a module with staffA as coordinator and staff
         module = Module.objects.create(module_code="ABC101",
                 module_name="Breaking Things",
                 package=package,
                 coordinator=coordinator,
+                lead_programme=lead_programme,
                 campus=campus,
                 size=modulesize)
                 
         module.moderators.add(moderator)
+        module.programmes.add(lead_programme)
+        module.programmes.add(other_programme)
         module.save()
                 
         # and staffB on teaching team
@@ -137,4 +160,35 @@ class AssessmentResourceTestCase(TestCase):
         self.assertEqual(resource.is_downloadable_by(other), False)
         self.assertEqual(resource.is_downloadable_by_staff(other), False)
         self.assertEqual(resource.is_downloadable_by_external(other), False)
+        
+    def test_resource_lead_examiner_permissions(self):
+        
+        lead_examiner = ExternalExaminer.objects.get(user__username="externalA")        
+        resource = AssessmentResource.objects.get(name="test")
+        
+        # Lead Examiners should be able to download
+        self.assertEqual(resource.is_downloadable_by(lead_examiner), True)
+        self.assertEqual(resource.is_downloadable_by_staff(lead_examiner), False)
+        self.assertEqual(resource.is_downloadable_by_external(lead_examiner), True)
+        
+    def test_resource_associate_examiner_permissions(self):
+        
+        associate_examiner = ExternalExaminer.objects.get(user__username="externalB")        
+        resource = AssessmentResource.objects.get(name="test")
+        
+        # Lead Examiners should be able to download
+        self.assertEqual(resource.is_downloadable_by(associate_examiner), True)
+        self.assertEqual(resource.is_downloadable_by_staff(associate_examiner), False)
+        self.assertEqual(resource.is_downloadable_by_external(associate_examiner), True)
+
+    def test_resource_other_examiner_permissions(self):
+        
+        other_examiner = ExternalExaminer.objects.get(user__username="externalC")        
+        resource = AssessmentResource.objects.get(name="test")
+        
+        # Other Examiners should not be able to download
+        self.assertEqual(resource.is_downloadable_by(other_examiner), False)
+        self.assertEqual(resource.is_downloadable_by_staff(other_examiner), False)
+        self.assertEqual(resource.is_downloadable_by_external(other_examiner), False)
                 
+

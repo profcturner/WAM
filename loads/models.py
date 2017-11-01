@@ -1020,7 +1020,7 @@ class AssessmentResource(models.Model):
                 return True
                     
         # Or if they are an examiner (for information) for another listed programme
-        if resource.module.programmes:
+        if self.module.programmes:
             if any(programme in examined_programmes for programme in self.module.programmes.all()):
                 return True
         
