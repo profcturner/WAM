@@ -45,6 +45,8 @@ class AssessmentResourceTestCase(TestCase):
         user_aD = User.objects.create(username="academicD")
         user_aE = User.objects.create(username="academicE")
         
+        user_aF = User.objects.create(username="assessmentstaffA")
+        
         user_eA = User.objects.create(username="externalA")
         user_eB = User.objects.create(username="externalB")
         user_eC = User.objects.create(username="externalC")
@@ -56,9 +58,14 @@ class AssessmentResourceTestCase(TestCase):
         moderator = Staff.objects.create(user=user_aD)
         other_staff = Staff.objects.create(user=user_aE)
         
+        assessment_staff = Staff.objects.create(user=user_aF)
+        
         lead_examiner = ExternalExaminer.objects.create(user=user_eA)
         associated_examiner = ExternalExaminer.objects.create(user=user_eB)
         other_examiner = ExternalExaminer.objects.create(user=user_eC)
+        
+        # Add the user to AssessmentStaff
+        AssessmentStaff.objects.create(staff=assessment_staff, package=package)
 
         # Create some programmes
         lead_programme = Programme.objects.create(
@@ -150,6 +157,16 @@ class AssessmentResourceTestCase(TestCase):
         self.assertEqual(resource.is_downloadable_by(owner), True)
         self.assertEqual(resource.is_downloadable_by_staff(owner), True)
         self.assertEqual(resource.is_downloadable_by_external(owner), False)
+        
+    def test_resource_assessment_staff_permissions(self):
+        
+        assessment_staff = Staff.objects.get(user__username="assessmentstaffA")        
+        resource = AssessmentResource.objects.get(name="test")
+        
+        # Assessment staff should be able to download
+        self.assertEqual(resource.is_downloadable_by(assessment_staff), True)
+        self.assertEqual(resource.is_downloadable_by_staff(assessment_staff), True)
+        self.assertEqual(resource.is_downloadable_by_external(assessment_staff), False)
                 
     def test_resource_other_staff_permissions(self):
         
