@@ -954,6 +954,94 @@ class AssessmentResource(models.Model):
 
     def __str__(self):
         return self.name
+        
+    def is_downloadable_by_staff(self, staff):
+        '''determines if a specific Staff member may download the resource
+        
+            Staff can download a resource if and only if:
+        
+            They coordinate the linked module;
+            They are specifically designated in AssessmentStaff for the resource package; or
+            They are the content owner (uploader); or
+            They are in the teaching team for the associated module in that package; or
+            They are a designated moderator for the associated module in that package.
+        
+            returns True if permitted, False otherwise
+        '''
+        
+        # Ensure we have a Staff object
+        if not isinstance(staff, Staff): return False
+        
+        # Module Coordinators can download
+        if self.module.coordinator==staff:
+            return True
+        
+        # Specifically designated assessment staff can download
+        if len(AssessmentStaff.objects.all().filter(staff=staff).filter(package=self.module.package)):
+            return True
+    
+        # The owner can download
+        if staff == self.owner:
+            return True
+                
+        # People on the teaching team can download
+        #TODO: probably safe to remove package filter, since package is implied by module?
+        if len(ModuleStaff.objects.all().filter(package=self.module.package).filter(module=self.module).filter(staff=staff)):
+            return True
+        
+        # A moderator can download
+        for moderator in self.module.moderators.all():
+            if staff == moderator:
+                return True
+                
+        # Otherwise, there is no access
+        return False
+
+
+    def is_downloadable_by_external(self, examiner):
+        '''determines if a specific ExternalExaminer member may download the resource
+        
+            The examiner can download a resource if and only if:
+        
+            They are the lead examiner for the module the resource belongs to in that package;
+            They are an examiner for a programme that the resource module belongs to in that package;
+        
+            returns True if permitted, False otherwise
+        '''
+        
+        # Ensure we have a Staff object
+        if not isinstance(examiner, ExternalExaminer): return False        
+        
+        examined_programmes = examiner.get_examined_programmes()
+        
+        # External Examiners can download if they examine the lead programme
+        if self.module.lead_programme:
+            if self.module.lead_programme in examined_programmes:
+                return True
+                    
+        # Or if they are an examiner (for information) for another listed programme
+        if resource.module.programmes:
+            if any(programme in examined_programmes for programme in self.module.programmes.all()):
+                return True
+        
+        # Otherwise, there is no access
+        return False
+                    
+        
+    def is_downloadable_by(self,person):
+        '''checks is a resource is downloadable by a member of Staff or an ExternalExaminer
+        
+            see is_downloadable_by_staff() or is_downloadable_by_external() for more details
+        
+            returns True if permitted, False otherwise
+        '''
+        if isinstance(person, Staff):
+            return self.is_downloadable_by_staff(person)
+            
+        if isinstance(person, ExternalExaminer):
+            return self.is_downloadable_by_external(person)
+            
+        return False
 
 
 class LoadTracking(models.Model):

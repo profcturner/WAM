@@ -72,14 +72,12 @@ def download_assessment_resource(request, resource_id):
     # Fetch the staff user associated with the person requesting
     try:
         staff = Staff.objects.get(user=request.user)
-        package = staff.package
     except Staff.DoesNotExist:
         staff = None
     
     # or possibly an external examiner
     try:
         examiner = ExternalExaminer.objects.get(user=request.user)
-        package = examiner.package
     except ExternalExaminer.DoesNotExist:
         examiner = None
     
@@ -91,42 +89,11 @@ def download_assessment_resource(request, resource_id):
     permission = False
     
     if staff:
-        # Specifically designated assessment staff can download
-        if not permission:
-            if len(AssessmentStaff.objects.all().filter(staff=staff).filter(package=resource.module.package)):
-                permission = True
-    
-        # The owner can download
-        if not permission:
-            if staff == resource.owner:
-                permission = True
-                
-        # People on the teaching team can download
-        if not permission:
-            #TODO: probably safe to remove package filter, since package is implied by module?
-            if len(ModuleStaff.objects.all().filter(package=resource.module.package).filter(module=resource.module).filter(staff=staff)):
-                permission = True
-        
-        # A moderator can download
-        if not permission:
-            for moderator in resource.module.moderators.all():
-                if staff == moderator:
-                    permission = True 
+        permission = resource.is_downloadable_by_staff(staff)
+                 
     if examiner:
-        examined_programmes = examiner.get_examined_programmes()
-        
-        # External Examiners can download if they examine the lead programme
-        if not permission:
-            if resource.module.lead_programme:
-                if resource.module.lead_programme in examined_programmes:
-                    permission = True
-                    
-        # Or if they are an examiner (for information) for another listed programme
-        if not permission:
-            if resource.module.programmes:
-                if any(programme in examined_programmes for programme in resource.module.programmes.all()):
-                    permission = True
-      
+        permission = resource.is_downloadable_by_examiner(examiner)
+     
     if not permission:
         return HttpResponseRedirect(reverse('forbidden'))
     
