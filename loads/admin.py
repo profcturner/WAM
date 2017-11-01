@@ -15,6 +15,7 @@ from .models import ActivityType
 from .models import ActivityGenerator
 from .models import AssessmentResource
 from .models import AssessmentResourceType
+from .models import AssessmentStaff
 from .models import Body
 from .models import Campus
 from .models import Category
@@ -81,6 +82,7 @@ admin.site.register(ActivitySet, ActivitySetAdmin)
 admin.site.register(ActivityType)
 admin.site.register(AssessmentResource)
 admin.site.register(AssessmentResourceType)
+admin.site.register(AssessmentStaff)
 admin.site.register(Body)
 admin.site.register(Campus)
 admin.site.register(Category)
