@@ -1,4 +1,4 @@
-'''Django Models for WAM project'''
+"""Django Models for WAM project"""
 
 import datetime
 
@@ -10,10 +10,7 @@ from django.core.validators import validate_comma_separated_integer_list
 # code to handle timezones
 from django.utils.timezone import utc
 
-
-#from . import helper_functions
-
-#TODO: Needs more elegant handling than this
+# TODO: Needs more elegant handling than this
 # This is actually deprecated and will be removed at some point
 ACADEMIC_YEAR = '2016/2017'
 
@@ -48,7 +45,7 @@ def divide_by_semesters(total_hours, semester_string):
 
 
 class WorkPackage(models.Model):
-    '''Groups workload by user groups and time
+    """Groups workload by user groups and time
 
     A WorkPackage can represent all the users and the time period
     for which activities are relevant. A most usual application
@@ -76,14 +73,14 @@ class WorkPackage(models.Model):
     days_in_week
                 the number of working days in a week (usually 5)
     contact_formula
-                a formula for calculating unspecificed contact hours
+                a formula for calculating unspecified contact hours
     admin_formula
                 a formula for calculating unspecified admin hours
     assessment_formula
                 a formula for calculating unspecified assessment hours
-    '''
+    """
 
-    #TODO: create sensible defaults for formulae below and then enable
+    # TODO: create sensible defaults for formulae below and then enable
     name = models.CharField(max_length=100)
     details = models.TextField()
     startdate = models.DateField()
@@ -92,14 +89,14 @@ class WorkPackage(models.Model):
     archive = models.BooleanField(default=False)
     groups = models.ManyToManyField(Group, blank=True)
     nominal_hours = models.PositiveIntegerField(default=1600)
-    credit_contact_scaling = models.FloatField(default=8/20)
+    credit_contact_scaling = models.FloatField(default=8 / 20)
     contact_admin_scaling = models.FloatField(default=1)
     contact_assessment_scaling = models.FloatField(default=1)
     working_days = models.PositiveIntegerField(default=228)
     days_in_week = models.PositiveIntegerField(default=5)
-    #contact_formula = models.TextField()
-    #admin_formula = models.TextField()
-    #assessment_formula = models.TextField()
+    # contact_formula = models.TextField()
+    # admin_formula = models.TextField()
+    # assessment_formula = models.TextField()
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
@@ -107,28 +104,30 @@ class WorkPackage(models.Model):
         return self.name + ' (' + str(self.startdate) + ' - ' + str(self.enddate) + ')'
 
     def __clone_activity_sets(self, source_package, options, messages):
-        '''Copies relevant activity sets with a mapping
-        
+        """Copies relevant activity sets with a mapping
+
         See clone_from() for details and documentation.
-        
+
         Determines the activity sets in use in an existing package and
         copies non project sets for the new package. A mapping from the
-        old primary keys to the new keys is returned in a dictionary.        
-        '''
-        
+        old primary keys to the new keys is returned in a dictionary.
+        """
+
         messages.append(("Information", "Cloning and Mapping Activity Sets", ""))
         # Get all activities in the package that belong to an Activity Set
         activities = Activity.objects.all().filter(package=source_package).filter(activity_set__isnull=False)
         # Create a mapping dict
         mapping_activity_set = dict()
-        
+
         for activity in activities:
             activity_set = activity.activity_set
             # We ignore project based sets, they should be generated freshly, not copied
-            if activity_set.project: continue
+            if activity_set.project:
+                continue
             # Have we already mapped this one?
-            if activity_set.pk in mapping_activity_set: continue
-            
+            if activity_set.pk in mapping_activity_set:
+                continue
+
             # Ok, it's new. Get the existing primary key
             original_pk = activity_set.pk
             # Remember we cloned it
@@ -137,19 +136,21 @@ class WorkPackage(models.Model):
             activity_set.pk = None
             activity_set.save()
             # Record the mapping
-            mapping_activity_set.update({original_pk : activity_set.pk})
-                        
-        return(mapping_activity_set)
+            mapping_activity_set.update({original_pk: activity_set.pk})
 
+        return mapping_activity_set
 
     def __clone_generated_activities(self, source_package, options, messages, mapping_activity_set):
-        '''Clones generated activities not belonging to a module'''
+        """Clones generated activities not belonging to a module"""
 
         messages.append(("Information", "Cloning Generated Activities not belonging to a Module", ""))
-        activities = Activity.objects.all().filter(package=source_package).filter(activity_set__isnull=False).filter(module__isnull=True)
+        activities = \
+            Activity.objects.all().filter(package=source_package). \
+            filter(activity_set__isnull=False).filter(module__isnull=True)
         for activity in activities:
             # Ignore project related activities
-            if activity.activity_set.project: continue
+            if activity.activity_set.project:
+                continue
             # Record details
             messages.append(("Cloned", "Generated Activity", str(activity)))
             # Invalidate the primary key to force save
@@ -157,15 +158,15 @@ class WorkPackage(models.Model):
             # Point the new instance at the current package
             activity.package = self
             # Map the activity set to its clone
-            activity.activity_set = ActivitySet.objects.get(pk = mapping_activity_set[activity.activity_set.pk])
+            activity.activity_set = ActivitySet.objects.get(pk=mapping_activity_set[activity.activity_set.pk])
             activity.save()
 
-
     def __clone_custom_activities(self, source_package, options, messages):
-        '''Clones activities not belonging to a set or module'''
-        
+        """Clones activities not belonging to a set or module"""
+
         messages.append(("Information", "Cloning Custom Activities not belonging to a Module", ""))
-        activities = Activity.objects.all().filter(package=source_package).filter(activity_set__isnull=True).filter(module__isnull=True)
+        activities = Activity.objects.all().filter(package=source_package).filter(activity_set__isnull=True).filter(
+            module__isnull=True)
         for activity in activities:
             # Record details
             messages.append(("Cloned", "Custom Activity", str(activity)))
@@ -174,20 +175,20 @@ class WorkPackage(models.Model):
             # Point the new instance at the current package
             activity.package = self
             activity.save()
-            
-            
+
     def __clone_module_data(self, source_package, options, messages, mapping_activity_set):
-        '''Clones modules, module activities and module staff'''
-        
+        """Clones modules, module activities and module staff"""
+
         messages.append(("Information", "Cloning Module Data", ""))
         # Create a mapping dict
         mapping_module = dict()
-        
+
         modules = Module.objects.all().filter(package=source_package)
         for module in modules:
             # Grab the activities associates with the module before the key changed
             # (Should we worry about the activity_set and reset it too?)
-            activities = Activity.objects.all().filter(package=source_package).filter(activity_set__isnull=True).filter(module=module)
+            activities = Activity.objects.all().filter(package=source_package).filter(activity_set__isnull=True).filter(
+                module=module)
             # Grab the associated allocations before the key changes
             modulestaff = ModuleStaff.objects.all().filter(module=module)
             # Record the cloned module
@@ -200,11 +201,11 @@ class WorkPackage(models.Model):
             module.package = self
             module.save()
             # Make a record of the mapping
-            mapping_module.update({original_pk : module.pk})
+            mapping_module.update({original_pk: module.pk})
 
             # Copy the module activities if needed
             if options['activities_modules']:
-                messages.append(("Information", "Cloning Module Actvities", ""))
+                messages.append(("Information", "Cloning Module Activities", ""))
                 for activity in activities:
                     # Record the cloned activity
                     messages.append(("Cloned", "Module Activity", str(activity)))
@@ -216,7 +217,8 @@ class WorkPackage(models.Model):
                     activity.module = module
                     # Is it part of a mapped activity set?) If so, map this also
                     if activity.activity_set in mapping_activity_set:
-                        activity.activity_set = ActivitySet.objects.get(pk = mapping_activity_set[activity.activity_set.pk])
+                        activity.activity_set = ActivitySet.objects.get(
+                            pk=mapping_activity_set[activity.activity_set.pk])
                     activity.save()
 
             # And now copy Module Allocations if needed
@@ -229,37 +231,35 @@ class WorkPackage(models.Model):
                     allocation.pk = None
                     # Point the new instance at the current package and module
                     allocation.module = module
-                    allocation.package = self    
+                    allocation.package = self
                     allocation.save()
-                    
-        return(mapping_module)        
-        
-        
+
+        return mapping_module
+
     def clone_from(self, source_package, options):
-        '''Copy from another package into the current package
-        
+        """Copy from another package into the current package
+
         source_package          the package from which to copy
         options                 a dictionary of options with values as below
-        
+
             options values
-        
+
             modules                 copy modules
             modulestaff             copy staff allocated to modules
             activities_generated    copy activities from a generator
             activities_custom       copy activities from no module or generator
             activities_module       copy custom activities for a module
             projects                create activities arising from projects
-        
+
         returns a list of tuples showing what has been cloned
-        '''
+        """
 
         # Record data on cloned items, errors etc for reporting to the user
         messages = []
-        
+
         if (Activity.objects.filter(package=self).count()
                 + Module.objects.filter(package=self).count()
                 + ModuleStaff.objects.filter(package=self).count()) > 0:
-                
             messages.append(("Error", "Destination Workpackage not empty", "Aborting"))
             return messages
 
@@ -267,7 +267,7 @@ class WorkPackage(models.Model):
         if options['activities_generated']:
             mapping_activity_set = self.__clone_activity_sets(source_package, options, messages)
             self.__clone_generated_activities(source_package, options, messages, mapping_activity_set)
-        
+
         # Copy Activities that are not associated with a Module or an ActivitySet
         if options['activities_custom']:
             self.__clone_custom_activities(source_package, options, messages)
@@ -275,9 +275,8 @@ class WorkPackage(models.Model):
         # Copy Modules
         if options['modules']:
             self.__clone_module_data(source_package, options, messages, mapping_activity_set)
-            
+
         return messages
-        
 
     def get_all_staff(self):
         """obtains all staff related to by a package"""
@@ -287,13 +286,12 @@ class WorkPackage(models.Model):
         # Get the matching staff objects
         staff = Staff.objects.all().filter(user__in=users_by_groups).distinct().order_by('user__last_name')
         return staff
-        
-        
+
     def in_the_past(self):
         """Returns whether the workpackage ended before the current date"""
         now = datetime.datetime.today().date()
         return self.enddate < now
-        
+
     def in_the_future(self):
         """Returns whether the workpackage starts after the current date"""
         now = datetime.datetime.today().date()
@@ -304,13 +302,13 @@ class WorkPackage(models.Model):
 
 
 class ExternalExaminer(models.Model):
-    '''Augments the Django user model with external examiner details
+    """Augments the Django user model with external examiner details
 
     user            the Django user object, a one to one link
     title           the title of the member of staff (Dr, Mr etc)
     staff_number    the staff number (may be an associate code)
     package         the active work package to edit or display
-    '''
+    """
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
@@ -320,61 +318,60 @@ class ExternalExaminer(models.Model):
     def __str__(self):
         return self.title + ' ' + self.user.first_name + ' ' + self.user.last_name
 
-
     def is_active(self):
-      '''Maps to whether the underlying user is active'''
-      return self.user.is_active
-
+        """Maps to whether the underlying user is active"""
+        return self.user.is_active
 
     def get_examined_programmes(self):
         examined_programmes = Programme.objects.all().filter(examiners=self).distinct()
-        return(examined_programmes)
-        
+        return examined_programmes
+
 
 class StaffManager(models.Manager):
-    '''Manager for staff to enforce ordering
-    
+    """Manager for staff to enforce ordering
+
     The Staff object is linked to the User object, but there seems no way to enforce
-    default ordering by User.last_name short of this.'''
-    #TODO: This may not be necessary in the future if a custom admin intreface is put in place
-    
+    default ordering by User.last_name short of this."""
+
+    # TODO: This may not be necessary in the future if a custom admin interface is put in place
+
     def get_queryset(self):
         return super(StaffManager, self).get_queryset().order_by("user__last_name", "user__first_name")
 
 
 class Staff(models.Model):
-    '''Augments the Django user model with staff details
+    """Augments the Django user model with staff details
 
     user            the Django user object, a one to one link
     title           the title of the member of staff (Dr, Mr etc)
     staff_number    the staff number
     fte             the percentage of time the member of staff is available for
     package         the active work package to edit or display
-    '''
+    """
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     staff_number = models.CharField(max_length=20)
     fte = models.PositiveSmallIntegerField(default=100)
     package = models.ForeignKey(WorkPackage, null=True, on_delete=models.SET_NULL)
-    
+
     objects = StaffManager()
 
     def __str__(self):
         return self.title + ' ' + self.user.first_name + ' ' + self.user.last_name
 
     def first_name(self):
-        '''return the first name of the linked user account'''
+        """return the first name of the linked user account"""
         return self.user.first_name
 
     def last_name(self):
-        '''return the last name of the linked user account'''
+        """return the last name of the linked user account"""
         return self.user.last_name
 
     def hours_by_semester(self, package=0):
-        '''Calculate the total allocated hours for a given WorkPackage
+        """Calculate the total allocated hours for a given WorkPackage
 
         If package is zero it attempts to find the value for the logged in user
-        '''
+        """
         semester1_hours = 0.0
         semester2_hours = 0.0
         semester3_hours = 0.0
@@ -410,16 +407,16 @@ class Staff(models.Model):
                 semester1_hours, semester2_hours, semester3_hours, len(activities)]
 
     def total_hours(self, package=0):
-        '''Calculate the total allocated hours'''
+        """Calculate the total allocated hours"""
         hours_by_semester = self.hours_by_semester(package)
         return hours_by_semester[0]
 
     def is_active(self):
-      '''Maps to whether the underlying user is active'''
-      return self.user.is_active
+        """Maps to whether the underlying user is active"""
+        return self.user.is_active
 
     def get_all_tasks(self):
-        '''Returns a queryset of all unarchived tasks linked to this staff member'''
+        """Returns a queryset of all unarchived tasks linked to this staff member"""
         user_tasks = Task.objects.all().filter(targets=self).exclude(archive=True).distinct().order_by('deadline')
 
         # And those assigned against the group
@@ -432,7 +429,7 @@ class Staff(models.Model):
         return all_tasks
 
     def get_all_packages(self):
-        ''''Get all the packages that are relevant for a staff member'''
+        """'Get all the packages that are relevant for a staff member"""
         groups = Group.objects.all().filter(user=self.user)
         packages = WorkPackage.objects.all().filter(groups__in=groups).distinct()
 
@@ -444,20 +441,20 @@ class Staff(models.Model):
 
 class AssessmentStaff(models.Model):
     """Stores which staff can manage Assessment Resources"""
-    
+
     package = models.ForeignKey(WorkPackage)
     staff = models.ForeignKey(Staff)
-    #TODO: what they will have access to.
-    
-    
-#TODO: Sign off of papers
+    # TODO: what they will have access to.
+
+
+# TODO: Sign off of papers
 
 
 class Category(models.Model):
-    '''Categories of activity
+    """Categories of activity
 
     name    whether the activity is Teaching, Research etc.
-    '''
+    """
 
     name = models.CharField(max_length=100)
 
@@ -469,11 +466,11 @@ class Category(models.Model):
 
 
 class ActivityType(models.Model):
-    '''Defines a type for activities
+    """Defines a type for activities
 
     name        is the name of the type, e.g. Lectures, Tutorials, Supervision
     category    see the Category model
-    '''
+    """
     name = models.CharField(max_length=100)
     category = models.ForeignKey(Category)
 
@@ -485,7 +482,7 @@ class ActivityType(models.Model):
 
 
 class Activity(models.Model):
-    '''Specifies an individual activity that needs allocation
+    """Specifies an individual activity that needs allocation
 
     name             is the name of the activity
     hours            the number of hours allocated is hours_percentage is set to HOURS
@@ -498,7 +495,7 @@ class Activity(models.Model):
     staff            if not NULL, the staff member allocated this activity
     package          the WorkPackage this activity belongs to
     activity_set     the associated activity_set if this activity is auto generated
-    '''
+    """
 
     HOURS = 'H'
     PERCENTAGE = 'P'
@@ -525,11 +522,11 @@ class Activity(models.Model):
             return self.name
 
     def is_allocated(self):
-        '''returns True if the activity is allocated to a member of staff, False otherwise'''
+        """returns True if the activity is allocated to a member of staff, False otherwise"""
         return self.staff is not None
 
     def hours_by_semester(self):
-        '''Works out the hours in each semester for this activity and returns as a list'''
+        """Works out the hours in each semester for this activity and returns as a list"""
         # First calculate the hours over all semesters
         if self.hours_percentage == self.HOURS:
             total_hours = self.hours
@@ -608,7 +605,7 @@ class ActivityGenerator(models.Model):
     def generate_activities(self):
         """Generate all Activities for this"""
         # If there are existing activities, we need to delete them.
-        #if(self.activity_set):
+        # if(self.activity_set):
         #    self.activity_set.delete()
         #    #TODO: check cascade behaviour!
 
@@ -621,16 +618,16 @@ class ActivityGenerator(models.Model):
         for staff in self.get_all_targets():
             # Now create the Activity
             activity = Activity(name=self.name,
-                    hours=self.hours,
-                    percentage=self.percentage,
-                    hours_percentage=self.hours_percentage,
-                    semester=self.semester,
-                    activity_type = self.activity_type,
-                    comment = self.comment,
-                    staff=staff,
-                    package=self.package,
-                    activity_set=activity_set
-            )
+                                hours=self.hours,
+                                percentage=self.percentage,
+                                hours_percentage=self.hours_percentage,
+                                semester=self.semester,
+                                activity_type=self.activity_type,
+                                comment=self.comment,
+                                staff=staff,
+                                package=self.package,
+                                activity_set=activity_set
+                                )
             activity.save()
 
     def __str__(self):
@@ -641,7 +638,7 @@ class ActivityGenerator(models.Model):
 
 
 class Campus(models.Model):
-    '''This indicated the campus or site that a module is delivered at'''
+    """This indicated the campus or site that a module is delivered at"""
 
     name = models.CharField(max_length=100)
 
@@ -654,18 +651,18 @@ class Campus(models.Model):
 
 
 class ModuleStaff(models.Model):
-    '''Members of staff given a proportion of module time
+    """Members of staff given a proportion of module time
 
     While it is possible to manually allocate all aspects of module work
     as an activity, this allows the normal assumption of a member of
-    staff who is resonsible for a percentage of different aspects of
+    staff who is responsible for a percentage of different aspects of
     a module
-    '''
+    """
 
     module = models.ForeignKey('Module')
     staff = models.ForeignKey('Staff')
     package = models.ForeignKey('WorkPackage')
-    #TODO package is implicitly linked by module already...?
+    # TODO package is implicitly linked by module already...?
 
     contact_proportion = models.PositiveSmallIntegerField()
     admin_proportion = models.PositiveSmallIntegerField()
@@ -679,12 +676,12 @@ class ModuleStaff(models.Model):
 
 
 class ModuleSize(models.Model):
-    '''Basic notion of module size in intervals
+    """Basic notion of module size in intervals
 
     text                describing the module size, as, for instance 0-10
     admin_scaling       multiplier on the normal assumption of admin hours
     assessment_scaling  multiplied on the normal assumption of assessment hours
-    '''
+    """
 
     text = models.CharField(max_length=10)
     admin_scaling = models.FloatField()
@@ -695,14 +692,14 @@ class ModuleSize(models.Model):
 
 
 class Programme(models.Model):
-    '''Basic information about a programme of study
+    """Basic information about a programme of study
 
     programme_code  the code for the programme (e.g. 7644)
     programme_name  the name of the programme
     examiners       all the external examiners associated with the programme
     package         the package this programme is associated with
     directors
-    '''
+    """
 
     programme_code = models.CharField(max_length=10)
     programme_name = models.CharField(max_length=200)
@@ -718,7 +715,7 @@ class Programme(models.Model):
 
 
 class Module(models.Model):
-    '''Basic information about a module
+    """Basic information about a module
 
     module_code     the code for the module (e.g. EEE122)
     module_name     the module name
@@ -734,7 +731,7 @@ class Module(models.Model):
     moderators      any staff members who can moderate this module's assessments
 
     Eventually augmenting this from CMS would be useful
-    '''
+    """
 
     module_code = models.CharField(max_length=10)
     module_name = models.CharField(max_length=200)
@@ -752,7 +749,6 @@ class Module(models.Model):
     coordinator = models.ForeignKey(Staff, blank=True, null=True, related_name='coordinated_modules')
     moderators = models.ManyToManyField(Staff, blank=True, related_name='moderated_modules')
 
-
     def get_contact_hours(self):
         """returns the contact hours for the module
 
@@ -762,15 +758,15 @@ class Module(models.Model):
             hours = self.credits * self.package.credit_contact_scaling
         else:
             hours = self.contact_hours
-            
+
         return hours
 
     def get_contact_hours_by_semester(self):
-        '''returns the list divided by semester of contact hours'''
+        """returns the list divided by semester of contact hours"""
         return divide_by_semesters(self.get_contact_hours(), self.semester)
 
     def get_admin_hours(self):
-        '''returns the total admin hours'''
+        """returns the total admin hours"""
         if self.admin_hours is None:
             hours = self.get_contact_hours() * self.package.contact_admin_scaling * self.size.admin_scaling
         else:
@@ -778,11 +774,11 @@ class Module(models.Model):
         return hours
 
     def get_admin_hours_by_semester(self):
-        '''returns the list divided by semester of admin hours'''
+        """returns the list divided by semester of admin hours"""
         return divide_by_semesters(self.get_admin_hours(), self.semester)
 
     def get_assessment_hours(self):
-        '''returns the total assessment hours'''
+        """returns the total assessment hours"""
         if self.assessment_hours is None:
             hours = self.get_contact_hours() * self.package.contact_assessment_scaling * self.size.assessment_scaling
         else:
@@ -790,11 +786,11 @@ class Module(models.Model):
         return hours
 
     def get_assessment_hours_by_semester(self):
-        '''returns the list divided by semester of assessment hours'''
+        """returns the list divided by semester of assessment hours"""
         return divide_by_semesters(self.get_assessment_hours(), self.semester)
 
     def get_all_hours(self):
-        '''returns the total hours for the module'''
+        """returns the total hours for the module"""
         c_hours = self.get_contact_hours()
         ad_hours = self.get_admin_hours()
         as_hours = self.get_assessment_hours()
@@ -802,7 +798,7 @@ class Module(models.Model):
         return c_hours + ad_hours + as_hours
 
     def get_all_hours_by_semester(self):
-        '''returns the list divided by semester of the total hours for the module'''
+        """returns the list divided by semester of the total hours for the module"""
         return divide_by_semesters(self.get_all_hours(), self.semester)
 
     def __str__(self):
@@ -813,7 +809,7 @@ class Module(models.Model):
 
 
 class Task(models.Model):
-    '''A task that members of staff will be allocated
+    """A task that members of staff will be allocated
 
     These are usually much smaller than Activities and are deadline driven
 
@@ -827,7 +823,7 @@ class Task(models.Model):
 
     See also the TaskCompletion model. Note that targets should not be removed
     on completion.
-    '''
+    """
 
     name = models.CharField(max_length=100)
     url = models.URLField(blank=True)
@@ -869,8 +865,7 @@ class Task(models.Model):
         now = datetime.datetime.utcnow().replace(tzinfo=utc)
         seconds_left = (self.deadline - now).total_seconds()
         # If a task is less than a week from deadline consider it urgent
-        return bool(seconds_left < 60*60*24*7)
-
+        return bool(seconds_left < 60 * 60 * 24 * 7)
 
     def is_overdue(self):
         """returns True is the deadline has passed, False otherwise"""
@@ -880,14 +875,14 @@ class Task(models.Model):
 
 
 class TaskCompletion(models.Model):
-    '''This indicates that a staff member has completed a given task
+    """This indicates that a staff member has completed a given task
 
     task    See the Task model
     Staff   See the Staff model
     when    a datetime stamp of when the task was completed
     comment an optional comment on completion
 
-    '''
+    """
     task = models.ForeignKey(Task)
     staff = models.ForeignKey(Staff)
     comment = models.CharField(max_length=200, default='', blank=True)
@@ -898,7 +893,7 @@ class TaskCompletion(models.Model):
 
 
 class Resource(models.Model):
-    '''A file resource to be made available for staff
+    """A file resource to be made available for staff
 
     name        A descriptive name for the resource
     file        The file information
@@ -906,7 +901,7 @@ class Resource(models.Model):
     created     When the resource was added
     modified    When the resource was modified
     downloads   A download counter
-    '''
+    """
 
     name = models.CharField(max_length=200)
     file = models.FileField()
@@ -920,16 +915,16 @@ class Resource(models.Model):
 
 
 class AssessmentResourceType(models.Model):
-    '''Type of assessment file (e.g. exam, solution etc)'''
-    
+    """Type of assessment file (e.g. exam, solution etc)"""
+
     name = models.CharField(max_length=200)
-    
+
     def __str__(self):
         return self.name
 
 
 class AssessmentResource(models.Model):
-    '''A file resource to be made available for staff
+    """A file resource to be made available for staff
 
     name        A descriptive name for the resource
     details     Optional extended details
@@ -940,7 +935,7 @@ class AssessmentResource(models.Model):
     modified    When the resource was modified
     downloads   A download counter
     owner       The uploader
-    '''
+    """
 
     name = models.CharField(max_length=200)
     details = models.TextField(blank=True)
@@ -954,98 +949,97 @@ class AssessmentResource(models.Model):
 
     def __str__(self):
         return self.name
-        
+
     def is_downloadable_by_staff(self, staff):
-        '''determines if a specific Staff member may download the resource
-        
+        """determines if a specific Staff member may download the resource
+
             Staff can download a resource if and only if:
-        
+
             They coordinate the linked module;
             They are specifically designated in AssessmentStaff for the resource package; or
             They are the content owner (uploader); or
             They are in the teaching team for the associated module in that package; or
             They are a designated moderator for the associated module in that package.
-        
+
             returns True if permitted, False otherwise
-        '''
-        
+        """
+
         # Ensure we have a Staff object
-        if not isinstance(staff, Staff): return False
-        
+        if not isinstance(staff, Staff):
+            return False
+
         # Module Coordinators can download
-        if self.module.coordinator==staff:
+        if self.module.coordinator == staff:
             return True
-        
+
         # Specifically designated assessment staff can download
         if len(AssessmentStaff.objects.all().filter(staff=staff).filter(package=self.module.package)):
             return True
-    
+
         # The owner can download
         if staff == self.owner:
             return True
-                
+
         # People on the teaching team can download
-        #TODO: probably safe to remove package filter, since package is implied by module?
-        if len(ModuleStaff.objects.all().filter(package=self.module.package).filter(module=self.module).filter(staff=staff)):
+        if len(ModuleStaff.objects.all().filter(module=self.module).filter(staff=staff)):
             return True
-        
+
         # A moderator can download
         for moderator in self.module.moderators.all():
             if staff == moderator:
                 return True
-                
+
         # Otherwise, there is no access
         return False
 
-
     def is_downloadable_by_external(self, examiner):
-        '''determines if a specific ExternalExaminer member may download the resource
-        
+        """determines if a specific ExternalExaminer member may download the resource
+
             The examiner can download a resource if and only if:
-        
+
             They are the lead examiner for the module the resource belongs to in that package;
             They are an examiner for a programme that the resource module belongs to in that package;
-        
+
             returns True if permitted, False otherwise
-        '''
-        
+        """
+
         # Ensure we have a Staff object
-        if not isinstance(examiner, ExternalExaminer): return False        
-        
+        if not isinstance(examiner, ExternalExaminer):
+            return False
+
         examined_programmes = examiner.get_examined_programmes()
-        
+
         # External Examiners can download if they examine the lead programme
         if self.module.lead_programme:
             if self.module.lead_programme in examined_programmes:
                 return True
-                    
+
         # Or if they are an examiner (for information) for another listed programme
         if self.module.programmes:
             if any(programme in examined_programmes for programme in self.module.programmes.all()):
                 return True
-        
+
         # Otherwise, there is no access
         return False
-                    
-        
-    def is_downloadable_by(self,person):
-        '''checks is a resource is downloadable by a member of Staff or an ExternalExaminer
-        
+
+    def is_downloadable_by(self, person):
+        """checks is a resource is downloadable by a member of Staff or an ExternalExaminer
+
             see is_downloadable_by_staff() or is_downloadable_by_external() for more details
-        
+
             returns True if permitted, False otherwise
-        '''
+        """
         if isinstance(person, Staff):
             return self.is_downloadable_by_staff(person)
-            
+
         if isinstance(person, ExternalExaminer):
             return self.is_downloadable_by_external(person)
-            
+
         return False
 
 
 class LoadTracking(models.Model):
-    '''Tracks what the total School loads are at any given time'''
+    """Tracks what the total School loads are at any given time"""
 
     academic_year = models.CharField(max_length=10, default=ACADEMIC_YEAR)
 
@@ -1064,13 +1058,13 @@ class LoadTracking(models.Model):
 
 
 class CourseworkTracker(models.Model):
-    '''Tracks Coursework progress through the QA System
+    """Tracks Coursework progress through the QA System
 
     academic_year   The academic year in 2014/2015 format
     module          See the Module model
     progress        A string showing the progress
     created         A timestamp for this event
-    '''
+    """
 
     # TODO Let's see if we can track user with this at some point
     # http://stackoverflow.com/questions/4670783/make-the-user-in-a-model-default-to-the-current-user
@@ -1097,13 +1091,13 @@ class CourseworkTracker(models.Model):
 
 
 class ExamTracker(models.Model):
-    '''Tracks Exam progress through the QA System
+    """Tracks Exam progress through the QA System
 
     academic_year   The academic year in 2014/2015 format
     module          See the Module model
     progress        A string showing the progress
     created         A timestamp for this event
-    '''
+    """
 
     SET = 'SET'
     MODERATE = 'MODERATE'
@@ -1208,10 +1202,10 @@ class ProjectStaff(models.Model):
 
     def generate_activities(self, activity_set):
         """Create activities associated with this allocation"""
-        #TODO: Currently creates activities equally mapped on semesters, could be refined
-        #TODO: If workpackages overlap in timing or staff, hours may be double counted
-        #TODO: If there is project time outside any workpackage it will be "lost"
-        #TODO: Also there is no protection for overlapping allocations for the same staff member
+        # TODO: Currently creates activities equally mapped on semesters, could be refined
+        # TODO: If workpackages overlap in timing or staff, hours may be double counted
+        # TODO: If there is project time outside any workpackage it will be "lost"
+        # TODO: Also there is no protection for overlapping allocations for the same staff member
 
         work_done = []
         # Get all the work packages for the staff member and go through each
@@ -1220,31 +1214,31 @@ class ProjectStaff(models.Model):
             # Work out the overlap of the project with this package
             start_overlap = max(package.startdate, self.start)
             end_overlap = min(package.enddate, self.end)
-            
+
             in_package_days = (end_overlap - start_overlap).days
             if in_package_days <= 0:
                 # No days in this package, move along...
                 continue
 
-            all_package_days = (package.enddate - package.startdate).days        
+            all_package_days = (package.enddate - package.startdate).days
             # Get total working days taking into account leave and weekends
-            working_days = package.working_days * in_package_days / all_package_days 
+            working_days = package.working_days * in_package_days / all_package_days
             # Get weeks by dividing by number of working days in a week (usually 5)
             working_weeks = working_days / package.days_in_week
             hours = working_weeks * self.hours_per_week
 
             # Now create the Activity
             activity = Activity(name=str(self.project),
-                    hours=hours,
-                    percentage=0,
-                    hours_percentage=Activity.HOURS,
-                    semester='1,2,3',
-                    activity_type = self.project.activity_type,
-                    comment = 'Auto Generated from Project',
-                    staff=self.staff,
-                    package=package,
-                    activity_set=activity_set
-            )
+                                hours=hours,
+                                percentage=0,
+                                hours_percentage=Activity.HOURS,
+                                semester='1,2,3',
+                                activity_type=self.project.activity_type,
+                                comment='Auto Generated from Project',
+                                staff=self.staff,
+                                package=package,
+                                activity_set=activity_set
+                                )
             activity.save()
 
     class Meta:
@@ -1261,11 +1255,11 @@ class ActivitySet(models.Model):
     created     an automatically generated timestamp when the set was created
     project     if the set is associated with a project, this is that key
     generator   if the set is associated with a generator, this is that key"""
-    
+
     name = models.CharField(max_length=300)
     created = models.DateTimeField(auto_now_add=True)
     project = models.ForeignKey(Project, blank=True, null=True)
     generator = models.ForeignKey(ActivityGenerator, blank=True, null=True)
-    
+
     def __str__(self):
         return self.name
