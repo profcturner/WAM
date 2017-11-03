@@ -43,3 +43,5 @@ tmtagsHistory
 db.sqlite3.backup
 
 media/*
+.idea/*
+
