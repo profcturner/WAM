@@ -92,7 +92,7 @@ def download_assessment_resource(request, resource_id):
         permission = resource.is_downloadable_by_staff(staff)
                  
     if examiner:
-        permission = resource.is_downloadable_by_examiner(examiner)
+        permission = resource.is_downloadable_by_external(examiner)
      
     if not permission:
         return HttpResponseRedirect(reverse('forbidden'))
