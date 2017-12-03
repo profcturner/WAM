@@ -511,7 +511,7 @@ class Activity(models.Model):
     activity_type = models.ForeignKey('ActivityType', on_delete=models.CASCADE)
     module = models.ForeignKey('Module', blank=True, null=True, on_delete=models.CASCADE)
     comment = models.CharField(max_length=200, default='', blank=True)
-    staff = models.ForeignKey(Staff, null=True, blank=True, on_delete=models.CASCADE)
+    staff = models.ForeignKey(Staff, null=True, blank=True, on_delete=models.SET_NULL)
     package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
     activity_set = models.ForeignKey('ActivitySet', blank=True, null=True, on_delete=models.CASCADE)
 
@@ -745,8 +745,8 @@ class Module(models.Model):
     package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
     details = models.TextField(blank=True, null=True)
     programmes = models.ManyToManyField(Programme, blank=True, related_name='modules')
-    lead_programme = models.ForeignKey(Programme, blank=True, null=True, related_name='lead_modules', on_delete=models.CASCADE)
-    coordinator = models.ForeignKey(Staff, blank=True, null=True, related_name='coordinated_modules', on_delete=models.CASCADE)
+    lead_programme = models.ForeignKey(Programme, blank=True, null=True, related_name='lead_modules', on_delete=models.SET_NULL)
+    coordinator = models.ForeignKey(Staff, blank=True, null=True, related_name='coordinated_modules', on_delete=models.SET_NULL)
     moderators = models.ManyToManyField(Staff, blank=True, related_name='moderated_modules')
 
     def get_contact_hours(self):
