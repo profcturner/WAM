@@ -44,5 +44,6 @@ urlpatterns = [
     url(r'^projects/generate_activities/(?P<project_id>[0-9]+)$', views.projects_generate_activities, name='projects_generate_activities'),
     url(r'^staff/allocation/(?P<package_id>[0-9]+)/(?P<staff_id>[0-9]+)$', views.staff_module_allocation, name='staff_module_allocation'),    
     url(r'^forbidden/$', views.forbidden, name='forbidden'),
-    url(r'^admin/', include(admin.site.urls)),
+    url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
+    url(r'^admin/', admin.site.urls),
 ]

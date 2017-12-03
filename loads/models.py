@@ -442,8 +442,8 @@ class Staff(models.Model):
 class AssessmentStaff(models.Model):
     """Stores which staff can manage Assessment Resources"""
 
-    package = models.ForeignKey(WorkPackage)
-    staff = models.ForeignKey(Staff)
+    package = models.ForeignKey(WorkPackage, on_delete=models.CASCADE)
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE)
     # TODO: what they will have access to.
 
 
@@ -472,7 +472,7 @@ class ActivityType(models.Model):
     category    see the Category model
     """
     name = models.CharField(max_length=100)
-    category = models.ForeignKey(Category)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -508,12 +508,12 @@ class Activity(models.Model):
     percentage = models.PositiveSmallIntegerField()
     hours_percentage = models.CharField(max_length=1, choices=HOURPERCENTAGE_CHOICES, default=HOURS)
     semester = models.CharField(max_length=10, validators=[validate_comma_separated_integer_list])
-    activity_type = models.ForeignKey('ActivityType')
-    module = models.ForeignKey('Module', blank=True, null=True)
+    activity_type = models.ForeignKey('ActivityType', on_delete=models.CASCADE)
+    module = models.ForeignKey('Module', blank=True, null=True, on_delete=models.CASCADE)
     comment = models.CharField(max_length=200, default='', blank=True)
-    staff = models.ForeignKey(Staff, null=True, blank=True)
-    package = models.ForeignKey('WorkPackage')
-    activity_set = models.ForeignKey('ActivitySet', blank=True, null=True)
+    staff = models.ForeignKey(Staff, null=True, blank=True, on_delete=models.CASCADE)
+    package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
+    activity_set = models.ForeignKey('ActivitySet', blank=True, null=True, on_delete=models.CASCADE)
 
     def __str__(self):
         if self.module is not None:
@@ -571,10 +571,10 @@ class ActivityGenerator(models.Model):
     percentage = models.PositiveSmallIntegerField()
     hours_percentage = models.CharField(max_length=1, choices=HOURPERCENTAGE_CHOICES, default=HOURS)
     semester = models.CharField(max_length=10, validators=[validate_comma_separated_integer_list])
-    activity_type = models.ForeignKey('ActivityType')
-    module = models.ForeignKey('Module', blank=True, null=True)
+    activity_type = models.ForeignKey('ActivityType', on_delete=models.CASCADE)
+    module = models.ForeignKey('Module', blank=True, null=True, on_delete=models.CASCADE)
     comment = models.CharField(max_length=200, default='', blank=True)
-    package = models.ForeignKey(WorkPackage)
+    package = models.ForeignKey(WorkPackage, on_delete=models.CASCADE)
 
     # These are more associated with the set
     details = models.TextField()
@@ -659,9 +659,9 @@ class ModuleStaff(models.Model):
     a module
     """
 
-    module = models.ForeignKey('Module')
-    staff = models.ForeignKey('Staff')
-    package = models.ForeignKey('WorkPackage')
+    module = models.ForeignKey('Module', on_delete=models.CASCADE)
+    staff = models.ForeignKey('Staff', on_delete=models.CASCADE)
+    package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
     # TODO package is implicitly linked by module already...?
 
     contact_proportion = models.PositiveSmallIntegerField()
@@ -704,7 +704,7 @@ class Programme(models.Model):
     programme_code = models.CharField(max_length=10)
     programme_name = models.CharField(max_length=200)
     examiners = models.ManyToManyField(ExternalExaminer, blank=True)
-    package = models.ForeignKey('WorkPackage')
+    package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
     directors = models.ManyToManyField(Staff, blank=True)
 
     def __str__(self):
@@ -735,18 +735,18 @@ class Module(models.Model):
 
     module_code = models.CharField(max_length=10)
     module_name = models.CharField(max_length=200)
-    campus = models.ForeignKey('Campus')
+    campus = models.ForeignKey('Campus', on_delete=models.CASCADE)
     semester = models.CharField(max_length=10, validators=[validate_comma_separated_integer_list])
     credits = models.PositiveSmallIntegerField(default=20)
-    size = models.ForeignKey('ModuleSize')
+    size = models.ForeignKey('ModuleSize', on_delete=models.CASCADE)
     contact_hours = models.PositiveSmallIntegerField(blank=True, null=True)
     admin_hours = models.PositiveSmallIntegerField(blank=True, null=True)
     assessment_hours = models.PositiveSmallIntegerField(blank=True, null=True)
-    package = models.ForeignKey('WorkPackage')
+    package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
     details = models.TextField(blank=True, null=True)
     programmes = models.ManyToManyField(Programme, blank=True, related_name='modules')
-    lead_programme = models.ForeignKey(Programme, blank=True, null=True, related_name='lead_modules')
-    coordinator = models.ForeignKey(Staff, blank=True, null=True, related_name='coordinated_modules')
+    lead_programme = models.ForeignKey(Programme, blank=True, null=True, related_name='lead_modules', on_delete=models.CASCADE)
+    coordinator = models.ForeignKey(Staff, blank=True, null=True, related_name='coordinated_modules', on_delete=models.CASCADE)
     moderators = models.ManyToManyField(Staff, blank=True, related_name='moderated_modules')
 
     def get_contact_hours(self):
@@ -827,7 +827,7 @@ class Task(models.Model):
 
     name = models.CharField(max_length=100)
     url = models.URLField(blank=True)
-    category = models.ForeignKey(Category)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
     details = models.TextField()
     deadline = models.DateTimeField()
     archive = models.BooleanField(default=False)
@@ -883,8 +883,8 @@ class TaskCompletion(models.Model):
     comment an optional comment on completion
 
     """
-    task = models.ForeignKey(Task)
-    staff = models.ForeignKey(Staff)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE)
     comment = models.CharField(max_length=200, default='', blank=True)
     when = models.DateTimeField(auto_now_add=True)
 
@@ -905,7 +905,7 @@ class Resource(models.Model):
 
     name = models.CharField(max_length=200)
     file = models.FileField()
-    category = models.ForeignKey(Category)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     downloads = models.PositiveSmallIntegerField(default=0)
@@ -940,12 +940,12 @@ class AssessmentResource(models.Model):
     name = models.CharField(max_length=200)
     details = models.TextField(blank=True)
     resource = models.FileField(upload_to='assessments/%Y/%m/%d/')
-    module = models.ForeignKey(Module)
-    resource_type = models.ForeignKey(AssessmentResourceType)
+    module = models.ForeignKey(Module, on_delete=models.CASCADE)
+    resource_type = models.ForeignKey(AssessmentResourceType, on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     downloads = models.PositiveSmallIntegerField(default=0)
-    owner = models.ForeignKey(Staff)
+    owner = models.ForeignKey(Staff, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -1082,7 +1082,7 @@ class CourseworkTracker(models.Model):
     )
 
     academic_year = models.CharField(max_length=10, default=ACADEMIC_YEAR)
-    module = models.ForeignKey(Module)
+    module = models.ForeignKey(Module, on_delete=models.CASCADE)
     progress = models.CharField(max_length=15, choices=PROGRESS_CHOICES, default=SET)
     created = models.DateTimeField(auto_now_add=True)
 
@@ -1113,7 +1113,7 @@ class ExamTracker(models.Model):
     )
 
     academic_year = models.CharField(max_length=10, default=ACADEMIC_YEAR)
-    module = models.ForeignKey(Module)
+    module = models.ForeignKey(Module, on_delete=models.CASCADE)
     progress = models.CharField(max_length=15, choices=PROGRESS_CHOICES, default=SET)
     created = models.DateTimeField(auto_now_add=True)
 
@@ -1152,8 +1152,8 @@ class Project(models.Model):
     name = models.CharField(max_length=300)
     start = models.DateField()
     end = models.DateField()
-    body = models.ForeignKey(Body)
-    activity_type = models.ForeignKey(ActivityType)
+    body = models.ForeignKey(Body, on_delete=models.CASCADE)
+    activity_type = models.ForeignKey(ActivityType, on_delete=models.CASCADE)
 
     def __str__(self):
         return str(self.name) + ' (' + str(self.body) + ')'
@@ -1191,8 +1191,8 @@ class ProjectStaff(models.Model):
     hours_per_week  The hours per week (excluding holidays) in this period
     """
 
-    staff = models.ForeignKey(Staff)
-    project = models.ForeignKey(Project)
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
     start = models.DateField()
     end = models.DateField()
     hours_per_week = models.FloatField()
@@ -1258,8 +1258,8 @@ class ActivitySet(models.Model):
 
     name = models.CharField(max_length=300)
     created = models.DateTimeField(auto_now_add=True)
-    project = models.ForeignKey(Project, blank=True, null=True)
-    generator = models.ForeignKey(ActivityGenerator, blank=True, null=True)
+    project = models.ForeignKey(Project, blank=True, null=True, on_delete=models.CASCADE)
+    generator = models.ForeignKey(ActivityGenerator, blank=True, null=True, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
