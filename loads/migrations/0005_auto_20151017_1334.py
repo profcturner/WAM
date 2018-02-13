@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='activity',
             name='module',
-            field=models.ForeignKey(null=True, blank=True, to='loads.Module'),
+            field=models.ForeignKey(null=True, blank=True, to='loads.Module', on_delete=models.CASCADE),
         ),
     ]

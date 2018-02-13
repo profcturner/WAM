@@ -22,11 +22,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='activityset',
             name='generator',
-            field=models.ForeignKey(blank=True, null=True, to='loads.ActivityGenerator'),
+            field=models.ForeignKey(blank=True, null=True, to='loads.ActivityGenerator', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='activityset',
             name='project',
-            field=models.ForeignKey(blank=True, null=True, to='loads.Project'),
+            field=models.ForeignKey(blank=True, null=True, to='loads.Project', on_delete=models.CASCADE),
         ),
     ]

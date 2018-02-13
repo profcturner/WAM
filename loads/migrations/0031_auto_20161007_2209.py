@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='programme',
             name='package',
-            field=models.ForeignKey(default=1, to='loads.WorkPackage'),
+            field=models.ForeignKey(default=1, to='loads.WorkPackage', on_delete=models.CASCADE),
             preserve_default=False,
         ),
     ]

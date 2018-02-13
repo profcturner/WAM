@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='module',
             name='campus',
-            field=models.ForeignKey(default=1, to='loads.Campus'),
+            field=models.ForeignKey(default=1, to='loads.Campus', on_delete=models.CASCADE),
             preserve_default=False,
         ),
     ]

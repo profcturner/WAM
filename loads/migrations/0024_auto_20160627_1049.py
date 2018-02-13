@@ -48,9 +48,9 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=300)),
                 ('start', models.DateField()),
                 ('end', models.DateField()),
-                ('activity_set', models.ForeignKey(null=True, to='loads.ActivitySet', blank=True)),
-                ('activity_type', models.ForeignKey(to='loads.ActivityType')),
-                ('body', models.ForeignKey(to='loads.Body')),
+                ('activity_set', models.ForeignKey(null=True, to='loads.ActivitySet', on_delete=models.CASCADE, blank=True)),
+                ('activity_type', models.ForeignKey(to='loads.ActivityType', on_delete=models.CASCADE)),
+                ('body', models.ForeignKey(to='loads.Body', on_delete=models.CASCADE)),
             ],
         ),
         migrations.CreateModel(
@@ -60,19 +60,19 @@ class Migration(migrations.Migration):
                 ('start', models.DateField()),
                 ('end', models.DateField()),
                 ('hours_per_week', models.FloatField()),
-                ('project', models.ForeignKey(to='loads.Project')),
-                ('staff', models.ForeignKey(to='loads.Staff')),
+                ('project', models.ForeignKey(to='loads.Project', on_delete=models.CASCADE)),
+                ('staff', models.ForeignKey(to='loads.Staff', on_delete=models.CASCADE)),
             ],
         ),
         migrations.AddField(
             model_name='activitygenerator',
             name='activity_set',
-            field=models.ForeignKey(null=True, to='loads.ActivitySet', blank=True),
+            field=models.ForeignKey(null=True, to='loads.ActivitySet', on_delete=models.CASCADE, blank=True),
         ),
         migrations.AddField(
             model_name='activitygenerator',
             name='activity_type',
-            field=models.ForeignKey(to='loads.ActivityType'),
+            field=models.ForeignKey(to='loads.ActivityType', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='activitygenerator',
@@ -82,12 +82,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='activitygenerator',
             name='module',
-            field=models.ForeignKey(null=True, to='loads.Module', blank=True),
+            field=models.ForeignKey(null=True, to='loads.Module', on_delete=models.CASCADE, blank=True),
         ),
         migrations.AddField(
             model_name='activitygenerator',
             name='package',
-            field=models.ForeignKey(to='loads.WorkPackage'),
+            field=models.ForeignKey(to='loads.WorkPackage', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='activitygenerator',
@@ -97,6 +97,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='activity',
             name='activity_set',
-            field=models.ForeignKey(null=True, to='loads.ActivitySet', blank=True),
+            field=models.ForeignKey(null=True, to='loads.ActivitySet', on_delete=models.CASCADE, blank=True),
         ),
     ]

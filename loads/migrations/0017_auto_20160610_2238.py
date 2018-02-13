@@ -14,19 +14,19 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='activity',
             name='package',
-            field=models.ForeignKey(to='loads.WorkPackage', default=1),
+            field=models.ForeignKey(to='loads.WorkPackage', default=1, on_delete=models.CASCADE),
             preserve_default=False,
         ),
         migrations.AddField(
             model_name='module',
             name='package',
-            field=models.ForeignKey(to='loads.WorkPackage', default=1),
+            field=models.ForeignKey(to='loads.WorkPackage', default=1, on_delete=models.CASCADE),
             preserve_default=False,
         ),
         migrations.AddField(
             model_name='staff',
             name='package',
-            field=models.ForeignKey(to='loads.WorkPackage', default=1),
+            field=models.ForeignKey(to='loads.WorkPackage', default=1, on_delete=models.SET_NULL),
             preserve_default=False,
         ),
     ]

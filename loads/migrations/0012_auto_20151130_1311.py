@@ -58,17 +58,17 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='modulestaff',
             name='module',
-            field=models.ForeignKey(to='loads.Module'),
+            field=models.ForeignKey(to='loads.Module', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='modulestaff',
             name='staff',
-            field=models.ForeignKey(to='loads.Staff'),
+            field=models.ForeignKey(to='loads.Staff', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='module',
             name='size',
-            field=models.ForeignKey(to='loads.ModuleSize', default=1),
+            field=models.ForeignKey(to='loads.ModuleSize', on_delete=models.CASCADE, default=1),
             preserve_default=False,
         ),
     ]

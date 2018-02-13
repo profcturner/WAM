@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='assessmentresource',
             name='owner',
-            field=models.ForeignKey(to='loads.Staff', default=1),
+            field=models.ForeignKey(to='loads.Staff', default=1, on_delete=models.CASCADE),
             preserve_default=False,
         ),
     ]

@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                 ('academic_year', models.CharField(max_length=10, default='2015/2016')),
                 ('progress', models.CharField(choices=[('SET', 'Coursework Set'), ('MODERATE', 'Internal Moderation'), ('EXTERNAL', 'Sent to External Examiner'), ('REWORK', 'Reworked'), ('EXAMOFFICE', 'Submitted to Exams Office')], max_length=15, default='SET')),
                 ('created', models.DateTimeField(auto_now_add=True)),
-                ('module', models.ForeignKey(to='loads.Module')),
+                ('module', models.ForeignKey(to='loads.Module', on_delete=models.CASCADE)),
             ],
         ),
         migrations.CreateModel(
@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 ('academic_year', models.CharField(max_length=10, default='2015/2016')),
                 ('progress', models.CharField(choices=[('SET', 'Exam Set'), ('MODERATE', 'Internal Moderation'), ('EXTERNAL', 'Sent to External Examiner'), ('REWORK', 'Reworked'), ('EXAMOFFICE', 'Submitted to Exams Office')], max_length=15, default='SET')),
                 ('created', models.DateTimeField(auto_now_add=True)),
-                ('module', models.ForeignKey(to='loads.Module')),
+                ('module', models.ForeignKey(to='loads.Module', on_delete=models.CASCADE)),
             ],
         ),
         migrations.CreateModel(

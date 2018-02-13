@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('modified', models.DateTimeField(auto_now=True)),
                 ('downloads', models.PositiveSmallIntegerField(default=0)),
-                ('module', models.ForeignKey(to='loads.Module')),
+                ('module', models.ForeignKey(to='loads.Module', on_delete=models.CASCADE)),
             ],
         ),
         migrations.CreateModel(
@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
                 ('title', models.CharField(max_length=100)),
                 ('staff_number', models.CharField(max_length=20)),
                 ('package', models.ForeignKey(to='loads.WorkPackage', null=True, on_delete=django.db.models.deletion.SET_NULL)),
-                ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL)),
+                ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),
             ],
         ),
         migrations.CreateModel(
@@ -59,11 +59,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='assessmentresource',
             name='resource_type',
-            field=models.ForeignKey(to='loads.AssessmentResourceType'),
+            field=models.ForeignKey(to='loads.AssessmentResourceType', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='module',
             name='lead_programme',
-            field=models.ForeignKey(null=True, blank=True, to='loads.Programme'),
+            field=models.ForeignKey(null=True, blank=True, to='loads.Programme', on_delete=models.SET_NULL),
         ),
     ]
