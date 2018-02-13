@@ -446,6 +446,9 @@ class AssessmentStaff(models.Model):
     staff = models.ForeignKey(Staff, on_delete=models.CASCADE)
     # TODO: what they will have access to.
 
+    class Meta:
+        verbose_name_plural = "assessment staff"
+
 
 # TODO: Sign off of papers
 
