@@ -39,6 +39,10 @@ from .models import WorkPackage
 class ActivitySetAdmin(admin.ModelAdmin):
     list_display = ('name', 'created')
 
+class AssessmentStaffAdmin(admin.ModelAdmin):
+    list_display = ('package', 'staff')
+    list_filter = ('package__name', 'staff')
+
 class ModuleAdmin(admin.ModelAdmin):
     list_display = ('package', 'module_code', 'module_name', 'semester')
     list_filter = ('package__name','semester')
@@ -82,12 +86,10 @@ admin.site.register(ActivitySet, ActivitySetAdmin)
 admin.site.register(ActivityType)
 admin.site.register(AssessmentResource)
 admin.site.register(AssessmentResourceType)
-admin.site.register(AssessmentStaff)
+admin.site.register(AssessmentStaff, AssessmentStaffAdmin)
 admin.site.register(Body)
 admin.site.register(Campus)
 admin.site.register(Category)
-admin.site.register(CourseworkTracker)
-admin.site.register(ExamTracker)
 admin.site.register(ExternalExaminer)
 admin.site.register(Module, ModuleAdmin)
 admin.site.register(ModuleStaff, ModuleStaffAdmin)
