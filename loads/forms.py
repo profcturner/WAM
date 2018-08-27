@@ -16,14 +16,17 @@ from .models import WorkPackage
 
 class MigrateWorkPackageForm(forms.Form):
     '''This form allows for material in one Work Package to another'''
+    #TODO: Still really ugly, and needs some validation for impossible combinations
     source_package = forms.ModelChoiceField(queryset=WorkPackage.objects.all())
     destination_package = forms.ModelChoiceField(queryset=WorkPackage.objects.all())
+    copy_programmes = forms.BooleanField(required=False, initial=True)
     copy_modules = forms.BooleanField(required=False, initial=True)
-    copy_modulestaff = forms.BooleanField(required=False, initial=True)
-    copy_activities_generated = forms.BooleanField(required=False, initial=True)
-    copy_activities_custom = forms.BooleanField(required=False, initial=True)
-    copy_activities_modules = forms.BooleanField(required=False, initial=True)
+    copy_modulestaff = forms.BooleanField(required=False, initial=True, label="Copy Module Allocations")
+    copy_activities_modules = forms.BooleanField(required=False, initial=True, label="Copy Module Activities")
+    copy_activities_generated = forms.BooleanField(required=False, initial=True, label="Copy Generated Activities")
+    copy_activities_custom = forms.BooleanField(required=False, initial=True, label="Copy Custom Activities")
     generate_projects = forms.BooleanField(required=False, initial=True)
+
 
 
 class LoadsByModulesForm(forms.Form):
