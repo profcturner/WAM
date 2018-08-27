@@ -103,6 +103,32 @@ class WorkPackage(models.Model):
     def __str__(self):
         return self.name + ' (' + str(self.startdate) + ' - ' + str(self.enddate) + ')'
 
+    def __clone_programmes(self, source_package, options, messages):
+        """Clones programmes from source package and produces a mapping for other operations
+
+        See clone_from() for details and documentation."""
+
+        messages.append(("Information", "Cloning and mapping Programmes", ""))
+        # Get all the programmes
+        programmes = Programme.objects.all().filter(package=source_package)
+        # Create a mapping dict
+        mapping_programmes = dict()
+
+        for programme in programmes:
+            # Remember the original primary key
+            original_pk = programme.pk
+            # Now invalidate it
+            programme.pk = None
+            # And now point to the new package
+            programme.package = self
+            # And force a save to create a new object
+            programme.save()
+            # Record the mapping from the old programme to the new
+            mapping_programmes.update({original_pk: programme.pk})
+
+        return mapping_programmes
+
+
     def __clone_activity_sets(self, source_package, options, messages):
         """Copies relevant activity sets with a mapping
 
@@ -176,7 +202,7 @@ class WorkPackage(models.Model):
             activity.package = self
             activity.save()
 
-    def __clone_module_data(self, source_package, options, messages, mapping_activity_set):
+    def __clone_module_data(self, source_package, options, messages, mapping_activity_set, programme_mapping):
         """Clones modules, module activities and module staff"""
 
         messages.append(("Information", "Cloning Module Data", ""))
@@ -185,10 +211,9 @@ class WorkPackage(models.Model):
 
         modules = Module.objects.all().filter(package=source_package)
         for module in modules:
-            # Grab the activities associates with the module before the key changed
-            # (Should we worry about the activity_set and reset it too?)
-            activities = Activity.objects.all().filter(package=source_package).filter(activity_set__isnull=True).filter(
-                module=module)
+            # Grab the activities associates with the module before the key changed, including generated
+            # events with an activity set
+            activities = Activity.objects.all().filter(package=source_package).filter(module=module)
             # Grab the associated allocations before the key changes
             modulestaff = ModuleStaff.objects.all().filter(module=module)
             # Record the cloned module
@@ -199,14 +224,34 @@ class WorkPackage(models.Model):
             module.pk = None
             # Point the new instance at the current package
             module.package = self
+
+            # Correct programme mappings to the new copies, first for the lead_programme
+            module.lead_programme = Programme.objects.get(pk=programme_mapping[module.lead_programme.pk])
+            # And now for the slightly more complex many to many programmes
+            # We need to force a save before Many to Many mappings can be corrected.
             module.save()
+
+            old_module = Module.objects.get(pk=original_pk)
+            old_module_programmes = old_module.programmes.all()
+
+            for old_programme in old_module_programmes:
+                # Remove the old programme reference
+                module.programmes.remove(old_programme)
+                # And add the mapped (new) one
+                module.programmes.add(Programme.objects.get(pk=programme_mapping[old_programme.pk]))
+            # Save the many to manys
+            module.save()
+
             # Make a record of the mapping
             mapping_module.update({original_pk: module.pk})
 
             # Copy the module activities if needed
-            if options['activities_modules']:
+            if options['copy_activities_modules']:
                 messages.append(("Information", "Cloning Module Activities", ""))
                 for activity in activities:
+                    # Ignore project related activities
+                    if activity.activity_set and activity.activity_set.project:
+                        continue
                     # Record the cloned activity
                     messages.append(("Cloned", "Module Activity", str(activity)))
                     # Invalidate the primary key to force save
@@ -215,14 +260,14 @@ class WorkPackage(models.Model):
                     activity.package = self
                     # Point the module at the new instance
                     activity.module = module
-                    # Is it part of a mapped activity set?) If so, map this also
-                    if activity.activity_set in mapping_activity_set:
+                    # Is it part of a mapped activity set?) If so, map this also (generated module activities)
+                    if activity.activity_set:
                         activity.activity_set = ActivitySet.objects.get(
                             pk=mapping_activity_set[activity.activity_set.pk])
                     activity.save()
 
             # And now copy Module Allocations if needed
-            if options['modulestaff']:
+            if options['copy_modulestaff']:
                 messages.append(("Information", "Cloning Module/Staff Allocations", ""))
                 for allocation in modulestaff:
                     # Record the cloned allocation
@@ -236,6 +281,19 @@ class WorkPackage(models.Model):
 
         return mapping_module
 
+
+    def __clone_check_options(self, options, messages):
+        """Checks for logically inconsistent options"""
+
+        errors = False
+
+        if options['copy_modules'] and not options['copy_programmes']:
+            messages.append(("Error", "Must copy programmes if copying modules", "Aborting"))
+            errors = True
+
+        return errors
+
+
     def clone_from(self, source_package, options):
         """Copy from another package into the current package
 
@@ -244,12 +302,13 @@ class WorkPackage(models.Model):
 
             options values
 
-            modules                 copy modules
-            modulestaff             copy staff allocated to modules
-            activities_generated    copy activities from a generator
-            activities_custom       copy activities from no module or generator
-            activities_module       copy custom activities for a module
-            projects                create activities arising from projects
+            copy_programmes              copy programmes
+            copy_modules                 copy modules
+            copy_modulestaff             copy staff allocated to modules
+            copy_activities_generated    copy activities from a generator
+            copy_activities_custom       copy activities from no module or generator
+            copy_activities_module       copy custom activities for a module
+            generate_projects            create activities arising from projects
 
         returns a list of tuples showing what has been cloned
         """
@@ -258,23 +317,27 @@ class WorkPackage(models.Model):
         messages = []
 
         if (Activity.objects.filter(package=self).count()
+                + Programme.objects.filter(package=self).count()
                 + Module.objects.filter(package=self).count()
                 + ModuleStaff.objects.filter(package=self).count()) > 0:
             messages.append(("Error", "Destination Workpackage not empty", "Aborting"))
             return messages
 
+        if options['copy_programmes']:
+            programme_mapping = self.__clone_programmes(source_package, options, messages)
+
         # We need to make to work out what activity sets are in play, make copies and recall a mapping        
-        if options['activities_generated']:
+        if options['copy_activities_generated']:
             mapping_activity_set = self.__clone_activity_sets(source_package, options, messages)
             self.__clone_generated_activities(source_package, options, messages, mapping_activity_set)
 
         # Copy Activities that are not associated with a Module or an ActivitySet
-        if options['activities_custom']:
+        if options['copy_activities_custom']:
             self.__clone_custom_activities(source_package, options, messages)
 
         # Copy Modules
-        if options['modules']:
-            self.__clone_module_data(source_package, options, messages, mapping_activity_set)
+        if options['copy_modules']:
+            self.__clone_module_data(source_package, options, messages, mapping_activity_set, programme_mapping)
 
         return messages
 
@@ -628,6 +691,7 @@ class ActivityGenerator(models.Model):
                                 activity_type=self.activity_type,
                                 comment=self.comment,
                                 staff=staff,
+                                module=self.module,
                                 package=self.package,
                                 activity_set=activity_set
                                 )
