@@ -1082,12 +1082,14 @@ def workpackage_migrate(request):
         # check whether it's valid:
         if form.is_valid():
 
-            options = {'modules': form.cleaned_data['copy_modules'],
-                'modulestaff': form.cleaned_data['copy_modulestaff'],
-                'activities_generated': form.cleaned_data['copy_activities_generated'],
-                'activities_custom': form.cleaned_data['copy_activities_custom'],
-                'activities_modules': form.cleaned_data['copy_activities_modules'],
-                'projects' : form.cleaned_data['generate_projects'],}
+            options = {
+                'copy_programmes': form.cleaned_data['copy_programmes'],
+                'copy_modules': form.cleaned_data['copy_modules'],
+                'copy_modulestaff': form.cleaned_data['copy_modulestaff'],
+                'copy_activities_generated': form.cleaned_data['copy_activities_generated'],
+                'copy_activities_custom': form.cleaned_data['copy_activities_custom'],
+                'copy_activities_modules': form.cleaned_data['copy_activities_modules'],
+                'generate_projects' : form.cleaned_data['generate_projects'],}
                 
             destination_package = form.cleaned_data['destination_package']
             source_package = form.cleaned_data['source_package']
