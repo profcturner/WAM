@@ -87,6 +87,7 @@ class WorkPackage(models.Model):
     enddate = models.DateField()
     draft = models.BooleanField(default=True)
     archive = models.BooleanField(default=False)
+    hidden = models.BooleanField(default=False)
     groups = models.ManyToManyField(Group, blank=True)
     nominal_hours = models.PositiveIntegerField(default=1600)
     credit_contact_scaling = models.FloatField(default=8 / 20)
@@ -496,6 +497,10 @@ class Staff(models.Model):
         """'Get all the packages that are relevant for a staff member"""
         groups = Group.objects.all().filter(user=self.user)
         packages = WorkPackage.objects.all().filter(groups__in=groups).distinct()
+
+        # Non "staff" users can't see hidden packages.
+        if not self.user.is_staff:
+            packages = packages.filter(hidden=False)
 
         return packages
 
