@@ -42,12 +42,12 @@ from .forms import ProjectForm
 from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
 
-
 from django.contrib.auth.models import User, Group
 
+
 def index(request):
-    '''Main index page for non admin views'''
- 
+    """Main index page for non admin views"""
+
     template = loader.get_template('loads/index.html')
     context = {
         'home_page': True,
@@ -56,8 +56,8 @@ def index(request):
 
 
 def forbidden(request):
-    '''General permissions failure warning'''
- 
+    """General permissions failure warning"""
+
     template = loader.get_template('loads/forbidden.html')
 
     return HttpResponse(template.render({}, request))
@@ -67,60 +67,60 @@ def download_assessment_resource(request, resource_id):
     """Download an assessment resource"""
     # Get the resource object
     resource = get_object_or_404(AssessmentResource, pk=resource_id)
-    
+
     # TODO: this is none too elegant, and could be outsourced
     # Fetch the staff user associated with the person requesting
     try:
         staff = Staff.objects.get(user=request.user)
     except Staff.DoesNotExist:
         staff = None
-    
+
     # or possibly an external examiner
     try:
         examiner = ExternalExaminer.objects.get(user=request.user)
     except ExternalExaminer.DoesNotExist:
         examiner = None
-    
+
     # If neither here, time to boot
     if not staff and not examiner:
         return HttpResponseRedirect(reverse('forbidden'))
-    
+
     # Assume a lack of permissions
     permission = False
-    
+
     if staff:
         permission = resource.is_downloadable_by_staff(staff)
-                 
+
     if examiner:
         permission = resource.is_downloadable_by_external(examiner)
-     
+
     if not permission:
         return HttpResponseRedirect(reverse('forbidden'))
-    
+
     resource.downloads += 1
     resource.save()
-    
+
     # Get the base filename, and try and work out the type
     filename = os.path.basename(resource.resource.name)
     file_mimetype = mimetypes.guess_type(filename)
-    
+
     # Start a response
     response = HttpResponse(resource.resource.file, content_type=file_mimetype)
 
     # Let's suggest the filename
     response['Content-Disposition'] = 'attachment; filename=%s' % filename
     response['X-Sendfile'] = filename
-    #response['Content-Length'] = os.stat(settings.MEDIA_ROOT + os.sep + resource.resource.name).st_size 
+    # response['Content-Length'] = os.stat(settings.MEDIA_ROOT + os.sep + resource.resource.name).st_size
     return response
 
 
 def loads(request):
-    '''Show the loads for all members of staff'''
+    """Show the loads for all members of staff"""
 
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
-    
+
     package = staff.package
 
     # If either the workpackage for the member of staff is undefined
@@ -128,11 +128,11 @@ def loads(request):
     if not package or package not in staff.get_all_packages():
         url = reverse('workpackage_change')
         return HttpResponseRedirect(url)
-        
+
     total = 0.0
     total_staff = 0
     group_data = []
- 
+
     # Go through each group in turn
     for group in staff.package.groups.all():
         group_list = []
@@ -150,7 +150,8 @@ def loads(request):
             # Check any staff member with no load is active, if not, skip them
             if not staff.is_active() and load_info[0] == 0:
                 continue
-            combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3], 100*load_info[0]/staff.fte]
+            combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3],
+                             100 * load_info[0] / staff.fte]
             group_list.append(combined_item)
             group_total += load_info[0]
             group_size += 1
@@ -161,26 +162,27 @@ def loads(request):
             group_average = group_total / group_size
         if group_allocated_staff:
             group_allocated_average = group_total / group_allocated_staff
-        group_data.append([group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average])
+        group_data.append(
+            [group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average])
         total += group_total
         total_staff += len(staff_list)
-    
-    if total_staff:    
+
+    if total_staff:
         average = total / total_staff
     else:
         average = 0
-        
+
     template = loader.get_template('loads/loads.html')
     context = {
-        'group_data' : group_data,
+        'group_data': group_data,
         'total': total,
         'average': average,
         'package': package,
         'loads_menu': True,
     }
     return HttpResponse(template.render(context, request))
-    
-    
+
+
 def loads_modules(request, semesters, staff_details=False):
     """Shows allocation information by modules"""
     # Fetch the staff user associated with the person requesting
@@ -188,7 +190,7 @@ def loads_modules(request, semesters, staff_details=False):
     # And therefore the package enabled for that user
     package = staff.package
     modules = Module.objects.all().filter(package=package).order_by('module_code')
-    
+
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request
@@ -203,15 +205,14 @@ def loads_modules(request, semesters, staff_details=False):
     else:
         form = LoadsByModulesForm()
         # If semesters came via get, let's populate the form
-        form.fields['semesters'].initial = semesters        
-        brief_details=False
-
+        form.fields['semesters'].initial = semesters
+        brief_details = False
 
     # Check for any semester limitations, split by comma if something is actually there
     if semesters:
-      valid_semesters = semesters.split(',')
+        valid_semesters = semesters.split(',')
     else:
-      valid_semesters = list()
+        valid_semesters = list()
 
     combined_list = []
     for module in modules:
@@ -224,8 +225,8 @@ def loads_modules(request, semesters, staff_details=False):
                     if m_sem == v_sem:
                         valid_semester = True
             if not valid_semester:
-              continue
-            
+                continue
+
         # Get Allocation information
         module_staff = ModuleStaff.objects.all().filter(module=module)
         contact_proportion = 0
@@ -241,7 +242,7 @@ def loads_modules(request, semesters, staff_details=False):
         for activity in activities:
             hours_per_semester = activity.hours_by_semester()
             extra_hours += hours_per_semester[0]
-            
+
         module_info = [module,
                        module.get_contact_hours(),
                        contact_proportion,
@@ -253,7 +254,7 @@ def loads_modules(request, semesters, staff_details=False):
                        module_staff]
 
         combined_list.append(module_info)
-    
+
     template = loader.get_template('loads/loads/modules.html')
     context = {
         'form': form,
@@ -262,7 +263,7 @@ def loads_modules(request, semesters, staff_details=False):
         'combined_list': combined_list,
         'package': package,
         'loads_menu': True,
-        'staff_details' : staff_details,
+        'staff_details': staff_details,
     }
     return HttpResponse(template.render(context, request))
 
@@ -273,7 +274,7 @@ def activities(request, staff_id):
     staff = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
     package = staff.package
-    
+
     # Now the staff member we want to look at
     staff = get_object_or_404(Staff, pk=staff_id)
     activities = Activity.objects.all().filter(staff=staff).filter(package=package).order_by('name')
@@ -283,7 +284,7 @@ def activities(request, staff_id):
     semester1_total = 0.0
     semester2_total = 0.0
     semester3_total = 0.0
-        
+
     for activity in activities:
         load_info = activity.hours_by_semester()
         combined_item = [activity, load_info[0], load_info[1], load_info[2], load_info[3]]
@@ -292,7 +293,7 @@ def activities(request, staff_id):
         semester2_total += load_info[2]
         semester3_total += load_info[3]
         total += load_info[0]
-        
+
     # Add hours calculated from "automatic" module allocation
     modulestaff = ModuleStaff.objects.all().filter(staff=staff_id).filter(package=package)
     for moduledata in modulestaff:
@@ -303,7 +304,7 @@ def activities(request, staff_id):
         semester1_c_hours = c_hours[1] * moduledata.contact_proportion / 100
         semester1_as_hours = as_hours[1] * moduledata.assessment_proportion / 100
         semester1_ad_hours = ad_hours[1] * moduledata.admin_proportion / 100
-        
+
         semester2_c_hours = c_hours[2] * moduledata.contact_proportion / 100
         semester2_as_hours = as_hours[2] * moduledata.assessment_proportion / 100
         semester2_ad_hours = ad_hours[2] * moduledata.admin_proportion / 100
@@ -311,27 +312,27 @@ def activities(request, staff_id):
         semester3_c_hours = c_hours[3] * moduledata.contact_proportion / 100
         semester3_as_hours = as_hours[3] * moduledata.assessment_proportion / 100
         semester3_ad_hours = ad_hours[3] * moduledata.admin_proportion / 100
-        
+
         c_hours_proportion = c_hours[0] * moduledata.contact_proportion / 100
         as_hours_proportion = as_hours[0] * moduledata.assessment_proportion / 100
         ad_hours_proportion = ad_hours[0] * moduledata.admin_proportion / 100
-        
+
         combined_item = [str(moduledata.module) + ' Contact Hours', c_hours_proportion,
-            semester1_c_hours, semester2_c_hours, semester3_c_hours]
+                         semester1_c_hours, semester2_c_hours, semester3_c_hours]
         combined_list_modules.append(combined_item)
         combined_item = [str(moduledata.module) + ' Admin Hours', ad_hours_proportion,
-            semester1_ad_hours, semester2_ad_hours, semester3_ad_hours]
+                         semester1_ad_hours, semester2_ad_hours, semester3_ad_hours]
         combined_list_modules.append(combined_item)
         combined_item = [str(moduledata.module) + ' Assessment Hours', as_hours_proportion,
-            semester1_as_hours, semester2_as_hours, semester3_as_hours]
+                         semester1_as_hours, semester2_as_hours, semester3_as_hours]
         combined_list_modules.append(combined_item)
-        
+
         semester1_total += (semester1_c_hours + semester1_ad_hours + semester1_as_hours)
         semester2_total += (semester2_c_hours + semester2_ad_hours + semester2_as_hours)
         semester3_total += (semester3_c_hours + semester3_ad_hours + semester3_as_hours)
-        
+
         total += c_hours_proportion + as_hours_proportion + ad_hours_proportion
-        
+
     template = loader.get_template('loads/activities.html')
     context = {
         'staff': staff,
@@ -351,18 +352,18 @@ def tasks_index(request):
     # Fetch the tasks assigned against the specific user of the staff member
     staff = get_object_or_404(Staff, user=request.user)
     tasks = staff.get_all_tasks()
-    #tasks = Task.objects.all().exclude(archive=True).order_by('deadline')
-    
+    # tasks = Task.objects.all().exclude(archive=True).order_by('deadline')
+
     augmented_tasks = []
     for task in tasks:
         augmented_tasks.append([task, task.is_urgent(), task.is_overdue()])
-                    
+
     template = loader.get_template('loads/tasks/index.html')
     context = {
         'augmented_tasks': augmented_tasks,
     }
     return HttpResponse(template.render(context, request))
-            
+
 
 def tasks_bystaff(request, staff_id):
     '''Show the tasks assigned against the specific user of the staff member'''
@@ -372,7 +373,7 @@ def tasks_bystaff(request, staff_id):
     # We will create separate lists for those tasks that are complete
     combined_list_complete = []
     combined_list_incomplete = []
-    
+
     for task in all_tasks:
         # Is it complete? Look for a completion model
         completion = TaskCompletion.objects.all().filter(staff=staff).filter(task=task)
@@ -382,8 +383,7 @@ def tasks_bystaff(request, staff_id):
         else:
             combined_item = [task, completion[0].when]
             combined_list_complete.append(combined_item)
-            
-            
+
     template = loader.get_template('loads/tasks/bystaff.html')
     context = {
         'staff': staff,
@@ -392,16 +392,16 @@ def tasks_bystaff(request, staff_id):
     }
     return HttpResponse(template.render(context, request))
 
-    
+
 def tasks_details(request, task_id):
     '''Obtains a list of all completions for a given task'''
     # Get the task itself, and all targetted users
     task = get_object_or_404(Task, pk=task_id)
     all_targets = task.get_all_targets()
-    
+
     combined_list_complete = []
     combined_list_incomplete = []
-    
+
     for target in all_targets:
         # Is it complete? Look for a completion model
         completion = TaskCompletion.objects.all().filter(staff=target).filter(task=task)
@@ -413,26 +413,25 @@ def tasks_details(request, task_id):
         else:
             combined_item = [target, completion[0]]
             combined_list_complete.append(combined_item)
-            
+
     total_number = len(combined_list_complete) + len(combined_list_incomplete)
     if total_number > 0:
         percentage_complete = 100 * len(combined_list_complete) / total_number
     else:
         percentage_complete = 0
-            
-                            
+
     template = loader.get_template('loads/tasks/details.html')
     context = {
         'task': task,
         'overdue': task.is_overdue(),
         'urgent': task.is_urgent(),
         'combined_list_complete': combined_list_complete,
-        'combined_list_incomplete' : combined_list_incomplete,
-        'percentage_complete' : percentage_complete
+        'combined_list_incomplete': combined_list_incomplete,
+        'percentage_complete': percentage_complete
     }
     return HttpResponse(template.render(context, request))
-    
-    
+
+
 def tasks_completion(request, task_id, staff_id):
     """Processes recording of a task completion"""
     # Get the task itself, and all targetted users
@@ -448,21 +447,20 @@ def tasks_completion(request, task_id, staff_id):
     can_override = request.user.has_perm('loads.add_taskcompletion')
     if not (is_current_user or can_override):
         return HttpResponseRedirect(reverse('forbidden'))
-    
+
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
         form = TaskCompletionForm(request.POST)
         # check whether it's valid:
         if form.is_valid():
-            
             new_item = form.save(commit=False)
             new_item.task = task
             new_item.staff = staff
-            
+
             new_item.save()
             form.save_m2m()
-            
+
             # redirect to the task details
             # TODO: which is a pain if we came from the bystaff view
             url = reverse('tasks_details', kwargs={'task_id': task_id})
@@ -472,9 +470,9 @@ def tasks_completion(request, task_id, staff_id):
     else:
         form = TaskCompletionForm()
 
-    return render(request, 'loads/tasks/completion.html', {'form': form, 'task': task, 
-        'overdue': task.is_overdue(), 
-        'urgent': task.is_urgent(),'staff': staff})
+    return render(request, 'loads/tasks/completion.html', {'form': form, 'task': task,
+                                                           'overdue': task.is_overdue(),
+                                                           'urgent': task.is_urgent(), 'staff': staff})
 
 
 def add_assessment_resource(request, module_id):
@@ -485,10 +483,10 @@ def add_assessment_resource(request, module_id):
     module = get_object_or_404(Module, pk=module_id)
 
     # Check for a valid permission at this stage
-    #can_override = request.user.has_perm('loads.add_assessment_resource')
-    #if not can_override:
+    # can_override = request.user.has_perm('loads.add_assessment_resource')
+    # if not can_override:
     #    return HttpResponseRedirect(reverse('forbidden'))
-    
+
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request
@@ -496,11 +494,10 @@ def add_assessment_resource(request, module_id):
 
         # check whether it's valid:
         if form.is_valid():
-
             new_item = form.save(commit=False)
             new_item.owner = staff
             new_item.module = module
-            
+
             new_item.save()
             form.save_m2m()
             url = reverse('modules_details', kwargs={'module_id': module_id})
@@ -511,7 +508,8 @@ def add_assessment_resource(request, module_id):
     else:
         form = AssessmentResourceForm()
 
-    return render(request, 'loads/modules/add_assessment_resource.html', {'form': form, 'staff': staff, 'module':module})
+    return render(request, 'loads/modules/add_assessment_resource.html',
+                  {'form': form, 'staff': staff, 'module': module})
 
 
 def exam_track_progress(request, module_id):
@@ -523,19 +521,18 @@ def exam_track_progress(request, module_id):
     can_override = request.user.has_perm('loads.add_examtracker')
     if not can_override:
         return HttpResponseRedirect(reverse('forbidden'))
-    
+
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
         form = ExamTrackerForm(request.POST)
         # check whether it's valid:
         if form.is_valid():
-            
             new_item = form.save(commit=False)
             # TODO: More elegant handling of ACADEMIC_YEAR needed
             new_item.module = module
             new_item.academic_year = ACADEMIC_YEAR
-            
+
             new_item.save()
             form.save_m2m()
             url = reverse('modules_details', kwargs={'module_id': module_id})
@@ -546,8 +543,8 @@ def exam_track_progress(request, module_id):
         form = ExamTrackerForm()
 
     return render(request, 'loads/modules/examtracker.html', {'form': form, 'module': module})
- 
-    
+
+
 def coursework_track_progress(request, module_id):
     """Processes recording of a coursework QA tracking event"""
     # Get the module itself
@@ -557,19 +554,18 @@ def coursework_track_progress(request, module_id):
     can_override = request.user.has_perm('loads.add_courseworktracker')
     if not can_override:
         return HttpResponseRedirect(reverse('forbidden'))
-    
+
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
         form = CourseworkTrackerForm(request.POST)
         # check whether it's valid:
         if form.is_valid():
-            
             new_item = form.save(commit=False)
             # TODO: More elegant handling of ACADEMIC_YEAR needed
             new_item.module = module
             new_item.academic_year = ACADEMIC_YEAR
-            
+
             new_item.save()
             form.save_m2m()
             url = reverse('modules_details', kwargs={'module_id': module_id})
@@ -584,33 +580,36 @@ def coursework_track_progress(request, module_id):
 
 def module_staff_allocation(request, module_id, package_id):
     """Edit the allocation of staff to a module member"""
-    
+
     # Fetch the staff user associated with the person requesting
     user_staff = get_object_or_404(Staff, user=request.user)
     # And the module we are going to act on
     module = get_object_or_404(Module, pk=module_id)
     # And the package we are going to act on
     package = get_object_or_404(WorkPackage, pk=package_id)
-    
+
     # If either the logged in user or target user aren't in the package, this is forbidden
     if package not in user_staff.get_all_packages():
         return HttpResponseRedirect(reverse('forbidden'))
-        
+
     # The logged in user should be able to do this via the Admin interface, or disallow.
-    permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm('loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
-        
+    permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm(
+        'loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
+
     if not permission:
         return HttpResponseRedirect(reverse('forbidden'))
-    
+
     # Get a formset with only the choosable fields
     AllocationFormSet = modelformset_factory(ModuleStaff, formset=BaseModuleStaffByModuleFormSet,
-        fields=('staff', 'contact_proportion', 'admin_proportion', 'assessment_proportion'),
-        can_delete=True)
-        
+                                             fields=('staff', 'contact_proportion', 'admin_proportion',
+                                                     'assessment_proportion'),
+                                             can_delete=True)
+
     if request.method == "POST":
         formset = AllocationFormSet(
             request.POST, request.FILES,
-            queryset=ModuleStaff.objects.filter(package=package).filter(module=module).order_by('staff__user__last_name')
+            queryset=ModuleStaff.objects.filter(package=package).filter(module=module).order_by(
+                'staff__user__last_name')
         )
         # We need to tweak the queryset to only allow staff in the package
         for form in formset:
@@ -624,32 +623,32 @@ def module_staff_allocation(request, module_id, package_id):
                 allocation.module = module
                 allocation.package = package
             # Now do a real save
-            formset.save(commit=True)    
-                   
+            formset.save(commit=True)
+
             # redirect to the activites page
-            #TODO this might just be a different package from this one, note.
-        
+            # TODO this might just be a different package from this one, note.
+
             url = reverse('modules_details', args=[module_id])
             return HttpResponseRedirect(url)
     else:
-        formset = AllocationFormSet(queryset=ModuleStaff.objects.filter(package=package).filter(module=module).order_by('staff__user__last_name'))
+        formset = AllocationFormSet(queryset=ModuleStaff.objects.filter(package=package).filter(module=module).order_by(
+            'staff__user__last_name'))
         # Again, only allow staff members in the package
         for form in formset:
             form.fields['staff'].queryset = package.get_all_staff()
-        
-    return render(request, 'loads/modules/allocations.html', {'module': module, 'package':package, 'formset': formset})
+
+    return render(request, 'loads/modules/allocations.html', {'module': module, 'package': package, 'formset': formset})
 
 
-    
 def modules_index(request, semesters):
     """Shows a high level list of modules"""
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
     package = staff.package
-    
+
     modules = Module.objects.all().filter(package=package).order_by('module_code')
-    
+
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request
@@ -663,13 +662,13 @@ def modules_index(request, semesters):
     else:
         form = ModulesIndexForm()
         # If semesters came via get, let's populate the form
-        form.fields['semesters'].initial = semesters        
+        form.fields['semesters'].initial = semesters
 
-    # Check for any semester limitations, split by comma if something is actually there
+        # Check for any semester limitations, split by comma if something is actually there
     if semesters:
-      valid_semesters = semesters.split(',')
+        valid_semesters = semesters.split(',')
     else:
-      valid_semesters = list()
+        valid_semesters = list()
 
     combined_list = []
     for module in modules:
@@ -682,23 +681,23 @@ def modules_index(request, semesters):
                     if m_sem == v_sem:
                         valid_semester = True
             if not valid_semester:
-              continue
-              
+                continue
+
         # Store all relationships to the modules
         relationship = []
-        
+
         # Is the logged in user on the teaching team?
         module_staff = ModuleStaff.objects.all().filter(module=module).filter(staff=staff)
         if len(module_staff):
             relationship.append('team_member')
-        
+
         # Is the logged in user a moderator?
         if staff in module.moderators.all():
             relationship.append('moderator')
-        
+
         # get the most recent assessment resource
         resources = AssessmentResource.objects.all().filter(module=module).order_by('-created')[:1]
-        
+
         if len(resources) > 0:
             resource = resources[0]
         else:
@@ -706,7 +705,7 @@ def modules_index(request, semesters):
 
         combined_item = [module, relationship, resource]
         combined_list.append(combined_item)
-    
+
     template = loader.get_template('loads/modules/index.html')
     context = {
         'form': form,
@@ -723,18 +722,18 @@ def external_modules_index(request):
     external = get_object_or_404(ExternalExaminer, user=request.user)
     # And therefore the package enabled for that user
     package = external.package
-    
+
     # Get the list of programmes that they examine
     examined_programmes = external.get_examined_programmes()
-    
+
     # Get all the modules in the package, we'll show them all
     modules = Module.objects.all().filter(package=package).order_by('module_code')
-    
+
     combined_list = []
     for module in modules:
         # Store all relationships to the modules
         relationship = []
-        
+
         if module.lead_programme in examined_programmes:
             relationship.append('lead_external')
             # That's good enough, don't bother checking for other relations
@@ -742,10 +741,9 @@ def external_modules_index(request):
             if any(programme in examined_programmes for programme in module.programmes.all()):
                 relationship.append('external')
 
-        
         # get the most recent assessment resource
         resources = AssessmentResource.objects.all().filter(module=module).order_by('-created')[:1]
-        
+
         if len(resources) > 0:
             resource = resources[0]
         else:
@@ -753,7 +751,7 @@ def external_modules_index(request):
 
         combined_item = [module, relationship, resource]
         combined_list.append(combined_item)
-    
+
     template = loader.get_template('loads/modules/index.html')
     context = {
         'external': external,
@@ -763,12 +761,11 @@ def external_modules_index(request):
     return HttpResponse(template.render(context, request))
 
 
-
 def modules_details(request, module_id):
     """Detailed information on a given module"""
     # Get the module itself
     module = get_object_or_404(Module, pk=module_id)
-    
+
     # TODO: this is none too elegant, and could be outsourced
     # Fetch the staff user associated with the person requesting
     try:
@@ -776,25 +773,25 @@ def modules_details(request, module_id):
         package = staff.package
     except Staff.DoesNotExist:
         staff = None
-    
+
     # or possibly an external examiner
     try:
         external = ExternalExaminer.objects.get(user=request.user)
         package = external.package
     except ExternalExaminer.DoesNotExist:
         external = None
-    
+
     # If neither here, time to boot
     if not staff and not external:
         return HttpResponseRedirect(reverse('forbidden'))
-    
+
     # Get all associated activities, exam and coursework trackers
     activities = Activity.objects.all().filter(module=module).filter(package=package).order_by('name')
     modulestaff = ModuleStaff.objects.all().filter(module=module).filter(package=package)
     assessment_resources = AssessmentResource.objects.all().filter(module=module).order_by('-created')
     exam_trackers = ExamTracker.objects.all().filter(module=module).order_by('created')
     coursework_trackers = CourseworkTracker.objects.all().filter(module=module).order_by('created')
-    
+
     total_contact_proportion = 0
     total_admin_proportion = 0
     total_assessment_proportion = 0
@@ -802,13 +799,12 @@ def modules_details(request, module_id):
         total_contact_proportion += allocation.contact_proportion
         total_admin_proportion += allocation.admin_proportion
         total_assessment_proportion += allocation.assessment_proportion
-        
-    
+
     template = loader.get_template('loads/modules/details.html')
     context = {
         'module': module,
         'moderators': module.moderators.all(),
-        'total_hours' : module.get_all_hours(),
+        'total_hours': module.get_all_hours(),
         'contact_hours': module.get_contact_hours(),
         'admin_hours': module.get_admin_hours(),
         'assessment_hours': module.get_assessment_hours(),
@@ -823,33 +819,35 @@ def modules_details(request, module_id):
         'total_assessment_proportion': total_assessment_proportion,
     }
     return HttpResponse(template.render(context, request))
-    
-    
+
+
 def staff_module_allocation(request, staff_id, package_id):
     """Edit the allocation of modules to a staff member"""
-    
+
     # Fetch the staff user associated with the person requesting
     user_staff = get_object_or_404(Staff, user=request.user)
     # And the staff member we are going to act on
     staff = get_object_or_404(Staff, pk=staff_id)
     # And the package we are going to act on
     package = get_object_or_404(WorkPackage, pk=package_id)
-    
+
     # If either the logged in user or target user aren't in the package, this is forbidden
     if package not in user_staff.get_all_packages() or package not in staff.get_all_packages():
         return HttpResponseRedirect(reverse('forbidden'))
-        
+
     # The logged in user should be able to do this via the Admin interface, or disallow.
-    permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm('loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
-        
+    permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm(
+        'loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
+
     if not permission:
         return HttpResponseRedirect(reverse('forbidden'))
-    
+
     # Get a formset with only the choosable fields
     AllocationFormSet = modelformset_factory(ModuleStaff, formset=BaseModuleStaffByStaffFormSet,
-        fields=('module', 'contact_proportion', 'admin_proportion', 'assessment_proportion'),
-        can_delete=True)
-        
+                                             fields=('module', 'contact_proportion', 'admin_proportion',
+                                                     'assessment_proportion'),
+                                             can_delete=True)
+
     if request.method == "POST":
         formset = AllocationFormSet(
             request.POST, request.FILES,
@@ -867,11 +865,11 @@ def staff_module_allocation(request, staff_id, package_id):
                 allocation.staff = staff
                 allocation.package = package
             # Now do a real save
-            formset.save(commit=True)    
-                   
+            formset.save(commit=True)
+
             # redirect to the activites page
-            #TODO this might just be a different package from this one, note.
-        
+            # TODO this might just be a different package from this one, note.
+
             url = reverse('activities', args=[staff_id])
             return HttpResponseRedirect(url)
     else:
@@ -879,8 +877,8 @@ def staff_module_allocation(request, staff_id, package_id):
         # Again, only allow modules in the package
         for form in formset:
             form.fields['module'].queryset = Module.objects.filter(package=package)
-        
-    return render(request, 'loads/staff/allocations.html', {'staff': staff, 'package':package, 'formset': formset})
+
+    return render(request, 'loads/staff/allocations.html', {'staff': staff, 'package': package, 'formset': formset})
 
 
 def generators_index(request):
@@ -902,18 +900,17 @@ def generators_index(request):
 
 def generators_generate_activities(request, generator_id):
     """(Re)generate all activities for a given Activity Generator"""
-    
+
     # Fetch the staff user associated with the person requesting
     user_staff = get_object_or_404(Staff, user=request.user)
     staff = get_object_or_404(Staff, user=request.user)
     # And the generator
     generator = get_object_or_404(ActivityGenerator, pk=generator_id)
-    
+
     # If either the logged in user or target user aren't in the package, this is forbidden
     if staff.package not in user_staff.get_all_packages() or not request.user.has_perm('loads.add_activity'):
         return HttpResponseRedirect(reverse('forbidden'))
 
-        
     generator.generate_activities()
     messages.success(request, 'Activities Regenerated.')
     url = reverse('generators_index')
@@ -925,8 +922,7 @@ def projects_index(request):
     # Fetch the tasks assigned against the specific user of the staff member
     staff = get_object_or_404(Staff, user=request.user)
     projects = Project.objects.all()
-    
-                    
+
     template = loader.get_template('loads/projects/index.html')
     context = {
         'projects': projects,
@@ -936,7 +932,7 @@ def projects_index(request):
 
 def projects_details(request, project_id):
     """Allows a Project and allocated staff to be edited"""
-    
+
     # Fetch the staff user associated with the person requesting
     user_staff = get_object_or_404(Staff, user=request.user)
 
@@ -944,16 +940,16 @@ def projects_details(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     package = user_staff.package
 
-        
     # The logged in user should be able to do this via the Admin interface, or disallow changes (views ok)
-    permission = request.user.has_perm('loads.change_project') and request.user.has_perm('loads.change_projectstaff') and request.user.has_perm('loads.delete_projectstaff') and request.user.has_perm('loads.add_projectstaff')
+    permission = request.user.has_perm('loads.change_project') and request.user.has_perm(
+        'loads.change_projectstaff') and request.user.has_perm('loads.delete_projectstaff') and request.user.has_perm(
+        'loads.add_projectstaff')
 
-    
     # Get a formset with only the choosable fields
-    ProjectStaffFormSet = modelformset_factory(ProjectStaff, #formset=BaseModuleStaffByStaffFormSet,
-        fields=('staff', 'start', 'end', 'hours_per_week'),
-        can_delete=True)
-        
+    ProjectStaffFormSet = modelformset_factory(ProjectStaff,  # formset=BaseModuleStaffByStaffFormSet,
+                                               fields=('staff', 'start', 'end', 'hours_per_week'),
+                                               can_delete=True)
+
     if request.method == "POST":
         if not permission:
             return HttpResponseRedirect(reverse('forbidden'))
@@ -973,11 +969,11 @@ def projects_details(request, project_id):
                 # Fix the fields
                 allocation.project = project
             # Now do a real save
-            formset.save(commit=True)    
-                   
+            formset.save(commit=True)
+
             # redirect to the activites page
-            #TODO this might just be a different package from this one, note.
-        
+            # TODO this might just be a different package from this one, note.
+
             url = reverse('projects_index')
             return HttpResponseRedirect(url)
     else:
@@ -986,92 +982,84 @@ def projects_details(request, project_id):
         for form in formset:
             form.fields['staff'].queryset = package.get_all_staff()
         # Again, only allow modules in the package
-        #for form in formset:
-         #   form.fields['module'].queryset = Module.objects.filter(package=package)
-        
-    return render(request, 'loads/projects/allocations.html', {'project':project, 'project_form':project_form, 'formset': formset})
+        # for form in formset:
+        #   form.fields['module'].queryset = Module.objects.filter(package=package)
+
+    return render(request, 'loads/projects/allocations.html',
+                  {'project': project, 'project_form': project_form, 'formset': formset})
 
 
 def projects_generate_activities(request, project_id):
     """(Re)generate all activities for a project"""
-    
+
     # Fetch the staff user associated with the person requesting
     user_staff = get_object_or_404(Staff, user=request.user)
 
     # And the project we are going to act on
     project = get_object_or_404(Project, pk=project_id)
-    
-    #TODO: Establish sensible permissions
+
+    # TODO: Establish sensible permissions
     # If either the logged in user or target user aren't in the package, this is forbidden
-    #if package not in user_staff.get_all_packages() or package not in staff.get_all_packages():
+    # if package not in user_staff.get_all_packages() or package not in staff.get_all_packages():
     #    return HttpResponseRedirect(reverse('forbidden'))
-        
+
     # The logged in user should be able to do this via the Admin interface, or disallow.
-    permission = request.user.has_perm('loads.add_projectstaff') and request.user.has_perm('loads.change_projectstaff') and request.user.has_perm('loads.delete_projectstaff')
+    permission = request.user.has_perm('loads.add_projectstaff') and request.user.has_perm(
+        'loads.change_projectstaff') and request.user.has_perm('loads.delete_projectstaff')
     if not permission:
         return HttpResponseRedirect(reverse('forbidden'))
-        
+
     project.generate_activities()
     messages.success(request, 'Activities Regenerated.')
     url = reverse('projects_index')
     return HttpResponseRedirect(url)
-    
 
 
 def workpackage_change(request):
     """Allows a user to change their current active workpackage"""
     # Get the member of staff for the logged in user
     staff = get_object_or_404(Staff, user=request.user)
-    
+
     # Get all workpackages that touch on the staff member's group
     packages = staff.get_all_packages()
-    
+
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request and the given staff
-        form = StaffWorkPackageForm(request.POST, instance = staff)
+        form = StaffWorkPackageForm(request.POST, instance=staff)
         form.fields['package'].queryset = packages
         # check whether it's valid:
         if form.is_valid():
             form.save()
-            
+
             # redirect to the loads page
             url = reverse('loads')
             return HttpResponseRedirect(url)
 
     # if a GET (or any other method) we'll create a form from the current logged in user
     else:
-        form = StaffWorkPackageForm(instance = staff)
+        form = StaffWorkPackageForm(instance=staff)
         form.fields['package'].queryset = packages
 
     return render(request, 'loads/workpackage.html', {'form': form, 'staff': staff})
-
-
-    copy_modules = forms.BooleanField(required=False)
-    copy_modulestaff = forms.BooleanField(required=False)
-    copy_activities_generated = forms.BooleanField(required=False)
-    copy_activities_custom = forms.BooleanField(required=False)
-    copy_activities_modules = forms.BooleanField(required=False)
-    generate_projects = forms.BooleanField(required=False)
-
 
 
 def workpackage_migrate(request):
     """Allows a user to change their current active workpackage"""
     # Get the member of staff for the logged in user
     staff = get_object_or_404(Staff, user=request.user)
-    
+
     # Check for a valid permission at this stage
     can_override = (request.user.has_perm('loads.add_activity')
-        and request.user.has_perm('loads_add_module')
-        and request.user.has_perm('loads_add_modulestaff'))
-        
+                    and request.user.has_perm('loads_add_module')
+                    and request.user.has_perm('loads_add_modulestaff'))
+
     if not can_override:
         return HttpResponseRedirect(reverse('forbidden'))
-        
+
     # Get all workpackages that touch on the staff member's group
     packages = staff.get_all_packages()
-        
+
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request and the given staff
@@ -1081,7 +1069,6 @@ def workpackage_migrate(request):
 
         # check whether it's valid:
         if form.is_valid():
-
             options = {
                 'copy_programmes': form.cleaned_data['copy_programmes'],
                 'copy_modules': form.cleaned_data['copy_modules'],
@@ -1089,12 +1076,12 @@ def workpackage_migrate(request):
                 'copy_activities_generated': form.cleaned_data['copy_activities_generated'],
                 'copy_activities_custom': form.cleaned_data['copy_activities_custom'],
                 'copy_activities_modules': form.cleaned_data['copy_activities_modules'],
-                'generate_projects' : form.cleaned_data['generate_projects'],}
-                
+                'generate_projects': form.cleaned_data['generate_projects'], }
+
             destination_package = form.cleaned_data['destination_package']
             source_package = form.cleaned_data['source_package']
             changes = destination_package.clone_from(source_package, options)
-            
+
             template = loader.get_template('loads/workpackages/migrate_results.html')
             context = {
                 'source_package': source_package,
@@ -1111,5 +1098,3 @@ def workpackage_migrate(request):
         form.fields['destination_package'].queryset = packages
 
     return render(request, 'loads/workpackages/migrate.html', {'form': form, 'staff': staff})
-
-        
