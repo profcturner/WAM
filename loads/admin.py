@@ -36,21 +36,29 @@ from .models import WorkPackage
 
 # Some code to augment the admin views in some cases
 
+class ActivityAdmin(admin.ModelAdmin):
+    list_display = ('package', 'name', 'module', 'staff', 'hours', 'percentage', 'semester', 'activity_type', 'is_allocated')
+    list_filter = ('package', 'module','staff')
+
 class ActivitySetAdmin(admin.ModelAdmin):
     list_display = ('name', 'created')
+    list_filter = ('generator', 'project')
+
+class ActivityGeneratorAdmin(admin.ModelAdmin):
+    #list_display = ('name', 'created')
+    list_filter = ('package', 'activity_type')
 
 class AssessmentStaffAdmin(admin.ModelAdmin):
     list_display = ('package', 'staff')
-    list_filter = ('package__name', 'staff')
+    list_filter = ('package', 'staff')
 
 class ModuleAdmin(admin.ModelAdmin):
     list_display = ('package', 'module_code', 'module_name', 'semester')
-    list_filter = ('package__name','semester')
-    
-class ActivityAdmin(admin.ModelAdmin):
-    list_display = ('package', 'name', 'module', 'staff', 'hours', 'percentage', 'semester', 'activity_type', 'is_allocated')
-    list_filter = ('package__name',)
-    
+    list_filter = ('package','semester')
+
+class ProgrammeAdmin(admin.ModelAdmin):
+    list_filter = ('package',)
+
 class StaffAdmin(admin.ModelAdmin):
     list_display = ('title','first_name','last_name','staff_number','fte','total_hours')
     
@@ -81,7 +89,7 @@ class UserAdmin(UserAdmin):
 
 
 admin.site.register(Activity, ActivityAdmin)
-admin.site.register(ActivityGenerator)
+admin.site.register(ActivityGenerator, ActivityGeneratorAdmin)
 admin.site.register(ActivitySet, ActivitySetAdmin)
 admin.site.register(ActivityType)
 admin.site.register(AssessmentResource)
@@ -94,7 +102,7 @@ admin.site.register(ExternalExaminer)
 admin.site.register(Module, ModuleAdmin)
 admin.site.register(ModuleStaff, ModuleStaffAdmin)
 admin.site.register(ModuleSize)
-admin.site.register(Programme)
+admin.site.register(Programme, ProgrammeAdmin)
 admin.site.register(Project)
 admin.site.register(ProjectStaff)
 admin.site.register(Staff, StaffAdmin)
