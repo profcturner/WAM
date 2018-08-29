@@ -39,6 +39,7 @@ from .forms import StaffWorkPackageForm
 from .forms import MigrateWorkPackageForm
 from .forms import ModulesIndexForm
 from .forms import ProjectForm
+from .forms import StaffCreationForm
 from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
 
@@ -430,6 +431,49 @@ def tasks_details(request, task_id):
         'percentage_complete': percentage_complete
     }
     return HttpResponse(template.render(context, request))
+
+
+def custom_admin_index(request):
+    """The beginnings of a more integrated admin menu"""
+
+    # Get the currently logged in staff member
+    staff = get_object_or_404(Staff, user=request.user)
+
+    # or a user with permission to edit completions
+    can_override = request.user.is_staff
+    if not can_override:
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    template = loader.get_template('loads/admin/index.html')
+
+    return HttpResponse(template.render({}, request))
+
+
+
+def create_staff_user(request):
+    """Allows for the creation of a Staff and linked User object"""
+
+    # Get the currently logged in staff member
+    staff = get_object_or_404(Staff, user=request.user)
+
+    # or a user with permission to edit completions
+    can_override = request.user.has_perm('loads.add_staff')
+    if not can_override:
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    if request.method == 'POST':
+        form = StaffCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Account created successfully')
+
+            url = reverse('custom_admin_index')
+            return HttpResponseRedirect(url)
+
+    else:
+        form = StaffCreationForm()
+
+    return render(request, 'loads/admin/create_staff_user.html', {'form': form})
 
 
 def tasks_completion(request, task_id, staff_id):

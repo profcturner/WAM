@@ -1,0 +1,17 @@
+{% include "loads/header.html" %}
+
+<h2>Additional Admin Index</h2>
+
+<p>The Admin Interface is mainly that provided by the Django framework in which this software is written. As the logic
+    has become more complex and the admin users more diverse, there will be a need to make a proper admin interface.
+    This is the start of that process.
+</p>
+
+<h3>Actions</h3>
+
+<ul>
+    <li><a href="{%url 'create staff user' %}">Create new Staff user</a></li>
+    <li><a href="{%url 'workpackage_migrate' %}">Migrate Work Package from one year to another</a></li>
+</ul>
+
+{% include "loads/footer.html" %}

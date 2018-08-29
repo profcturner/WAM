@@ -46,4 +46,6 @@ urlpatterns = [
     url(r'^forbidden/$', views.forbidden, name='forbidden'),
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
     url(r'^admin/', admin.site.urls),
+    url(r'^cadmin/$', views.custom_admin_index, name='custom_admin_index'),
+    url(r'^cadmin/create_staff_user', views.create_staff_user, name='create staff user'),
 ]
