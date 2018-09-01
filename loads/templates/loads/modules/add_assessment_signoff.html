@@ -1,0 +1,39 @@
+{% include "loads/header.html" %}
+
+<h2>Sign-off resources for {{ module }}</h2>
+
+<p>Here you can sign off resources or comment on previous signoffs.</p>
+
+<form action="" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+  <table border="0" cellpadding="0" cellspacing="0">
+  {{ form.as_table }}
+  </table>
+    <input type="submit" value="Submit" />
+</form>
+
+{% if assessment_signoffs %}
+    <table border="1" width="800">
+      <tr>
+        <th>Type</th><th>Owner</th><th>Created</th>
+      </tr>
+    {% for signoff in assessment_signoffs %}
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <th>{{ signoff.assessment_state }}</th>
+        <th>{{ signoff.signed_by.first_name }} {{ signoff.signed_by.last_name }}</th>
+        <th>{{ signoff.created }}</th>
+      </tr>
+        <tr  class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <td colspan="3">
+            {{ signoff.notes }}
+        </td>
+
+        </tr>
+    {% endfor %}
+    </table>
+
+{% else %}
+    <p>No assessment sign-offs recorded for this module.</p>
+{% endif %}
+
+{% include "loads/footer.html" %}

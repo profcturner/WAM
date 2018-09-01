@@ -391,6 +391,24 @@ class ExternalExaminer(models.Model):
         examined_programmes = Programme.objects.all().filter(examiners=self).distinct()
         return examined_programmes
 
+    def can_access_module(self, module):
+        """Checks if the examiner should have general access to a module"""
+
+        examined_programmes = self.get_examined_programmes()
+
+        # External Examiners can download if they examine the lead programme
+        if module.lead_programme:
+            if module.lead_programme in examined_programmes:
+                return True
+
+        # Or if they are an examiner (for information) for another listed programme
+        if module.programmes:
+            if any(programme in examined_programmes for programme in module.programmes.all()):
+                return True
+
+        # Otherwise, there is no access
+        return False
+
 
 class StaffManager(models.Manager):
     """Manager for staff to enforce ordering
@@ -874,6 +892,33 @@ class Module(models.Model):
         """returns the list divided by semester of the total hours for the module"""
         return divide_by_semesters(self.get_all_hours(), self.semester)
 
+    def get_assessment_history(self):
+        """returns a list of tuples of AssessmentState objects and the resources signed off"""
+
+        # Get the signoffs and resources in chronological order
+        signoffs = AssessmentStateSignOff.objects.all().filter(module=self).order_by('created')
+        resources = AssessmentResource.objects.all().filter(module=self).order_by('created')
+
+        # Make a list of tuples
+        history = list()
+
+        for counter, signoff in enumerate(signoffs):
+            # Get the resources covered by this sign off, in reverse chronological order
+            slice = resources.filter(created__lt=signoff.created).order_by('-created')
+            # Exclude them from the next iteration
+            resources = resources.exclude(created__lt=signoff.created)
+            # Add the tuple of the sign off and slice of resources to the list
+            history.append((signoff, slice))
+
+        # If any remaining resources aren't signed off, add them against a None object
+        if len(resources):
+            history.append((None, resources.order_by('-created')))
+
+        # So the list is chronological, and we'll want most recent first, so
+        history.reverse()
+
+        return history
+
     def __str__(self):
         return self.module_code + ' : ' + self.module_name
 
@@ -1065,7 +1110,7 @@ class AssessmentResource(models.Model):
         # Otherwise, there is no access
         return False
 
-    def is_downloadable_by_external(self, examiner):
+    def is_downloadable_by_external(self, external):
         """determines if a specific ExternalExaminer member may download the resource
 
             The examiner can download a resource if and only if:
@@ -1076,24 +1121,11 @@ class AssessmentResource(models.Model):
             returns True if permitted, False otherwise
         """
 
-        # Ensure we have a Staff object
-        if not isinstance(examiner, ExternalExaminer):
+        # Ensure we have an Examiner object
+        if not isinstance(external, ExternalExaminer):
             return False
 
-        examined_programmes = examiner.get_examined_programmes()
-
-        # External Examiners can download if they examine the lead programme
-        if self.module.lead_programme:
-            if self.module.lead_programme in examined_programmes:
-                return True
-
-        # Or if they are an examiner (for information) for another listed programme
-        if self.module.programmes:
-            if any(programme in examined_programmes for programme in self.module.programmes.all()):
-                return True
-
-        # Otherwise, there is no access
-        return False
+        return external.can_access_module(self.module)
 
     def is_downloadable_by(self, person):
         """checks is a resource is downloadable by a member of Staff or an ExternalExaminer
@@ -1109,6 +1141,149 @@ class AssessmentResource(models.Model):
             return self.is_downloadable_by_external(person)
 
         return False
+
+
+class AssessmentState(models.Model):
+    """Allows for configurable Assessment Resource Workflow
+
+    name            The name of the state
+    description     More details on the state
+    actors          The user types who can create this state, CSV field
+    notify          The user types to notify that the state has been created
+    initial_state   Can this be an initial state?
+    next_states     Permissible states to move to from this one
+    priority        To allow the states to be sorted for presentation to the user
+
+    actors and notify should be comma separated lists as in USER_TYPES below.
+    """
+
+    ANYONE = 'anyone'
+    COORDINATOR = 'coordinator'
+    MODERATOR = 'moderator'
+    EXTERNAL = 'external'
+    TEAM_MEMBER = 'team_member'
+    ASSESSMENT_STAFF = 'assessment_staff'
+
+    USER_TYPES = (
+        (ANYONE, 'Any logged in user'),
+        (COORDINATOR, 'Module coordinator'),
+        (MODERATOR, 'Module moderator'),
+        (TEAM_MEMBER, 'Module teaching team member'),
+        (EXTERNAL, 'External Examiner'),
+        (ASSESSMENT_STAFF, 'Members of AssessmentStaff'),
+        ('exams_office', 'Exams Office')
+    )
+
+    name = models.CharField(max_length=200)
+    description = models.TextField()
+    actors = models.TextField()
+    notify = models.TextField()
+    initial_state = models.BooleanField(default = False)
+    next_states = models.ManyToManyField('self', blank=True, symmetrical=False, related_name='children')
+    priority = models.IntegerField()
+
+    def __str__(self):
+        return str (self.name)
+
+    def get_actor_list(self):
+        """Return a list of acceptable actors"""
+        return self.actors.split(',')
+
+    def get_notify_list(self):
+        """Return a list of acceptable actors"""
+        return self.notify.split(',')
+
+    def can_be_set_by(self, person, module):
+        """checks if a State can be set on a given module by a giver person
+
+            see is_downloadable_by_staff() or is_downloadable_by_external() for more details
+
+            returns True if permitted, False otherwise
+        """
+        if isinstance(person, Staff):
+            return self.can_be_set_by_staff(person, module)
+
+        if isinstance(person, ExternalExaminer):
+            return self.can_be_set_by_external(person, module)
+
+        return False
+
+    def can_be_set_by_staff(self, staff, module):
+        """determines if a member of staff can set this state for a module
+
+            returns True if permitted, False otherwise"""
+
+        actors = self.get_actor_list()
+
+        # Anyone
+        if self.ANYONE in actors:
+            return True
+
+        # Module Coordinator?
+        if self.COORDINATOR in actors and staff == module.coordinator:
+            return True
+
+        # Moderator
+        if self.MODERATOR in actors and staff in module.moderators.all():
+            return True
+
+        # Team member
+        if self.TEAM_MEMBER in actors and len(ModuleStaff.objects.all().filter(module=module).filter(staff=staff)):
+            return True
+
+        # Assessment Staff
+        if self.ASSESSMENT_STAFF in actors and \
+            len(AssessmentStaff.objects.all().filter(staff=staff).filter(package=module.package)):
+            return True
+
+        return False
+
+    def can_be_set_by_external(self, external, module):
+        """determines if a specific ExternalExaminer member may set this state for a module
+
+            returns True if permitted, False otherwise
+        """
+
+        # Ensure we have an Examiner object
+        if not isinstance(external, ExternalExaminer):
+            return False
+
+        # If external is not in the actor list, reject
+        if not self.EXTERNAL in self.get_actor_list():
+            return False
+
+        # Now it's about checking they have permission at all
+        return external.can_access_module(module)
+
+
+
+
+
+    class Meta:
+        ordering = ['priority']
+
+
+
+class AssessmentStateSignOff(models.Model):
+    """Marks a particular sign off of an AssessmentState for a module
+
+    module              The module being signed off
+    assessment_state    The AssessmentState being used
+    signed_by           The user signing off (Could be Staff or Examiner)
+    created             The datestamp for signoff
+    notified            The datestamp for notificiations sent
+    notes               Any comments
+    """
+
+    module = models.ForeignKey(Module, on_delete=models.CASCADE)
+    assessment_state = models.ForeignKey(AssessmentState, on_delete=models.CASCADE)
+    signed_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
+    notified = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField()
+
+    def __str__(self):
+        return str (self.assessment_state)
 
 
 class LoadTracking(models.Model):

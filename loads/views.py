@@ -16,6 +16,8 @@ from .models import ACADEMIC_YEAR
 from .models import ActivityGenerator
 from .models import AssessmentResource
 from .models import AssessmentStaff
+from .models import AssessmentState
+from .models import AssessmentStateSignOff
 from .models import ExternalExaminer
 from .models import Staff
 from .models import Task
@@ -31,6 +33,7 @@ from .models import ProjectStaff
 from .models import WorkPackage
 
 from .forms import AssessmentResourceForm
+from .forms import AssessmentStateSignOffForm
 from .forms import LoadsByModulesForm
 from .forms import TaskCompletionForm
 from .forms import ExamTrackerForm
@@ -40,6 +43,7 @@ from .forms import MigrateWorkPackageForm
 from .forms import ModulesIndexForm
 from .forms import ProjectForm
 from .forms import StaffCreationForm
+from .forms import ExternalExaminerCreationForm
 from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
 
@@ -476,6 +480,32 @@ def create_staff_user(request):
     return render(request, 'loads/admin/create_staff_user.html', {'form': form})
 
 
+def create_external_examiner(request):
+    """Allows for the creation of an Examiner and linked User object"""
+
+    # Get the currently logged in staff member
+    staff = get_object_or_404(Staff, user=request.user)
+
+    # or a user with permission to edit completions
+    can_override = request.user.has_perm('loads.add_externalexaminer')
+    if not can_override:
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    if request.method == 'POST':
+        form = ExternalExaminerCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Account created successfully')
+
+            url = reverse('custom_admin_index')
+            return HttpResponseRedirect(url)
+
+    else:
+        form = ExternalExaminerCreationForm()
+
+    return render(request, 'loads/admin/create_external_examiner.html', {'form': form})
+
+
 def tasks_completion(request, task_id, staff_id):
     """Processes recording of a task completion"""
     # Get the task itself, and all targetted users
@@ -832,9 +862,6 @@ def modules_details(request, module_id):
     # Get all associated activities, exam and coursework trackers
     activities = Activity.objects.all().filter(module=module).filter(package=package).order_by('name')
     modulestaff = ModuleStaff.objects.all().filter(module=module).filter(package=package)
-    assessment_resources = AssessmentResource.objects.all().filter(module=module).order_by('-created')
-    exam_trackers = ExamTracker.objects.all().filter(module=module).order_by('created')
-    coursework_trackers = CourseworkTracker.objects.all().filter(module=module).order_by('created')
 
     total_contact_proportion = 0
     total_admin_proportion = 0
@@ -843,6 +870,9 @@ def modules_details(request, module_id):
         total_contact_proportion += allocation.contact_proportion
         total_admin_proportion += allocation.admin_proportion
         total_assessment_proportion += allocation.assessment_proportion
+
+    # Get all the sign offs and assessment history
+    assessment_history = module.get_assessment_history()
 
     template = loader.get_template('loads/modules/details.html')
     context = {
@@ -854,13 +884,82 @@ def modules_details(request, module_id):
         'assessment_hours': module.get_assessment_hours(),
         'modulestaff': modulestaff,
         'activities': activities,
-        'assessment_resources': assessment_resources,
-        'exam_trackers': exam_trackers,
-        'coursework_trackers': coursework_trackers,
+        'assessment_history': assessment_history,
         'package': package,
         'total_contact_proportion': total_contact_proportion,
         'total_admin_proportion': total_admin_proportion,
         'total_assessment_proportion': total_assessment_proportion,
+    }
+    return HttpResponse(template.render(context, request))
+
+
+def add_assessment_sign_off(request, module_id):
+    """Detailed information on a given module"""
+    # Get the module itself
+    module = get_object_or_404(Module, pk=module_id)
+
+    # TODO: this is none too elegant, and could be outsourced
+    # Fetch the staff user associated with the person requesting
+    try:
+        staff = Staff.objects.get(user=request.user)
+        package = staff.package
+    except Staff.DoesNotExist:
+        staff = None
+
+    # or possibly an external examiner
+    try:
+        external = ExternalExaminer.objects.get(user=request.user)
+        package = external.package
+    except ExternalExaminer.DoesNotExist:
+        external = None
+
+    # If neither here, time to boot
+    if not staff and not external:
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    # Get all signoffs to date
+    assessment_signoffs = AssessmentStateSignOff.objects.all().filter(module=module).order_by('-created')
+
+    # Have we any already?
+    if not len(assessment_signoffs):
+        # No, so get all allowed initial states
+        next_states = AssessmentState.objects.all().filter(initial_state=True)
+    else:
+        # There, are, so it's just the last object's sign off
+        next_states = assessment_signoffs[0].assessment_state.next_states.all()
+
+    #TODO: Need to filter states by creator
+
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        form = AssessmentStateSignOffForm(request.POST)
+        #form.fields['module'] = module
+        #form.fields['assessment_state'].queryset = next_states
+
+        # check whether it's valid:
+        if form.is_valid():
+            signoff = form.save(commit=False)
+            signoff.signed_by = request.user
+            signoff.module = module
+
+            signoff.save()
+
+            url = reverse('modules_details', kwargs={'module_id': module_id})
+            return HttpResponseRedirect(url)
+
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        form = AssessmentStateSignOffForm()
+        form.fields['assessment_state'].queryset = next_states
+
+
+    template = loader.get_template('loads/modules/add_assessment_signoff.html')
+    context = {
+        'module': module,
+        'assessment_signoffs': assessment_signoffs,
+        'next_states': next_states,
+        'form': form
     }
     return HttpResponse(template.render(context, request))
 

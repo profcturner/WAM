@@ -11,13 +11,15 @@ from django.core.exceptions import ValidationError
 
 
 from .models import AssessmentResource
-from .models import AssessmentResourceType
+from .models import AssessmentStateSignOff
+from .models import ExternalExaminer
 from .models import Staff
 from .models import TaskCompletion
 from .models import ExamTracker
 from .models import CourseworkTracker
 from .models import Project
 from .models import WorkPackage
+
 
 
 class MigrateWorkPackageForm(forms.Form):
@@ -116,6 +118,11 @@ class ProjectForm(ModelForm):
         model = Project
         fields = ['name', 'activity_type', 'body', 'start', 'end']
 
+class AssessmentStateSignOffForm(ModelForm):
+    class Meta:
+        model = AssessmentStateSignOff
+        fields = ['assessment_state', 'notes']
+
 
 class StaffCreationForm(forms.Form):
     """Allows for the creation of a Staff and linked User"""
@@ -206,6 +213,100 @@ class StaffCreationForm(forms.Form):
 
         # And now create the linked Staff object
         staff = Staff.objects.create(
+            user=user,
+            title=self.cleaned_data.get('title'),
+            staff_number=staff_number,
+            package=self.cleaned_data.get('package')
+        )
+
+        return user
+
+
+class ExternalExaminerCreationForm(forms.Form):
+    """Allows for the creation of a Staff and linked User"""
+
+    username = forms.CharField(label='Enter Username', min_length=4, max_length=150)
+    email = forms.EmailField(label='Enter Email')
+    title = forms.CharField(label='Enter Title (Dr/Prof/etc)')
+    first_name = forms.CharField()
+    last_name = forms.CharField()
+    password1 = forms.CharField(required=False, label='Enter password', widget=forms.PasswordInput)
+    password2 = forms.CharField(required=False, label='Confirm password', widget=forms.PasswordInput)
+    staff_number = forms.CharField(required=False, label='Staff Number if different from username')
+    package = forms.ModelChoiceField(required=False, queryset=WorkPackage.objects.all())
+
+    def clean_username(self):
+        username = self.cleaned_data['username'].lower()
+        if User.objects.filter(username=username).count():
+            raise  ValidationError("Username already exists")
+        return username
+
+    def clean_staff_number(self):
+        #TODO: This code isn't really working... I get a KeyError if I try to access username directly...
+        staff_number = self.cleaned_data['staff_number'].lower()
+        username = self.cleaned_data.get('username')
+
+        if not staff_number:
+            # Fall back to the username
+            staff_number = username
+
+        if ExternalExaminer.objects.filter(staff_number=staff_number).count():
+            raise  ValidationError("Staff number already exists")
+        return staff_number
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].lower()
+        r = User.objects.filter(email=email)
+        if r.count():
+            raise  ValidationError("Email already exists")
+        return email
+
+    def clean_password2(self):
+        password1 = self.cleaned_data.get('password1')
+        password2 = self.cleaned_data.get('password2')
+
+        if len(password1):
+            if password1 and password2 and password1 != password2:
+                raise ValidationError("Password don't match")
+
+        return password2
+
+    @transaction.atomic
+    def save(self, commit=True):
+
+        # If a staff number wasn't specified, default to username
+        staff_number = self.cleaned_data.get('staff_number')
+
+        if not self.cleaned_data.get('staff_number'):
+            staff_number = self.cleaned_data.get('username')
+
+        # Check if a password is specified, if not, we will have to set one, and later invalidate it
+        # This is for users logging in via remote authentication (which will be typical in Universities)
+        # Passwords should only be added if actually used (for instance, not using CAS or similar)
+        if len(self.cleaned_data.get('password1')):
+            no_password = False
+            password = self.password1
+        else:
+            # auth_user always requires a password, so we'll have to invalidate it later
+            no_password = True
+            password = "None"
+
+        user = User.objects.create_user(
+            username=self.cleaned_data.get('username'),
+            email=self.cleaned_data.get('email'),
+            first_name=self.cleaned_data.get('first_name'),
+            last_name=self.cleaned_data.get('last_name'),
+            password=password
+        )
+
+        # Seems like auth_user requires a password no matter what, so invalidate it if not needed
+        if no_password:
+            user.set_unusable_password()
+            user.save()
+
+
+        # And now create the linked External Examiner object
+        examiner = ExternalExaminer.objects.create(
             user=user,
             title=self.cleaned_data.get('title'),
             staff_number=staff_number,

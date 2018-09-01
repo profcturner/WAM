@@ -1,0 +1,22 @@
+{% include "loads/header.html" %}
+
+<h2>Create External Examiner User</h2>
+
+<p>This form allows the creation of new External Examiners. You should leave the password fields blank if your system
+allows login of remote users. Ask your site admin if you are unsure. You will need to add the Examiner to a Package,
+    but also then add them to a Programme before they will see it.</p>
+
+<form action="" method="post">
+    <table>
+        {% csrf_token %}
+        {{ form.as_table }}
+        <tr>
+            <td>
+                <input type="submit" value="Submit" />
+            </td>
+        </tr>
+
+    </table>
+</form>
+
+{% include "loads/footer.html" %}
