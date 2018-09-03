@@ -1215,6 +1215,10 @@ class AssessmentState(models.Model):
 
         actors = self.get_actor_list()
 
+        # SuperUser override
+        if staff.user.is_superuser:
+            return True
+
         # Anyone
         if self.ANYONE in actors:
             return True
@@ -1254,10 +1258,6 @@ class AssessmentState(models.Model):
 
         # Now it's about checking they have permission at all
         return external.can_access_module(module)
-
-
-
-
 
     class Meta:
         ordering = ['priority']
