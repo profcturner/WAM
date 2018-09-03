@@ -119,6 +119,57 @@ def download_assessment_resource(request, resource_id):
     return response
 
 
+def delete_assessment_resource(request, resource_id):
+    """Delete an assessment resource, should not be possible for signed resources, except for superuser"""
+    # Get the resource object
+    resource = get_object_or_404(AssessmentResource, pk=resource_id)
+
+    # TODO: this is none too elegant, and could be outsourced
+    # Fetch the staff user associated with the person requesting
+    try:
+        staff = Staff.objects.get(user=request.user)
+    except Staff.DoesNotExist:
+        staff = None
+
+    # or possibly an external examiner
+    try:
+        examiner = ExternalExaminer.objects.get(user=request.user)
+    except ExternalExaminer.DoesNotExist:
+        examiner = None
+
+    # If neither here, time to boot
+    if not staff and not examiner:
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    # Assume a lack of permissions
+    permission = False
+
+    # If the resource is signed, deletions are forbidden except for superuser
+    signed = len(AssessmentStateSignOff.objects.all().filter(module=resource.module).\
+                 filter(created__gt=resource.created))
+
+    if signed:
+        if staff and staff.user.is_superuser:
+            permission = True
+    else:
+        # Unsigned resources can be deleted, by owners and module coordinators
+        if staff:
+            if resource.owner == staff or resource.module.coordinator == staff:
+                permission = True
+
+        if examiner:
+            permission = resource.owner == examiner
+
+    if not permission:
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    # Ok, we are allowed to delete
+    # TODO: Absolutely need confirmation logic
+    resource.delete()
+
+    url = reverse('modules_details', kwargs={'module_id': resource.module_id})
+    return HttpResponseRedirect(url)
+
 def loads(request):
     """Show the loads for all members of staff"""
 
@@ -771,13 +822,24 @@ def modules_index(request, semesters):
 
         # get the most recent assessment resource
         resources = AssessmentResource.objects.all().filter(module=module).order_by('-created')[:1]
+        signoffs = AssessmentStateSignOff.objects.all().filter(module=module).order_by('-created')[:1]
 
         if len(resources) > 0:
             resource = resources[0]
         else:
             resource = False
 
-        combined_item = [module, relationship, resource]
+        # Can the logged in user set a new assessment state?
+        action_possible = False
+        if len(signoffs) > 0:
+            signoff = signoffs[0]
+            for state in signoff.assessment_state.next_states.all():
+                if state.can_be_set_by_staff(staff, module):
+                    action_possible = True
+        else:
+            signoff = False
+
+        combined_item = [module, relationship, resource, signoff, action_possible]
         combined_list.append(combined_item)
 
     template = loader.get_template('loads/modules/index.html')
@@ -817,13 +879,24 @@ def external_modules_index(request):
 
         # get the most recent assessment resource
         resources = AssessmentResource.objects.all().filter(module=module).order_by('-created')[:1]
+        signoffs = AssessmentStateSignOff.objects.all().filter(module=module).order_by('-created')[:1]
 
         if len(resources) > 0:
             resource = resources[0]
         else:
             resource = False
 
-        combined_item = [module, relationship, resource]
+        # Can the logged in user set a new assessment state?
+        action_possible = False
+        if len(signoffs) > 0:
+            signoff = signoffs[0]
+            for state in signoff.assessment_state.next_states.all():
+                if state.can_be_set_by_external(staff, module):
+                    action_possible = True
+        else:
+            signoff = False
+
+        combined_item = [module, relationship, resource, signoff, action_possible]
         combined_list.append(combined_item)
 
     template = loader.get_template('loads/modules/index.html')
@@ -934,8 +1007,6 @@ def add_assessment_sign_off(request, module_id):
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
         form = AssessmentStateSignOffForm(request.POST)
-        #form.fields['module'] = module
-        #form.fields['assessment_state'].queryset = next_states
 
         # check whether it's valid:
         if form.is_valid():
@@ -952,7 +1023,6 @@ def add_assessment_sign_off(request, module_id):
     else:
         form = AssessmentStateSignOffForm()
         form.fields['assessment_state'].queryset = next_states
-
 
     template = loader.get_template('loads/modules/add_assessment_signoff.html')
     context = {

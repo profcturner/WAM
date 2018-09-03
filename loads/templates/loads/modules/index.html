@@ -21,15 +21,24 @@
 {% if combined_list %}
     <table border="1">
       <tr>
-        <th>Module Code</th><th>Module Name</th><th>Relationship</th><th>Most Recent Assessment Resource</th><th>Details</th>
+        <th>Module Code</th><th>Module Name</th><th>Relationship</th><th>Most Recent Assessment Status</th><th>Details</th>
       </tr>
-      {% for module, relationship, resource in combined_list %}
+      {% for module, relationship, resource, signoff, action_possible in combined_list %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ module.module_code }}</th>
         <td>{{ module.module_name }}</td>
         <td>{% if relationship %}<strong>{% for relation in relationship %}{% if relation == 'external' %}External Examiner (Information Only){% endif %}{% if relation == 'lead_external' %}Lead External Examiner{% endif %}{% if relation == 'team_member' %}Team{% endif %}{% if relation == 'moderator' %}Moderator{% endif %}{% endfor %}</strong>{% else %}--{% endif %} </td>
-        <td>{% if resource %}{{resource.resource_type}} ({{ resource.created }}){% else %}No Information{% endif %}</td>
-        <td><a href="{% url 'modules_details' module.id %}">Details</a></td>
+        {% if signoff %}
+        <td>{% if action_possible %}<strong>{% endif %}{{ signoff.assessment_state }} ({{ signoff.created }}{% if action_possible %}</strong>{% endif %}</td>
+        {% else %}
+        {# No sign off, look for a resource instead #}
+          {% if resource %}
+        <td>No sign offs, some activity</td>
+          {% else %}
+        <td>No sign offs, no activity</td>
+          {% endif %}
+        {% endif %}
+          <td><a href="{% url 'modules_details' module.id %}">Details</a></td>
       </tr>      
       {% endfor %}
     </table>

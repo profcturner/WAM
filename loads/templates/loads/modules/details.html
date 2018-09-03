@@ -174,7 +174,7 @@
     {% if resources %}
         <table border="1" width="800">
             <tr>
-                <th>Resource Type</th><th>Name</th><th>Owner</th><th>Created</th><th>View</th>
+                <th>Resource Type</th><th>Name</th><th>Owner</th><th>Created</th><th>View</th><th>View</th>
             </tr>
         {% for resource in resources %}
             <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
@@ -183,6 +183,7 @@
                 <td>{{ resource.owner }}</td>
                 <td>{{ resource.created }}</td>
                 <td><a href="{% url 'download_assessment_resource' resource.id %}">View</a></td>
+                <td><a href="{% url 'delete_assessment_resource' resource.id %}">Delete</a></td>
             </tr>
         {% endfor %}
         </table>
