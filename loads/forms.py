@@ -5,10 +5,8 @@ from django.forms import BaseModelFormSet
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import User, Group
 
-from django.contrib.auth.forms import UserCreationForm
 from django.db import transaction
 from django.core.exceptions import ValidationError
-
 
 from .models import AssessmentResource
 from .models import AssessmentStateSignOff
@@ -21,10 +19,9 @@ from .models import Project
 from .models import WorkPackage
 
 
-
 class MigrateWorkPackageForm(forms.Form):
-    '''This form allows for material in one Work Package to another'''
-    #TODO: Still really ugly, and needs some validation for impossible combinations
+    """This form allows for material in one Work Package to another"""
+    # TODO: Still really ugly, and needs some validation for impossible combinations
     source_package = forms.ModelChoiceField(queryset=WorkPackage.objects.all())
     destination_package = forms.ModelChoiceField(queryset=WorkPackage.objects.all())
     copy_programmes = forms.BooleanField(required=False, initial=True)
@@ -36,12 +33,11 @@ class MigrateWorkPackageForm(forms.Form):
     generate_projects = forms.BooleanField(required=False, initial=True)
 
 
-
 class LoadsByModulesForm(forms.Form):
-    '''This prompts for comma separated semesters used for some restrictions'''
+    """This prompts for comma separated semesters used for some restrictions"""
     semesters = forms.CharField(
         max_length=10,
-        #help_text='Comma separated list of semesters to show',
+        # help_text='Comma separated list of semesters to show',
         required=False,
         validators=[
             RegexValidator(
@@ -54,13 +50,13 @@ class LoadsByModulesForm(forms.Form):
     brief_details = forms.BooleanField(
         required=False
     )
-    
-    
+
+
 class ModulesIndexForm(forms.Form):
-    '''This prompts for comma separated semesters used for some restrictions'''
+    """This prompts for comma separated semesters used for some restrictions"""
     semesters = forms.CharField(
         max_length=10,
-        #help_text='Comma separated list of semesters to show',
+        # help_text='Comma separated list of semesters to show',
         required=False,
         validators=[
             RegexValidator(
@@ -71,52 +67,57 @@ class ModulesIndexForm(forms.Form):
         ]
     )
 
-    
+
 class AssessmentResourceForm(ModelForm):
-    '''This form is used to upload an assessment resource'''
+    """This form is used to upload an assessment resource"""
+
     class Meta:
-        model=AssessmentResource
+        model = AssessmentResource
         # A number of fields are automatically handled
         fields = ['name', 'details', 'resource_type', 'resource']
 
 
 class StaffWorkPackageForm(ModelForm):
-    '''This form is to change a Staff member's active WorkPackage'''
+    """This form is to change a Staff member's active WorkPackage"""
+
     class Meta:
         model = Staff
         # Only one field is on the form, the rest are passed in before
         fields = ['package']
-        
-        
+
+
 class TaskCompletionForm(ModelForm):
-    '''This form is to file completion of a task given an existing task'''
+    """This form is to file completion of a task given an existing task"""
+
     class Meta:
         model = TaskCompletion
         # Only one field is on the form, the rest are passed in before
         fields = ['comment']
-        
-        
+
+
 class ExamTrackerForm(ModelForm):
-    '''This form is to file progression of an Exam paper through QA processes'''
+    """This form is to file progression of an Exam paper through QA processes"""
+
     class Meta:
         model = ExamTracker
         # Only one field is on the form, the rest are passed in before
         fields = ['progress']
-        
-        
+
+
 class CourseworkTrackerForm(ModelForm):
-    '''This form is to file progression of Coursework through QA processes'''
+    """This form is to file progression of Coursework through QA processes"""
+
     class Meta:
         model = CourseworkTracker
         # Only one field is on the form, the rest are passed in before
         fields = ['progress']
-        
-        
-        
+
+
 class ProjectForm(ModelForm):
     class Meta:
         model = Project
         fields = ['name', 'activity_type', 'body', 'start', 'end']
+
 
 class AssessmentStateSignOffForm(ModelForm):
     class Meta:
@@ -141,11 +142,11 @@ class StaffCreationForm(forms.Form):
     def clean_username(self):
         username = self.cleaned_data['username'].lower()
         if User.objects.filter(username=username).count():
-            raise  ValidationError("Username already exists")
+            raise ValidationError("Username already exists")
         return username
 
     def clean_staff_number(self):
-        #TODO: This code isn't really working... I get a KeyError if I try to access username directly...
+        # TODO: This code isn't really working... I get a KeyError if I try to access username directly...
         staff_number = self.cleaned_data['staff_number'].lower()
         username = self.cleaned_data.get('username')
 
@@ -154,14 +155,14 @@ class StaffCreationForm(forms.Form):
             staff_number = username
 
         if Staff.objects.filter(staff_number=staff_number).count():
-            raise  ValidationError("Staff number already exists")
+            raise ValidationError("Staff number already exists")
         return staff_number
 
     def clean_email(self):
         email = self.cleaned_data['email'].lower()
         r = User.objects.filter(email=email)
         if r.count():
-            raise  ValidationError("Email already exists")
+            raise ValidationError("Email already exists")
         return email
 
     def clean_password2(self):
@@ -175,7 +176,7 @@ class StaffCreationForm(forms.Form):
         return password2
 
     @transaction.atomic
-    def save(self, commit=True):
+    def save(self):
 
         # If a staff number wasn't specified, default to username
         staff_number = self.cleaned_data.get('staff_number')
@@ -212,7 +213,7 @@ class StaffCreationForm(forms.Form):
             group.user_set.add(user)
 
         # And now create the linked Staff object
-        staff = Staff.objects.create(
+        Staff.objects.create(
             user=user,
             title=self.cleaned_data.get('title'),
             staff_number=staff_number,
@@ -238,11 +239,11 @@ class ExternalExaminerCreationForm(forms.Form):
     def clean_username(self):
         username = self.cleaned_data['username'].lower()
         if User.objects.filter(username=username).count():
-            raise  ValidationError("Username already exists")
+            raise ValidationError("Username already exists")
         return username
 
     def clean_staff_number(self):
-        #TODO: This code isn't really working... I get a KeyError if I try to access username directly...
+        # TODO: This code isn't really working... I get a KeyError if I try to access username directly...
         staff_number = self.cleaned_data['staff_number'].lower()
         username = self.cleaned_data.get('username')
 
@@ -251,14 +252,14 @@ class ExternalExaminerCreationForm(forms.Form):
             staff_number = username
 
         if ExternalExaminer.objects.filter(staff_number=staff_number).count():
-            raise  ValidationError("Staff number already exists")
+            raise ValidationError("Staff number already exists")
         return staff_number
 
     def clean_email(self):
         email = self.cleaned_data['email'].lower()
         r = User.objects.filter(email=email)
         if r.count():
-            raise  ValidationError("Email already exists")
+            raise ValidationError("Email already exists")
         return email
 
     def clean_password2(self):
@@ -272,7 +273,7 @@ class ExternalExaminerCreationForm(forms.Form):
         return password2
 
     @transaction.atomic
-    def save(self, commit=True):
+    def save(self):
 
         # If a staff number wasn't specified, default to username
         staff_number = self.cleaned_data.get('staff_number')
@@ -304,9 +305,8 @@ class ExternalExaminerCreationForm(forms.Form):
             user.set_unusable_password()
             user.save()
 
-
         # And now create the linked External Examiner object
-        examiner = ExternalExaminer.objects.create(
+        ExternalExaminer.objects.create(
             user=user,
             title=self.cleaned_data.get('title'),
             staff_number=staff_number,
@@ -332,28 +332,28 @@ class BaseModuleStaffByStaffFormSet(BaseModelFormSet):
             # If the form is deleted, don't validate, it's data is about to be nuked
             if form in self.deleted_forms:
                 continue
-                
+
             if form.cleaned_data:
                 module = form.cleaned_data['module']
 
                 if module in modules:
                     duplicates = True
                 modules.append(module)
-            
+
                 contact_proportion = form.cleaned_data['contact_proportion']
                 if contact_proportion < 0 or contact_proportion > 100:
                     raise forms.ValidationError(
                         'Contact proportion must be a valid percentage',
                         code='invalid_contact_proportion'
                     )
-                    
+
                 admin_proportion = form.cleaned_data['admin_proportion']
                 if admin_proportion < 0 or admin_proportion > 100:
                     raise forms.ValidationError(
                         'Admin proportion must be a valid percentage',
                         code='invalid_admin_proportion'
                     )
-                    
+
                 assessment_proportion = form.cleaned_data['assessment_proportion']
                 if assessment_proportion < 0 or assessment_proportion > 100:
                     raise forms.ValidationError(
@@ -381,21 +381,21 @@ class BaseModuleStaffByModuleFormSet(BaseModelFormSet):
         contact_total = 0
         admin_total = 0
         assessment_total = 0
-        
+
         duplicates = False
 
         for form in self.forms:
             # If the form is deleted, don't validate, it's data is about to be nuked
             if form in self.deleted_forms:
                 continue
-                
+
             if form.cleaned_data:
                 staff = form.cleaned_data['staff']
 
                 if staff in staff_members:
                     duplicates = True
                 staff_members.append(staff)
-            
+
                 contact_proportion = form.cleaned_data['contact_proportion']
                 contact_total += contact_proportion
                 if contact_proportion < 0 or contact_proportion > 100:
@@ -411,7 +411,7 @@ class BaseModuleStaffByModuleFormSet(BaseModelFormSet):
                         'Admin proportion must be a valid percentage',
                         code='invalid_admin_proportion'
                     )
-                    
+
                 assessment_proportion = form.cleaned_data['assessment_proportion']
                 assessment_total += assessment_proportion
                 if assessment_proportion < 0 or assessment_proportion > 100:
