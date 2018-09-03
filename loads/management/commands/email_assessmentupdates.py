@@ -56,7 +56,7 @@ class Command(BaseCommand):
         include_past = options['include-past']
 
         if verbosity and options['test-only']:
-            self.stdout.write('TEST MODE, No emails will actually be sent.')
+            self.stdout.write(self.style.WARNING('TEST MODE, No emails will actually be sent.'))
 
         for signoff in signoffs:
             if signoff.module.package.in_the_past() and not include_past:
@@ -71,7 +71,7 @@ class Command(BaseCommand):
             self.stdout.write(str(count) + ' update(s) sent')
 
         if verbosity and options['test-only']:
-            self.stdout.write('TEST MODE, No emails will actually be sent.')
+            self.stdout.write(self.style.WARNING('TEST MODE, No emails will actually be sent.'))
 
     def email_updates_for_signoff(self, signoff, options):
         """Email relevant parties for a signoff, and update notified field"""
@@ -114,14 +114,37 @@ class Command(BaseCommand):
         # Get the whole assessment history
         assessment_history = signoff.module.get_assessment_history()
 
-        #TODO: Trim off any signoffs before the current one (in case more happened before this job)
+        # Trim off any signoffs before the current one (in case more happened before this job)
+        corrected_history = list()
+        for (item, item_resources) in assessment_history:
+            if item.created <= signoff.created:
+                corrected_history.append((item, item_resources))
+
+        if verbosity:
+            self.stdout.write('Update {} for {}'.format(signoff.assessment_state, signoff.module))
+            self.stdout.write('  Signed on {} by {}'.format(signoff.created, signed_by))
+
+            if not len(email_addresses):
+                self.stdout.write(self.style.WARNING('  Nobody meets criteria for notification.'))
+            if verbosity > 2:
+                for address in email_addresses:
+                    self.stdout.write(self.style.SUCCESS('  Notify: {}'.format(address)))
+
+        # If there's nobody to write to, bail out
+        if not len(email_addresses):
+            # Nobody to talk to!
+            if not options['test-only']:
+                # Remember that we would have sent the notifications
+                signoff.notified = datetime.datetime.today().date()
+                signoff.save()
+            return False
 
         plaintext = get_template('loads/emails/assessment_updates.txt')
         html = get_template('loads/emails/assessment_updates.html')
 
         context_dict = {
             'signoff': signoff,
-            'assessment_history': assessment_history,
+            'assessment_history': corrected_history,
             'base_url': settings.WAM_URL,
         };
 
@@ -130,23 +153,6 @@ class Command(BaseCommand):
         from_email, to = settings.WAM_AUTO_EMAIL_FROM, separator.join(email_addresses)
         text_content = plaintext.render(context_dict)
         html_content = html.render(context_dict)
-
-        if verbosity:
-            self.stdout.write('Update {} for {}'.format(signoff.assessment_state, signoff.module))
-            self.stdout.write('  Signed on {} by {}'.format(signoff.created, signed_by))
-            if not len(email_addresses):
-                self.stdout.write('  Nobody meets criteria for notification.')
-            if verbosity > 2:
-                for address in email_addresses:
-                    self.stdout.write('  Notify: {}'.format(address))
-
-        if not len(email_addresses):
-            # Nobody to talk to!
-            if not options['test-only']:
-                # Remember that we would have sent the notifications
-                signoff.notified = datetime.datetime.today().date()
-                signoff.save()
-            return False
 
         email = EmailMultiAlternatives(email_subject, text_content, from_email, [to])
         email.attach_alternative(html_content, "text/html")
