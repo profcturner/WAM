@@ -14,8 +14,12 @@ from django.template import Context
 from loads.models import Staff
 from loads.models import Programme
 from loads.models import Module
+from loads.models import ModuleStaff
 from loads.models import AssessmentResource
 from loads.models import ExternalExaminer
+from loads.models import AssessmentStaff
+from loads.models import AssessmentStateSignOff
+from loads.models import AssessmentState
 
 # We need to access a few settings
 from django.conf import settings
@@ -24,208 +28,132 @@ import datetime
 # code to handle timezones
 from django.utils import timezone
 
+
 class Command(BaseCommand):
-    help = 'Emails staff if tasks are outstanding'
+    help = 'Emails assessment signoff details to relevant staff and examiners'
 
     def add_arguments(self, parser):
-        parser.add_argument('--urgent-only',
-            action='store_true',
-            dest='urgent-only',
-            default=False,
-            help='Only email if some tasks are urgent (less than 7 days to deadline)')
-            
         parser.add_argument('--test-only',
-            action='store_true',
-            dest='test-only',
-            default=False,
-            help='Don\'t actually send emails')
-            
+                            action='store_true',
+                            dest='test-only',
+                            default=False,
+                            help='Don\'t actually send emails')
+
         parser.add_argument('--include-past',
-            action='store_true',
-            dest='include-past',
-            default=False,
-            help='Include notifications from work packages in the past')
+                            action='store_true',
+                            dest='include-past',
+                            default=False,
+                            help='Include notifications from work packages in the past')
 
-            
     def handle(self, *args, **options):
-        #TODO needs some decent exception handling
-        all_staff = Staff.objects.all()
-        all_examiners = ExternalExaminer.objects.all()
-        
+        # TODO needs some decent exception handling
+
+        # Get all sign offs with no notification time
+        signoffs = AssessmentStateSignOff.objects.all().filter(notified=None).order_by("created")
+
         count = 0
-        urgent_only = options['urgent-only']
-        verbosity = options['verbosity']
-        
-        if verbosity and options['test-only']:
-            self.stdout.write('TEST MODE, No emails will actually be sent.')
-        
-        for staff in all_staff:
-            if self.email_updates_by_staff(staff, options, urgent_only=urgent_only):
-                count += 1
-
-        for external in all_examiners:
-            if self.email_updates_by_external(external, options, urgent_only=urgent_only):
-                count += 1
-
-        if verbosity:
-            self.stdout.write(str(count)+ ' update(s) sent')
-        
-        if verbosity and options['test-only']:
-            self.stdout.write('TEST MODE, No emails will actually be sent.')
-            
-
-
-    def email_updates_by_staff(self, staff, options, urgent_only='false'):
-        """email and updates to an individual staff member"""
         verbosity = options['verbosity']
         include_past = options['include-past']
-        
-        # If the member of staff is inactive (perhaps retired, skip them)
-        if not staff.is_active():
-          if verbosity > 2:
-            self.stdout.write('  considering: {}'.format(str(staff)))
-            self.stdout.write('    user marked inactive, skipping...')
-          return False
-        
-        # When did the person last login?
-        last_login = staff.user.last_login
-        
-        # Work out when the person last logged in to see what's considered new
-        if last_login == None:
-            # To prevent type errors create a date to compare against in this case
-            census_date = datetime.datetime(1970, 1, 1)
-            census_date = timezone.make_aware(census_date, timezone.get_current_timezone())
-            last_login = "never"
-        else:
-            census_date = last_login
 
- 
-        # Get all the modules for which this staff member is a coordinator
-        coordinated = Module.objects.all().filter(coordinator=staff)
-        if not options['include-past']:
-            now = datetime.datetime.today().date()
-            coordinated = coordinated.exclude(package__enddate__lte=now)
-                
-        coordinated_items = AssessmentResource.objects.all().filter(created__gte=census_date).filter(module__in=coordinated).distinct()
-        
-        # Get all the modules for which this staff member is a moderator
-        moderated = Module.objects.all().filter(moderators=staff)
-        if not options['include-past']:
-            now = datetime.datetime.today().date()
-            moderated = moderated.exclude(package__enddate__lte=now)
-                
-        moderated_items = AssessmentResource.objects.all().filter(created__gte=census_date).filter(module__in=moderated).distinct()
-        
-        if verbosity > 2:
-            self.stdout.write('  considering: {}'.format(str(staff)))
-            self.stdout.write('    last login time: {}, census date: {}'.format(last_login, census_date))
-            self.stdout.write('    coordinated modules {}, coordinated items {}'.format(
-                len(coordinated), len(coordinated_items)
-            ))
-            self.stdout.write('    moderated modules {}, moderated items {}'.format(
-                len(moderated), len(moderated_items)
-            ))
-                    
-        # Don't nag staff with no items
-        if len(coordinated_items)+len(moderated_items) == 0:
-            return False
+        if verbosity and options['test-only']:
+            self.stdout.write('TEST MODE, No emails will actually be sent.')
 
-        plaintext = get_template('loads/emails/assessment_updates.txt')
-        html = get_template('loads/emails/assessment_updates.html')
+        for signoff in signoffs:
+            if signoff.module.package.in_the_past() and not include_past:
+                if verbosity:
+                    self.stdout.write('Skipping sign-off for package in the past:')
+                    self.stdout.write('  {} {}'.format(signoff.assessment_state, signoff.created))
+            else:
+                if self.email_updates_for_signoff(signoff, options):
+                    count +=1
 
-        context_dict = {
-            'staff': staff,
-            'coordinated_items': coordinated_items,
-            'moderated_items': moderated_items,
-            'external_examiner': False,
-            'base_url' : settings.WAM_URL, 
-        };
-
-        email_subject = 'You have new assessment items to consider'
-            
-        from_email, to = settings.WAM_AUTO_EMAIL_FROM, staff.user.email
-        text_content = plaintext.render(context_dict)
-        html_content = html.render(context_dict)
-        
         if verbosity:
-            self.stdout.write('Email sent to {} <{}>'.format(str(staff), staff.user.email))
-        
-        email = EmailMultiAlternatives(email_subject, text_content, from_email, [to])
-        email.attach_alternative(html_content, "text/html")
-        if not options['test-only']:
-            email.send()
-        return True
+            self.stdout.write(str(count) + ' update(s) sent')
 
+        if verbosity and options['test-only']:
+            self.stdout.write('TEST MODE, No emails will actually be sent.')
 
-    def email_updates_by_external(self, external, options, urgent_only='false'):
-        """email and updates to an individual external examiner"""
+    def email_updates_for_signoff(self, signoff, options):
+        """Email relevant parties for a signoff, and update notified field"""
         verbosity = options['verbosity']
-        
-        # If the member of staff is inactive (perhaps retired, skip them)
-        if not external.is_active():
-          if verbosity > 2:
-            self.stdout.write('  considering: {}'.format(str(external)))
-            self.stdout.write('    user marked inactive, skipping...')
-          return False
-        
-        # When did the person last login?
-        last_login = external.user.last_login
-        
-        if last_login == None:
-            census_date = datetime.datetime(1970, 1, 1)
-            census_date = timezone.make_aware(census_date, timezone.get_current_timezone())
-            last_login = "never"
-        else:
-            census_date = last_login
-            
-        # Get moderated programmes
-        programmes = external.get_examined_programmes()
-        
-        # Get all the modules for which this staff member is the lead examiner
-        examined_modules = Module.objects.all().filter(lead_programme__in=programmes).distinct()
-        if not options['include-past']:
-            now = datetime.datetime.today().date()
-            examined_modules = examined_modules.exclude(package__enddate__lte=now)
-        
-        examined_items = AssessmentResource.objects.all().filter(created__gte=census_date).filter(module__in=examined_modules).distinct()
-        
-        if verbosity > 2:
-            self.stdout.write('  considering: {}'.format(str(external)))
-            self.stdout.write('    (External Examiner)')
-            self.stdout.write('    last login time: {}, census date: {}'.format(last_login, census_date))
-            self.stdout.write('    examined modules {}, examined items {}'.format(
-                len(examined_modules), len(examined_items)
-            ))
-                    
-        # Don't nag staff with no items
-        if len(examined_items) == 0:
-            return False
+
+        # Get a decent text representation of the signer
+        signed_by = signoff.signed_by.first_name + ' ' + signoff.signed_by.last_name
+
+        # Now, make a list of user objects to write to
+        email_targets = list()
+
+        for target in signoff.assessment_state.get_notify_list():
+            # Is it a Module Coordinator
+            if target == signoff.assessment_state.COORDINATOR:
+                if signoff.module.coordinator:
+                    email_targets.append(signoff.module.coordinator.user)
+            # Or a moderator
+            if target == signoff.assessment_state.MODERATOR:
+                for moderator in  signoff.module.moderators.all():
+                    email_targets.append(moderator.user)
+            # Or a member of staff allocated to the module
+            if target == signoff.assessment_state.TEAM_MEMBER:
+                for module_staff in ModuleStaff.objects.all().filter(module=signoff.module):
+                    email_targets.append(module_staff.staff.user)
+            # Or an external examiner
+            if target == signoff.assessment_state.EXTERNAL:
+                for external in signoff.module.lead_programme.examiners.all():
+                    email_targets.append(external.user)
+            # Or a member of assessment staff
+            if target == signoff.assessment_state.ASSESSMENT_STAFF:
+                for staff in AssessmentStaff.objects.all().filter(package=signoff.module.package):
+                    email_targets.append(staff.user)
+
+        email_addresses = list()
+        separator = ', '
+
+        for target in email_targets:
+            email_addresses.append("{} {} <{}>".format(target.first_name, target.last_name, target.email))
+
+        # Get the whole assessment history
+        assessment_history = signoff.module.get_assessment_history()
+
+        #TODO: Trim off any signoffs before the current one (in case more happened before this job)
 
         plaintext = get_template('loads/emails/assessment_updates.txt')
         html = get_template('loads/emails/assessment_updates.html')
 
         context_dict = {
-            'staff': external,
-            'examined_items': examined_items,
-            'external_examiner': True,
-            'base_url' : settings.WAM_URL, 
+            'signoff': signoff,
+            'assessment_history': assessment_history,
+            'base_url': settings.WAM_URL,
         };
 
-        email_subject = 'You have new assessment items to consider'
-            
-        from_email, to = settings.WAM_AUTO_EMAIL_FROM, external.user.email
+        email_subject = 'Assessment Sign-off update for {}'.format(signoff.module)
+
+        from_email, to = settings.WAM_AUTO_EMAIL_FROM, separator.join(email_addresses)
         text_content = plaintext.render(context_dict)
         html_content = html.render(context_dict)
-        
+
         if verbosity:
-            self.stdout.write('Email sent to {} <{}>'.format(str(external), external.user.email))
-        
+            self.stdout.write('Update {} for {}'.format(signoff.assessment_state, signoff.module))
+            self.stdout.write('  Signed on {} by {}'.format(signoff.created, signed_by))
+            if not len(email_addresses):
+                self.stdout.write('  Nobody meets criteria for notification.')
+            if verbosity > 2:
+                for address in email_addresses:
+                    self.stdout.write('  Notify: {}'.format(address))
+
+        if not len(email_addresses):
+            # Nobody to talk to!
+            if not options['test-only']:
+                # Remember that we would have sent the notifications
+                signoff.notified = datetime.datetime.today().date()
+                signoff.save()
+            return False
+
         email = EmailMultiAlternatives(email_subject, text_content, from_email, [to])
         email.attach_alternative(html_content, "text/html")
+
         if not options['test-only']:
             email.send()
+            # Remember that we sent the notifications
+            signoff.notified=datetime.datetime.today().date()
+            signoff.save()
         return True
-
-
-
-    

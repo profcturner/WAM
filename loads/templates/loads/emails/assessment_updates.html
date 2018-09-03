@@ -1,48 +1,36 @@
-{% if coordinated_items or moderated_items or examined_items %}
-<p>There are new assessment items that may be relevant to you, since your last login.</p>
+Dear Colleague,
 
-    <table style="border-collapse: collapse; border-color: #ccc;" border="1">
-      <tr>
-        <th style="text-align: left;">Module</th>
-        <th style="text-align: left;">Name</th>
-        <th style="text-align: left;">Type</th>
-        <th></th>
-      </tr>
-      {% if coordinated_items %}
-      <tr style="padding: 5px"><th colspan="4">Items for which you are a coordinator</th></tr>
-      {% for item in coordinated_items %}
-      <tr style="background: {% cycle '#EDF3FE' '#FFFFFF' %};">
-        <th style="text-align: left; padding: 5px">{{ item.module }}</th>
-        <td style="text-align: left; padding: 5px">{{ item.name }}</td>
-        <td style="text-align: left; padding: 5px;">{{ item.resource_type }}</td>
-        <td style="text-align: left; padding: 5px;"><a href="{{ base_url }}{% url 'modules_details' item.module.id %}">details</a></td>
-      </tr>      
-      {% endfor %}
-      {% endif %}
-      {% if moderated_items %}
-      <tr style="padding: 5px"><th colspan="4">Items for which you are a moderator</th></tr>
-      {% for item in moderated_items %}
-      <tr style="background: {% cycle '#EDF3FE' '#FFFFFF' %};">
-        <th style="text-align: left; padding: 5px">{{ item.module }}</th>
-        <td style="text-align: left; padding: 5px">{{ item.name }}</td>
-        <td style="text-align: left; padding: 5px;">{{ item.resource_type }}</td>
-        <td style="text-align: left; padding: 5px;"><a href="{{ base_url }}{% url 'modules_details' item.module.id %}">details</a></td>
-      </tr>      
-      {% endfor %}
-      {% endif %}
-      {% if examined_items %}
-      <tr style="padding: 5px"><th colspan="4">Items for which you are the lead External Examiner</th></tr>
-      {% for item in examined_items %}
-      <tr style="background: {% cycle '#EDF3FE' '#FFFFFF' %};">
-        <th style="text-align: left; padding: 5px">{{ item.module }}</th>
-        <td style="text-align: left; padding: 5px">{{ item.name }}</td>
-        <td style="text-align: left; padding: 5px;">{{ item.resource_type }}</td>
-        <td style="text-align: left; padding: 5px;"><a href="{{ base_url }}{% url 'modules_details' item.module.id %}">details</a></td>
-      </tr>      
-      {% endfor %}
-      {% endif %}
-    </table>
-    
+Your attention is drawn to this assessment sign off on module {{ signoff.module }}. Any previous history is shown
+for reference.
+
+<a href="{{ base_url }}{% url 'modules_details' signoff.module.id %}">Further details are available online.</a>
+
+{% if assessment_history %}
+    {% for signoff, resources in assessment_history %}
+
+    {% if signoff %}
+        <h3>{{ signoff.assessment_state }} by {{ signoff.signed_by.first_name }} {{ signoff.signed_by.last_name }} on {{ signoff.created }}</h3>
+    {% endif %}
+
+    {% if resources %}
+        <table border="1" width="800">
+            <tr>
+                <th>Resource Type</th><th>Name</th><th>Owner</th><th>Created</th><th>View</th><th>View</th>
+            </tr>
+        {% for resource in resources %}
+            <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+                <td>{{ resource.resource_type }}</td>
+                <td>{{ resource.name }}</td>
+                <td>{{ resource.owner }}</td>
+                <td>{{ resource.created }}</td>
+            </tr>
+        {% endfor %}
+        </table>
+    {% endif %}
+
+    {% endfor %}
+
 {% else %}
-    <p>No updates are noted for {{ staff }}.</p>
+    <p>Oh, something went wrong.</p>
+
 {% endif %}
