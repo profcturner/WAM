@@ -2,8 +2,10 @@
 
 <h2>Sign-off resources for {{ module }}</h2>
 
-<p>Here you can sign off resources or comment on previous signoffs.</p>
+<p>Here you can sign off resources or comment on previous signoffs. Note that once you create a sign-off the resources
+already added can no longer be deleted.</p>
 
+{% if next_steps %}
 <form action="" method="post" enctype="multipart/form-data">
     {% csrf_token %}
   <table border="0" cellpadding="0" cellspacing="0">
@@ -11,6 +13,15 @@
   </table>
     <input type="submit" value="Submit" />
 </form>
+{% else %}
+    <p class="error_message">
+        Unfortunately no new states can be signed from the current one, or you do not have permission to do so.
+    </p>
+{% endif %}
+
+<h3>History</h3>
+
+<p>For your convenience, here is the previous sign-off history, with notes, for this module.</p>
 
 {% if assessment_signoffs %}
     <table border="1" width="800">
