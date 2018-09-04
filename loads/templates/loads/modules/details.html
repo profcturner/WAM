@@ -169,6 +169,7 @@
 
     {% if signoff %}
         <h3>{{ signoff.assessment_state }} by {{ signoff.signed_by.first_name }} {{ signoff.signed_by.last_name }} on {{ signoff.created }}</h3>
+        <p>{{ signoff.notes }}</p>
     {% endif %}
 
     {% if resources %}
