@@ -1200,6 +1200,18 @@ class AssessmentState(models.Model):
 
             returns True if permitted, False otherwise
         """
+        if isinstance(person, User):
+            # See if they are staff
+            staff = Staff.objects.all().get(user=person)
+            if staff:
+                person = staff
+            else:
+                external = ExternalExaminer.objects.all().get(user=person)
+                if external:
+                    person = external
+                else:
+                    return False
+
         if isinstance(person, Staff):
             return self.can_be_set_by_staff(person, module)
 
