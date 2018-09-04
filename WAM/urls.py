@@ -35,7 +35,11 @@ urlpatterns = [
     url(r'^modules/index/(?P<semesters>[0-9,]*)$', views.modules_index, name='modules_index'),
     url(r'^modules/details/(?P<module_id>[0-9]+)$', views.modules_details, name='modules_details'),
     url(r'^modules/add_assessment_resource/(?P<module_id>[0-9]+)$', views.add_assessment_resource, name='add_assessment_resource'),
-    url(r'^modules/download_assessment_resource/(?P<resource_id>[0-9]+)$', views.download_assessment_resource, name='download_assessment_resource'),    
+    url(r'^modules/download_assessment_resource/(?P<resource_id>[0-9]+)$', views.download_assessment_resource, name='download_assessment_resource'),
+    url(r'^modules/delete_assessment_resource/(?P<resource_id>[0-9]+)$', views.delete_assessment_resource,
+        name='delete_assessment_resource'),
+    url(r'^modules/add_assessment_sign_off/(?P<module_id>[0-9]+)$', views.add_assessment_sign_off,
+        name='add_assessment_sign_off'),
     url(r'^modules/examtracker/(?P<module_id>[0-9]+)$', views.exam_track_progress, name='exam_track_progress'),
     url(r'^modules/courseworktracker/(?P<module_id>[0-9]+)$', views.coursework_track_progress, name='coursework_track_progress'),
     url(r'^modules/allocations/(?P<package_id>[0-9]+)/(?P<module_id>[0-9]+)$', views.module_staff_allocation, name='module_staff_allocation'),
@@ -48,4 +52,6 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^cadmin/$', views.custom_admin_index, name='custom_admin_index'),
     url(r'^cadmin/create_staff_user', views.create_staff_user, name='create staff user'),
+    url(r'^cadmin/create_external_examiner', views.create_external_examiner, name='create external examiner'),
+
 ]
