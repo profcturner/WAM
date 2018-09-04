@@ -45,3 +45,7 @@ db.sqlite3.backup
 media/*
 .idea/*
 
+WAM/.ropeproject/config.py
+WAM/.ropeproject/globalnames
+WAM/.ropeproject/history
+WAM/.ropeproject/objectdb
