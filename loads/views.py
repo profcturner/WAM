@@ -1002,10 +1002,9 @@ def add_assessment_sign_off(request, module_id):
         next_states = assessment_signoffs[0].assessment_state.next_states.all()
 
     # These are the possible successor states, but same may not be allowed to the current user
-    confirmed_states = list()
     for state in next_states:
-        if state.can_be_set_by(request.user, module):
-            confirmed_states.append(state)
+        if not state.can_be_set_by(request.user, module):
+            next_states = next_states.exclude(pk=state.pk)
 
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
@@ -1032,7 +1031,7 @@ def add_assessment_sign_off(request, module_id):
     context = {
         'module': module,
         'assessment_signoffs': assessment_signoffs,
-        'next_states': confirmed_states,
+        'next_states': next_states,
         'form': form
     }
     return HttpResponse(template.render(context, request))
