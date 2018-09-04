@@ -1,25 +1,15 @@
-'''A custom command to send assessment resource updates to staff'''
+"""A custom command to send assessment resource updates to staff"""
 # Code to implement a custom command
-from django.core.management.base import BaseCommand, CommandError
-
-# We need to manipulate User and Group Information
-from django.contrib.auth.models import User, Group
+from django.core.management.base import BaseCommand
 
 # We will be using mail functionality, and templates to create them
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
-from django.template import Context
 
 # And some models
-from loads.models import Staff
-from loads.models import Programme
-from loads.models import Module
 from loads.models import ModuleStaff
-from loads.models import AssessmentResource
-from loads.models import ExternalExaminer
 from loads.models import AssessmentStaff
 from loads.models import AssessmentStateSignOff
-from loads.models import AssessmentState
 
 # We need to access a few settings
 from django.conf import settings
@@ -30,7 +20,7 @@ from django.utils import timezone
 
 
 class Command(BaseCommand):
-    help = 'Emails assessment signoff details to relevant staff and examiners'
+    help = 'Emails assessment sign-off details to relevant staff and examiners'
 
     def add_arguments(self, parser):
         parser.add_argument('--test-only',
@@ -65,7 +55,7 @@ class Command(BaseCommand):
                     self.stdout.write('  {} {}'.format(signoff.assessment_state, signoff.created))
             else:
                 if self.email_updates_for_signoff(signoff, options):
-                    count +=1
+                    count += 1
 
         if verbosity:
             self.stdout.write(str(count) + ' update(s) sent')
@@ -74,7 +64,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('TEST MODE, No emails will actually be sent.'))
 
     def email_updates_for_signoff(self, signoff, options):
-        """Email relevant parties for a signoff, and update notified field"""
+        """Email relevant parties for a sign-off, and update notified field"""
         verbosity = options['verbosity']
 
         # Get a decent text representation of the signer
@@ -90,7 +80,7 @@ class Command(BaseCommand):
                     email_targets.append(signoff.module.coordinator.user)
             # Or a moderator
             if target == signoff.assessment_state.MODERATOR:
-                for moderator in  signoff.module.moderators.all():
+                for moderator in signoff.module.moderators.all():
                     email_targets.append(moderator.user)
             # Or a member of staff allocated to the module
             if target == signoff.assessment_state.TEAM_MEMBER:
@@ -114,7 +104,7 @@ class Command(BaseCommand):
         # Get the whole assessment history
         assessment_history = signoff.module.get_assessment_history()
 
-        # Trim off any signoffs before the current one (in case more happened before this job)
+        # Trim off any sign-offs before the current one (in case more happened before this job)
         corrected_history = list()
         for (item, item_resources) in assessment_history:
             if item.created <= signoff.created:
@@ -146,7 +136,7 @@ class Command(BaseCommand):
             'signoff': signoff,
             'assessment_history': corrected_history,
             'base_url': settings.WAM_URL,
-        };
+        }
 
         email_subject = 'Assessment Sign-off update for {}'.format(signoff.module)
 
@@ -160,6 +150,6 @@ class Command(BaseCommand):
         if not options['test-only']:
             email.send()
             # Remember that we sent the notifications
-            signoff.notified=datetime.datetime.today().date()
+            signoff.notified = datetime.datetime.today().date()
             signoff.save()
         return True
