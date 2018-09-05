@@ -29,6 +29,6 @@ Further details are available online:
 
 {% else %}
 
-Oh, something has gone wrong.
+Oh, something has gone wrong trying to send you an assessment update.
 
 {% endif %}

@@ -1,9 +1,9 @@
-Dear Colleague,
+<p>Dear Colleague,<br />
 
 Your attention is drawn to this assessment sign off on module {{ signoff.module }}. Any previous history is shown
-for reference.
+    for reference.</p>
 
-<a href="{{ base_url }}{% url 'modules_details' signoff.module.id %}">Further details are available online.</a>
+<p><a href="{{ base_url }}{% url 'modules_details' signoff.module.id %}">Further details are available online.</a></p>
 
 {% if assessment_history %}
     {% for signoff, resources in assessment_history %}
@@ -13,12 +13,12 @@ for reference.
     {% endif %}
 
     {% if resources %}
-        <table border="1" width="800">
+        <table style="border-collapse: collapse; border-color: #ccc;" border="1">
             <tr>
-                <th>Resource Type</th><th>Name</th><th>Owner</th><th>Created</th><th>View</th><th>View</th>
+                <th>Resource Type</th><th>Name</th><th>Owner</th><th>Created</th>
             </tr>
         {% for resource in resources %}
-            <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+            <tr style="background: {% cycle '#EDF3FE' '#FFFFFF' %};">
                 <td>{{ resource.resource_type }}</td>
                 <td>{{ resource.name }}</td>
                 <td>{{ resource.owner }}</td>
@@ -31,6 +31,6 @@ for reference.
     {% endfor %}
 
 {% else %}
-    <p>Oh, something went wrong.</p>
+    <p>Oh, something went wrong trying to send you an assessment update.</p>
 
 {% endif %}
