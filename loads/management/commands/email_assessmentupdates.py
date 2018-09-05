@@ -125,7 +125,8 @@ class Command(BaseCommand):
             # Nobody to talk to!
             if not options['test-only']:
                 # Remember that we would have sent the notifications
-                signoff.notified = datetime.datetime.today().date()
+                now = datetime.datetime.utcnow().replace(tzinfo=utc)
+                signoff.notified = now
                 signoff.save()
             return False
 
