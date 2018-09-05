@@ -16,7 +16,7 @@ from django.conf import settings
 
 import datetime
 # code to handle timezones
-from django.utils import timezone
+from django.utils.timezone import utc
 
 
 class Command(BaseCommand):
