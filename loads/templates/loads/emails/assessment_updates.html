@@ -15,14 +15,17 @@ Your attention is drawn to this assessment sign off on module {{ signoff.module 
     {% if resources %}
         <table style="border-collapse: collapse; border-color: #ccc;" border="1">
             <tr>
-                <th>Resource Type</th><th>Name</th><th>Owner</th><th>Created</th>
+                <th style="text-align: left;">Resource Type</th>
+                <th style="text-align: left;">Name</th>
+                <th style="text-align: left;">Owner</th><th>Created</th>
+
             </tr>
         {% for resource in resources %}
             <tr style="background: {% cycle '#EDF3FE' '#FFFFFF' %};">
-                <td>{{ resource.resource_type }}</td>
-                <td>{{ resource.name }}</td>
-                <td>{{ resource.owner }}</td>
-                <td>{{ resource.created }}</td>
+                <td style="padding: 5px;">{{ resource.resource_type }}</td>
+                <td style="padding: 5px;">{{ resource.name }}</td>
+                <td style="padding: 5px;">{{ resource.owner }}</td>
+                <td style="padding: 5px;">{{ resource.created }}</td>
             </tr>
         {% endfor %}
         </table>
