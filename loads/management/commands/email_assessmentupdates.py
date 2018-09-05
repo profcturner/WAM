@@ -23,6 +23,12 @@ class Command(BaseCommand):
     help = 'Emails assessment sign-off details to relevant staff and examiners'
 
     def add_arguments(self, parser):
+        parser.add_argument('--quiet',
+                            action='store_true',
+                            dest='quiet',
+                            default=False,
+                            help='Don\'t produce output if nothing is to be done')
+
         parser.add_argument('--test-only',
                             action='store_true',
                             dest='test-only',
@@ -44,6 +50,8 @@ class Command(BaseCommand):
         count = 0
         verbosity = options['verbosity']
         include_past = options['include-past']
+        quiet = options['quiet']
+        # TODO: quiet needs better handling, really
 
         if verbosity and options['test-only']:
             self.stdout.write(self.style.WARNING('TEST MODE, No emails will actually be sent.'))
@@ -57,7 +65,7 @@ class Command(BaseCommand):
                 if self.email_updates_for_signoff(signoff, options):
                     count += 1
 
-        if verbosity:
+        if not quiet:
             self.stdout.write(str(count) + ' update(s) sent')
 
         if verbosity and options['test-only']:
@@ -66,6 +74,9 @@ class Command(BaseCommand):
     def email_updates_for_signoff(self, signoff, options):
         """Email relevant parties for a sign-off, and update notified field"""
         verbosity = options['verbosity']
+
+        # Get the current time
+        now = datetime.datetime.utcnow().replace(tzinfo=utc)
 
         # Get a decent text representation of the signer
         signed_by = signoff.signed_by.first_name + ' ' + signoff.signed_by.last_name
@@ -125,7 +136,6 @@ class Command(BaseCommand):
             # Nobody to talk to!
             if not options['test-only']:
                 # Remember that we would have sent the notifications
-                now = datetime.datetime.utcnow().replace(tzinfo=utc)
                 signoff.notified = now
                 signoff.save()
             return False
@@ -151,6 +161,6 @@ class Command(BaseCommand):
         if not options['test-only']:
             email.send()
             # Remember that we sent the notifications
-            signoff.notified = datetime.datetime.today().date()
+            signoff.notified = now
             signoff.save()
         return True
