@@ -27,3 +27,5 @@ There are some additional features, which may eventually be split into a second 
 * Allows tasks to be set against individual staff or groups and self certification of completion.
 * Can email staff task reminders
 * Allows assessment and moderation items to be handled securely online.
+
+More detailed information can be found in the [Wiki](https://github.com/profcturner/WAM/wiki)
