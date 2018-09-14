@@ -1,0 +1,26 @@
+{% include "loads/header.html" %}
+
+{# <p>Selected Work Package : {{package}} <a href="{%url 'workpackage_change' %}">(Change Package)</a></p> #}
+
+<h2>Programmes</h2>
+
+    <table border="1">
+      <tr>
+        <th>Programme Code</th>
+        <th>Programme Name</th>
+        <th>Details</th>
+      </tr>
+      {% for programme in programmes %}
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <td>{{ programme.programme_code }}</td>
+        <td>{{ programme.programme_name }}</td>
+          <td><a href="{% url 'update programme' programme.pk %}">Details</a></td>
+          {% endfor %}
+      </tr>
+    </table>
+
+<h2>Add Programme</h2>
+
+<a href="{% url 'create programme' %}">Click here to create a new Programme.</a>
+
+{% include "loads/footer.html" %}

@@ -1,6 +1,6 @@
 {% include "loads/header.html" %}
 
-<h2>Details for Module {{ module.name }}</h2>
+<h2>Details for Module {{ module.name }} <a href="{% url 'update module' module.pk %}">(Edit)</a></h2>
 
 <table border="0">
   <tr>
