@@ -503,6 +503,3 @@ class Command(BaseCommand):
 
             # Finally add the module to the lead_programme in the list of programmes
             module.programmes.add(module.lead_programme)
-
-
-
