@@ -18,6 +18,13 @@ from django.contrib import admin
 
 from loads import views
 
+from loads.views import ModuleFormView
+from loads.views import CreateProgrammeView
+from loads.views import ProgrammeList
+from loads.views import UpdateProgrammeView
+from loads.views import CreateModuleView
+from loads.views import UpdateModuleView
+
 urlpatterns = [
     url(r'^$', views.index, name='index'),
     url(r'^workpackage/change/$', views.workpackage_change, name='workpackage_change'),
@@ -43,6 +50,11 @@ urlpatterns = [
     url(r'^modules/examtracker/(?P<module_id>[0-9]+)$', views.exam_track_progress, name='exam_track_progress'),
     url(r'^modules/courseworktracker/(?P<module_id>[0-9]+)$', views.coursework_track_progress, name='coursework_track_progress'),
     url(r'^modules/allocations/(?P<package_id>[0-9]+)/(?P<module_id>[0-9]+)$', views.module_staff_allocation, name='module_staff_allocation'),
+    url(r'^modules/create/$', CreateModuleView.as_view(), name='create module'),
+    url(r'^modules/update/(?P<pk>[0-9]+)$', UpdateModuleView.as_view(), name='update module'),
+    url(r'^programmes/index/$', ProgrammeList.as_view(), name='programmes_index'),
+    url(r'^programmes/create/$', CreateProgrammeView.as_view(), name='create programme'),
+    url(r'^programmes/update/(?P<pk>[0-9]+)$', UpdateProgrammeView.as_view(), name='update programme'),
     url(r'^projects/index/$', views.projects_index, name='projects_index'),
     url(r'^projects/detail/(?P<project_id>[0-9]+)$', views.projects_details, name='projects_details'),
     url(r'^projects/generate_activities/(?P<project_id>[0-9]+)$', views.projects_generate_activities, name='projects_generate_activities'),

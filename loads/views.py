@@ -2,13 +2,21 @@ import os
 import mimetypes
 
 from django.shortcuts import get_object_or_404, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.forms import modelformset_factory
 from django.contrib import messages
+
+# Class Views
+from django.views.generic import ListView
+from django.views.generic import UpdateView, CreateView
+
+from django.views import View
 
 # Create your views here.
 
 from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import redirect
+
 from django.template import RequestContext, loader
 
 from .models import ACADEMIC_YEAR
@@ -40,6 +48,8 @@ from .forms import ExamTrackerForm
 from .forms import CourseworkTrackerForm
 from .forms import StaffWorkPackageForm
 from .forms import MigrateWorkPackageForm
+from .forms import ModuleForm
+from .forms import ProgrammeForm
 from .forms import ModulesIndexForm
 from .forms import ProjectForm
 from .forms import StaffCreationForm
@@ -765,6 +775,20 @@ def module_staff_allocation(request, module_id, package_id):
     return render(request, 'loads/modules/allocations.html', {'module': module, 'package': package, 'formset': formset})
 
 
+def module_edit(request, module_id):
+    """Edit a module, but within a WorkPackage"""
+
+    module = get_object_or_404(Module, pk=module_id)
+    if request.method == "POST":
+        form = ModuleForm(request.POST, instance=module)
+        if form.is_valid():
+            module = form.save()
+            return redirect('modules_details', id=module.pk)
+    else:
+        form = ModuleForm(instance=module)
+    return render(request, 'blog/post_edit.html', {'form': form})
+
+
 def modules_index(request, semesters):
     """Shows a high level list of modules"""
     # Fetch the staff user associated with the person requesting
@@ -1314,3 +1338,189 @@ def workpackage_migrate(request):
         form.fields['destination_package'].queryset = packages
 
     return render(request, 'loads/workpackages/migrate.html', {'form': form, 'staff': staff})
+
+# Class based views
+
+# TODO: Looks like we can remove this, but just do some more testing first, deprecated (and the form class)
+class ModuleFormView(View):
+    form_class = ModuleForm
+    template_name = 'loads/modules/create_module.html'
+
+    def get(self, request, *args, **kwargs):
+        #form = self.form_class(initial=self.initial)
+        form = self.form_class()
+
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+        package_staff = package.get_all_staff()
+
+        # Work out the programmes in the package
+        package_programmes = Programme.objects.all().filter(package=package)
+
+        # And restrict the querysets as appropriate
+        form.fields['coordinator'].queryset = package_staff
+        form.fields['moderators'].queryset = package_staff
+        form.fields['programmes'].queryset = package_programmes
+        form.fields['lead_programme'].queryset = package_programmes
+
+        return render(request, self.template_name, {'form': form})
+
+    def post(self, request, *args, **kwargs):
+        form = self.form_class(request.POST)
+        if form.is_valid():
+            module = form.save(commit=False)
+            # Work out the correct package and the staff within in
+            staff = get_object_or_404(Staff, user=self.request.user)
+            module.package = staff.package
+            module = form.save()
+            url = reverse('modules_details', args=[module.pk])
+            return HttpResponseRedirect(url)
+
+        return render(request, self.template_name, {'form': form})
+
+
+class CreateModuleView(CreateView):
+    """View for creating a Module"""
+    model = Module
+    fields = ['module_code', 'module_name', 'campus', 'size', 'semester', 'contact_hours', 'admin_hours',
+              'assessment_hours',
+              'coordinator', 'moderators', 'programmes', 'lead_programme']
+
+    def get_form(self, form_class=None):
+        """We need to restrict form querysets"""
+        form = super(CreateModuleView, self).get_form(form_class)
+
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+        package_staff = package.get_all_staff()
+
+        # Work out the programmes in the package
+        package_programmes = Programme.objects.all().filter(package=package)
+
+        # And restrict the querysets as appropriate
+        form.fields['coordinator'].queryset = package_staff
+        form.fields['moderators'].queryset = package_staff
+        form.fields['programmes'].queryset = package_programmes
+        form.fields['lead_programme'].queryset = package_programmes
+        return form
+
+    def form_valid(self, form):
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+
+        self.object = form.save(commit=False)
+        self.object.package = package
+        response = super(CreateModuleView, self).form_valid(form)
+        return response
+
+    def get_success_url(self):
+        """Send us back to the details view"""
+        return reverse('modules_details', kwargs={'module_id': self.object.pk})
+
+
+class UpdateModuleView(UpdateView):
+    """View for editing a Module"""
+    model = Module
+    fields = ['module_code', 'module_name', 'campus', 'size', 'semester', 'contact_hours', 'admin_hours',
+              'assessment_hours',
+              'coordinator', 'moderators', 'programmes', 'lead_programme']
+
+    def get_form(self, form_class=None):
+        """We need to restrict form querysets"""
+        form = super(UpdateModuleView, self).get_form(form_class)
+
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+        package_staff = package.get_all_staff()
+
+        # Work out the programmes in the package
+        package_programmes = Programme.objects.all().filter(package=package)
+
+        # And restrict the querysets as appropriate
+        form.fields['coordinator'].queryset = package_staff
+        form.fields['moderators'].queryset = package_staff
+        form.fields['programmes'].queryset = package_programmes
+        form.fields['lead_programme'].queryset = package_programmes
+        return form
+
+    def get_success_url(self):
+        """Send us back to the details view"""
+        return reverse('modules_details', kwargs={'module_id': self.object.pk})
+
+
+class CreateProgrammeView(CreateView):
+    """View for creating a Programme"""
+    model = Programme
+    success_url = reverse_lazy('programmes_index')
+    fields = ['programme_code', 'programme_name', 'examiners', 'directors']
+
+    def get_form(self, form_class=None):
+        form = super(CreateProgrammeView, self).get_form(form_class)
+
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+        package_staff = package.get_all_staff()
+
+        form.fields['directors'].queryset = package_staff
+        return form
+
+    def form_valid(self, form):
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+
+        self.object = form.save(commit=False)
+        self.object.package = package
+        response = super(CreateProgrammeView, self).form_valid(form)
+        return response
+
+
+class UpdateProgrammeView(UpdateView):
+    """View for editing a Programme"""
+    model = Programme
+    success_url = reverse_lazy('programmes_index')
+    fields = ['programme_code', 'programme_name', 'examiners', 'directors']
+
+    def get_form(self, form_class=None):
+        form = super(UpdateProgrammeView, self).get_form(form_class)
+
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+        package_staff = package.get_all_staff()
+
+        form.fields["directors"].queryset = package_staff
+        return form
+
+
+class ProgrammeList(ListView):
+    """Generic view for Programme List"""
+    model = Programme
+    context_object_name = 'programmes'
+
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        data['page_title'] = 'Authors'
+        return data
+
+    def get_queryset(self):
+        try:
+            staff = Staff.objects.get(user=self.request.user)
+            package = staff.package
+        except Staff.DoesNotExist:
+            staff = None
+
+        # or possibly an external examiner
+        try:
+            external = ExternalExaminer.objects.get(user=self.request.user)
+            package = external.package
+        except ExternalExaminer.DoesNotExist:
+            external = None
+
+        return Programme.objects.all().filter(package=package)
+
