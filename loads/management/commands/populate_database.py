@@ -35,6 +35,12 @@ class Command(BaseCommand):
     help = 'Initially populate a database with defaults, and optionally, test data'
 
     def add_arguments(self, parser):
+        parser.add_argument('--add-core-config',
+            action='store_true',
+            dest='add-core-config',
+            default=False,
+            help='Add core configuration data')
+
         parser.add_argument('--add-test-data',
             action='store_true',
             dest='add-test-data',
@@ -50,18 +56,22 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         #TODO needs some decent exception handling
         verbosity = options['verbosity']
+        add_core_config = options['add-core-config']
+        add_test_data = options['add-test-data']
         
-        if verbosity:
-            self.stdout.write('Populate initial data in database')
 
-        if self.database_not_empty():
-            self.stdout.write('  ERROR: Database not empty, quitting')
-            return
+        self.stdout.write('Populating data into database')
 
-        self.populate_basic_config(options)
+        if add_core_config:
+            self.populate_basic_config(options)
 
-        if options['add-test-data']:
+        if add_test_data:
             self.populate_test_data(options)
+
+        if not (add_core_config or add_test_data):
+            self.stdout.write('No option selected, use --help for more details')
+
+        self.stdout.write('Complete.')
 
 
     def database_not_empty(self):
@@ -93,6 +103,10 @@ class Command(BaseCommand):
         """Add the basic configuration required to get going"""
 
         verbosity = options['verbosity']
+
+        if self.database_not_empty():
+            self.stdout.write('ERROR: Database core data not empty, quitting')
+            return
 
         if verbosity:
             self.stdout.write('.. Add Categories and ActivityTypes')
@@ -268,6 +282,10 @@ class Command(BaseCommand):
         # Create the WorkPackage first
         package = self.create_work_package(options)
 
+        if not package:
+            self.stderr.write("ERROR: Unable to continue")
+            return
+
         # Then the Staff
         self.create_staff(package, options)
 
@@ -289,14 +307,27 @@ class Command(BaseCommand):
         group_name = test_prefix + " Group"
         if verbosity:
             self.stdout.write('.. Creating User Group: {}'.format(group_name))
-        group = Group.objects.create(
-            name=test_prefix + " Group"
-        )
+
+        if Group.objects.all().filter(name=group_name).count():
+            # There's already a group of this name
+
+            self.stderr.write('ERROR: Group already exists.')
+            return None
+        else:
+            group = Group.objects.create(
+                name=group_name
+            )
 
         # And now a Work Package
         package_name = test_prefix + " Work Package"
         if verbosity:
             self.stdout.write('.. Creating Work Package: {}'.format(package_name))
+
+        if WorkPackage.objects.all().filter(name=package_name).count():
+            # There's already a package of this name
+            self.stderr.write('ERROR: WorkPackage already exists.')
+            return None
+
         package = WorkPackage.objects.create(
             name=test_prefix + " Work Package",
             details="This is for testing and training",
@@ -309,7 +340,7 @@ class Command(BaseCommand):
         # Add the group to the package
         package.groups.add(group)
 
-        return(package)
+        return package
 
 
     def get_staff_names(self):
@@ -351,15 +382,25 @@ class Command(BaseCommand):
         groups = list(package.groups.all())
 
         # Set up an initial username
-        username = 1000
+        username_number = 1000
 
         # Loop through all the sample data above
         for (title, first_name, last_name) in self.get_staff_names():
             if verbosity:
                 self.stdout.write(".. Creating Staff: {} {} {}".format(title, first_name, last_name))
 
+            username = test_prefix + str(username_number)
+
+            if User.objects.all().filter(username=username):
+                self.stderr.write("ERROR: user already exists")
+                continue
+
+            if Staff.objects.all().filter(staff_number=username):
+                self.stderr.write("ERROR: staff number already in user")
+                continue
+
             user = User.objects.create(
-                username=test_prefix + str(username),
+                username=username,
                 email="invalid@invalid.com",
                 password="invalid",
                 first_name=first_name,
@@ -373,7 +414,7 @@ class Command(BaseCommand):
             staff = Staff.objects.create(
                 user=user,
                 title=title,
-                staff_number=test_prefix + str(username),
+                staff_number=username,
                 package=package
             )
 
@@ -382,7 +423,7 @@ class Command(BaseCommand):
             group.user_set.add(user)
 
             # A different username for the next one
-            username += 1
+            username_number += 1
 
 
     def get_programme_names(self):
