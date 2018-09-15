@@ -9,6 +9,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import permission_required
 from django.utils.decorators import method_decorator
 
+from django.contrib.auth.mixins import PermissionRequiredMixin
+
 # Class Views
 from django.views.generic import ListView
 from django.views.generic import UpdateView, CreateView
@@ -1383,8 +1385,9 @@ class ModuleFormView(View):
         return render(request, self.template_name, {'form': form})
 
 
-class CreateTaskView(CreateView):
+class CreateTaskView(PermissionRequiredMixin, CreateView):
     """View for creating a task"""
+    permission_required = 'loads.add_task'
     model = Task
     success_url = reverse_lazy('tasks_index')
     fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups']
@@ -1405,13 +1408,10 @@ class CreateTaskView(CreateView):
         form.fields['groups'].queryset = groups
         return form
 
-    @method_decorator(permission_required('loads.add_task', raise_exception=True))
-    def dispatch(self, request):
-        return super(CreateTaskView, self).dispatch(request)
 
-
-class UpdateTaskView(UpdateView):
+class UpdateTaskView(PermissionRequiredMixin, UpdateView):
     """View for creating a task"""
+    permission_required = 'loads.change_task'
     model = Task
     success_url = reverse_lazy('tasks_index')
     fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups']
@@ -1437,8 +1437,9 @@ class UpdateTaskView(UpdateView):
     #    return super(UpdateTaskView, self).dispatch(request)
 
 
-class CreateModuleView(CreateView):
+class CreateModuleView(PermissionRequiredMixin, CreateView):
     """View for creating a Module"""
+    permission_required = 'loads.add_module'
     model = Module
     fields = ['module_code', 'module_name', 'campus', 'size', 'semester', 'contact_hours', 'admin_hours',
               'assessment_hours',
@@ -1478,8 +1479,9 @@ class CreateModuleView(CreateView):
         return reverse('modules_details', kwargs={'module_id': self.object.pk})
 
 
-class UpdateModuleView(UpdateView):
+class UpdateModuleView(PermissionRequiredMixin, UpdateView):
     """View for editing a Module"""
+    permission_required = 'loads.change_module'
     model = Module
     fields = ['module_code', 'module_name', 'campus', 'size', 'semester', 'contact_hours', 'admin_hours',
               'assessment_hours',
@@ -1509,8 +1511,9 @@ class UpdateModuleView(UpdateView):
         return reverse('modules_details', kwargs={'module_id': self.object.pk})
 
 
-class CreateProgrammeView(CreateView):
+class CreateProgrammeView(PermissionRequiredMixin, CreateView):
     """View for creating a Programme"""
+    permission_required = 'loads.add_programme'
     model = Programme
     success_url = reverse_lazy('programmes_index')
     fields = ['programme_code', 'programme_name', 'examiners', 'directors']
@@ -1537,8 +1540,9 @@ class CreateProgrammeView(CreateView):
         return response
 
 
-class UpdateProgrammeView(UpdateView):
+class UpdateProgrammeView(PermissionRequiredMixin, UpdateView):
     """View for editing a Programme"""
+    permission_required = 'loads.change_programme'
     model = Programme
     success_url = reverse_lazy('programmes_index')
     fields = ['programme_code', 'programme_name', 'examiners', 'directors']
@@ -1560,11 +1564,6 @@ class ProgrammeList(ListView):
     model = Programme
     context_object_name = 'programmes'
 
-    def get_context_data(self, **kwargs):
-        data = super().get_context_data(**kwargs)
-        data['page_title'] = 'Authors'
-        return data
-
     def get_queryset(self):
         try:
             staff = Staff.objects.get(user=self.request.user)
@@ -1580,4 +1579,84 @@ class ProgrammeList(ListView):
             external = None
 
         return Programme.objects.all().filter(package=package)
+
+
+class ActivityListView(ListView):
+    """Generic view for the Activities List"""
+    model = Activity
+    context_object_name = 'activities'
+
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        return data
+
+    def get_queryset(self):
+
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+
+        return Activity.objects.all().filter(package=package)
+
+
+class CreateActivityView(PermissionRequiredMixin, CreateView):
+    """View for creating an Activity"""
+    permission_required = 'loads.add_activity'
+    model = Activity
+    success_url = reverse_lazy('activities_index')
+    fields = ['name', 'hours', 'percentage', 'hours_percentage',
+              'semester', 'activity_type', 'module', 'staff', 'comment']
+
+    def get_form(self, form_class=None):
+        form = super(CreateActivityView, self).get_form(form_class)
+
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+        package_staff = package.get_all_staff()
+
+        form.fields['staff'].queryset = package_staff
+        form.fields['module'].queryset = Module.objects.all().filter(package=package)
+        return form
+
+    def form_valid(self, form):
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+
+        self.object = form.save(commit=False)
+        self.object.package = package
+        response = super(CreateActivityView, self).form_valid(form)
+        return response
+
+
+class UpdateActivityView(PermissionRequiredMixin, UpdateView):
+    """View for updating an Activity"""
+    permission_required = 'loads.change_activity'
+    model = Activity
+    success_url = reverse_lazy('activities_index')
+    fields = ['name', 'hours', 'percentage', 'hours_percentage',
+              'semester', 'activity_type', 'module', 'staff', 'comment']
+
+    def get_form(self, form_class=None):
+        form = super(UpdateActivityView, self).get_form(form_class)
+
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+        package_staff = package.get_all_staff()
+
+        form.fields['staff'].queryset = package_staff
+        form.fields['module'].queryset = Module.objects.all().filter(package=package)
+        return form
+
+    def form_valid(self, form):
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+
+        self.object = form.save(commit=False)
+        self.object.package = package
+        response = super(UpdateActivityView, self).form_valid(form)
+        return response
 

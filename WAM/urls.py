@@ -26,6 +26,9 @@ from loads.views import CreateModuleView
 from loads.views import UpdateModuleView
 from loads.views import CreateTaskView
 from loads.views import UpdateTaskView
+from loads.views import ActivityListView
+from loads.views import CreateActivityView
+from loads.views import UpdateActivityView
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
@@ -34,6 +37,9 @@ urlpatterns = [
     url(r'^loads/$', views.loads, name='loads'),
     url(r'^loads/modules/(?P<semesters>[0-9,]*)$', views.loads_modules, name='loads_modules'),
     url(r'^activities/(?P<staff_id>[0-9]+)$', views.activities, name='activities'),
+    url(r'^activities/index/$', ActivityListView.as_view(), name='activities_index'),
+    url(r'^activities/create/$', CreateActivityView.as_view(), name='create activity'),
+    url(r'^activities/update/(?P<pk>[0-9]+)$$', UpdateActivityView.as_view(), name='update activity'),
     url(r'^external/modules/index/$', views.external_modules_index, name='external_modules_index'),
     url(r'^generators/index/$', views.generators_index, name='generators_index'),
     url(r'^generators/generate_activities/(?P<generator_id>[0-9]+)$', views.generators_generate_activities, name='generators_generate_activities'),

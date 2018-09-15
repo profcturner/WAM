@@ -1,0 +1,25 @@
+{% include "loads/header.html" %}
+
+{% if form.instance.pk %}
+<h2>Update Activity</h2>
+{% else %}
+<h2>Create Activity</h2>
+
+<p>This form allows the creation of new Activities.</p>
+{% endif %}
+
+
+<form action="" method="post">
+    <table>
+        {% csrf_token %}
+        {{ form.as_table }}
+        <tr>
+            <td>
+                <input type="submit" value="Submit" />
+            </td>
+        </tr>
+
+    </table>
+</form>
+
+{% include "loads/footer.html" %}
