@@ -4,7 +4,7 @@
 {% if augmented_tasks %}
     <table border="1">
       <tr>
-        <th>Task Name</th><th>Deadline</th><th>Time left</th><th>Status</th><th>Details</th>
+        <th>Task Name</th><th>Deadline</th><th>Time left</th><th>Status</th><th>Details</th><th>Edit</th>
       </tr>
       {% for task, urgent, overdue in augmented_tasks %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
@@ -19,6 +19,7 @@
         <td>Pending</td>
         {% endif %}
         <td><a href="{% url 'tasks_details' task.id %}">Details</a></td>
+      <td><a href="{% url 'update task' task.id %}">Edit</a></td>
       </tr>      
       {% endfor %}
     </table>
@@ -27,5 +28,9 @@
 {% else %}
     <p>No unarchived tasks are available.</p>
 {% endif %}
+
+<h2>Create a new Task</h2>
+
+<p><a href="{% url 'create task' %}">Click here to add a new Task</a></p>
 
 {% include "loads/footer.html" %}

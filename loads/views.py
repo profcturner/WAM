@@ -6,6 +6,9 @@ from django.urls import reverse, reverse_lazy
 from django.forms import modelformset_factory
 from django.contrib import messages
 
+from django.contrib.auth.decorators import permission_required
+from django.utils.decorators import method_decorator
+
 # Class Views
 from django.views.generic import ListView
 from django.views.generic import UpdateView, CreateView
@@ -1378,6 +1381,60 @@ class ModuleFormView(View):
             return HttpResponseRedirect(url)
 
         return render(request, self.template_name, {'form': form})
+
+
+class CreateTaskView(CreateView):
+    """View for creating a task"""
+    model = Task
+    success_url = reverse_lazy('tasks_index')
+    fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups']
+
+    def get_form(self, form_class=None):
+        """We need to restrict form querysets"""
+        form = super(CreateTaskView, self).get_form(form_class)
+
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+        package_staff = package.get_all_staff()
+
+        # Get all the groups this person is on.
+        groups = self.request.user.groups.all()
+
+        form.fields['targets'].queryset = package_staff
+        form.fields['groups'].queryset = groups
+        return form
+
+    @method_decorator(permission_required('loads.add_task', raise_exception=True))
+    def dispatch(self, request):
+        return super(CreateTaskView, self).dispatch(request)
+
+
+class UpdateTaskView(UpdateView):
+    """View for creating a task"""
+    model = Task
+    success_url = reverse_lazy('tasks_index')
+    fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups']
+
+    def get_form(self, form_class=None):
+        """We need to restrict form querysets"""
+        form = super(UpdateTaskView, self).get_form(form_class)
+
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+        package_staff = package.get_all_staff()
+
+        # Get all the groups this person is on.
+        groups = self.request.user.groups.all()
+
+        form.fields['targets'].queryset = package_staff
+        form.fields['groups'].queryset = groups
+        return form
+
+    #@method_decorator(permission_required('loads.change_task', raise_exception=True))
+    #def dispatch(self, request):
+    #    return super(UpdateTaskView, self).dispatch(request)
 
 
 class CreateModuleView(CreateView):
