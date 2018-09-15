@@ -18,7 +18,6 @@ from django.contrib import admin
 
 from loads import views
 
-from loads.views import ModuleFormView
 from loads.views import CreateProgrammeView
 from loads.views import ProgrammeList
 from loads.views import UpdateProgrammeView

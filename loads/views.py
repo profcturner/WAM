@@ -6,9 +6,6 @@ from django.urls import reverse, reverse_lazy
 from django.forms import modelformset_factory
 from django.contrib import messages
 
-from django.contrib.auth.decorators import permission_required
-from django.utils.decorators import method_decorator
-
 from django.contrib.auth.mixins import PermissionRequiredMixin
 
 # Class Views
@@ -53,8 +50,6 @@ from .forms import ExamTrackerForm
 from .forms import CourseworkTrackerForm
 from .forms import StaffWorkPackageForm
 from .forms import MigrateWorkPackageForm
-from .forms import ModuleForm
-from .forms import ProgrammeForm
 from .forms import ModulesIndexForm
 from .forms import ProjectForm
 from .forms import StaffCreationForm
@@ -1402,45 +1397,6 @@ def workpackage_migrate(request):
     return render(request, 'loads/workpackages/migrate.html', {'form': form, 'staff': staff})
 
 # Class based views
-
-# TODO: Looks like we can remove this, but just do some more testing first, deprecated (and the form class)
-class ModuleFormView(View):
-    form_class = ModuleForm
-    template_name = 'loads/modules/create_module.html'
-
-    def get(self, request, *args, **kwargs):
-        #form = self.form_class(initial=self.initial)
-        form = self.form_class()
-
-        # Work out the correct package and the staff within in
-        staff = get_object_or_404(Staff, user=self.request.user)
-        package = staff.package
-        package_staff = package.get_all_staff()
-
-        # Work out the programmes in the package
-        package_programmes = Programme.objects.all().filter(package=package)
-
-        # And restrict the querysets as appropriate
-        form.fields['coordinator'].queryset = package_staff
-        form.fields['moderators'].queryset = package_staff
-        form.fields['programmes'].queryset = package_programmes
-        form.fields['lead_programme'].queryset = package_programmes
-
-        return render(request, self.template_name, {'form': form})
-
-    def post(self, request, *args, **kwargs):
-        form = self.form_class(request.POST)
-        if form.is_valid():
-            module = form.save(commit=False)
-            # Work out the correct package and the staff within in
-            staff = get_object_or_404(Staff, user=self.request.user)
-            module.package = staff.package
-            module = form.save()
-            url = reverse('modules_details', args=[module.pk])
-            return HttpResponseRedirect(url)
-
-        return render(request, self.template_name, {'form': form})
-
 
 class CreateTaskView(PermissionRequiredMixin, CreateView):
     """View for creating a task"""
