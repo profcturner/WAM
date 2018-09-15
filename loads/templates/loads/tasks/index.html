@@ -1,5 +1,10 @@
 {% include "loads/header.html" %}
-  
+
+{% if archived %}
+<h2>Archived Tasks</h2>
+{% else %}
+<h2>Active Tasks</h2>
+{% endif %}
 
 {% if augmented_tasks %}
     <table border="1">
@@ -24,9 +29,13 @@
       {% endfor %}
     </table>
     
-    <p>There are {{ augmented_tasks|length}} open task{{tasks|length|pluralize}}.</p>
+    <p>There are {{ augmented_tasks|length}} {% if archived %}archived{% else %}open{% endif %} task{{tasks|length|pluralize}}.</p>
 {% else %}
-    <p>No unarchived tasks are available.</p>
+    {% if archived %}
+        <p>No archived tasks are available.</p>
+    {% else %}
+        <p>No unarchived tasks are available.</p>
+    {% endif %}
 {% endif %}
 
 <h2>Create a new Task</h2>

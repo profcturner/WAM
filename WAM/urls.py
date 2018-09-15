@@ -43,6 +43,7 @@ urlpatterns = [
     url(r'^generators/index/$', views.generators_index, name='generators_index'),
     url(r'^generators/generate_activities/(?P<generator_id>[0-9]+)$', views.generators_generate_activities, name='generators_generate_activities'),
     url(r'^tasks/index/$', views.tasks_index, name='tasks_index'),
+    url(r'^tasks/archived/index/$', views.archived_tasks_index, name='archived_tasks_index'),
     url(r'^tasks/create/$', CreateTaskView.as_view(), name='create task'),
     url(r'^tasks/update/(?P<pk>[0-9]+)$', UpdateTaskView.as_view(), name='update task'),
     url(r'^tasks/completion/(?P<task_id>[0-9]+)/(?P<staff_id>[0-9]+)$', views.tasks_completion, name='tasks_completion'),    

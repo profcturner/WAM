@@ -495,13 +495,22 @@ class Staff(models.Model):
         """Maps to whether the underlying user is active"""
         return self.user.is_active
 
-    def get_all_tasks(self):
+    def get_all_tasks(self, archived=False):
         """Returns a queryset of all unarchived tasks linked to this staff member"""
-        user_tasks = Task.objects.all().filter(targets=self).exclude(archive=True).distinct().order_by('deadline')
+        if not archived:
+            user_tasks = Task.objects.all().filter(targets=self).exclude(archive=True).distinct().order_by('deadline')
+        else:
+            user_tasks = Task.objects.all().filter(targets=self).filter(archive=True).distinct().order_by('deadline')
 
         # And those assigned against the group
         groups = Group.objects.all().filter(user=self.user)
-        group_tasks = Task.objects.all().filter(groups__in=groups).exclude(archive=True).distinct().order_by('deadline')
+        if not archived:
+            group_tasks = Task.objects.all().filter(groups__in=groups).\
+                exclude(archive=True).distinct().order_by('deadline')
+        else:
+            group_tasks = Task.objects.all().filter(groups__in=groups).\
+                filter(archive=True).distinct().order_by('deadline')
+
 
         # Combine them
         all_tasks = user_tasks | group_tasks

@@ -478,6 +478,28 @@ def tasks_index(request):
     template = loader.get_template('loads/tasks/index.html')
     context = {
         'augmented_tasks': augmented_tasks,
+        'tasks_menu': True,
+        'archived': False
+    }
+    return HttpResponse(template.render(context, request))
+
+
+def archived_tasks_index(request):
+    '''Obtains a list of all non archived tasks'''
+    # Fetch the tasks assigned against the specific user of the staff member
+    staff = get_object_or_404(Staff, user=request.user)
+    tasks = staff.get_all_tasks(archived=True)
+    # tasks = Task.objects.all().exclude(archive=True).order_by('deadline')
+
+    augmented_tasks = []
+    for task in tasks:
+        augmented_tasks.append([task, task.is_urgent(), task.is_overdue()])
+
+    template = loader.get_template('loads/tasks/index.html')
+    context = {
+        'augmented_tasks': augmented_tasks,
+        'tasks_menu': True,
+        'archived': True
     }
     return HttpResponse(template.render(context, request))
 
