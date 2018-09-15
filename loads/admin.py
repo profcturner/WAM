@@ -21,8 +21,6 @@ from .models import AssessmentStaff
 from .models import Body
 from .models import Campus
 from .models import Category
-from .models import CourseworkTracker
-from .models import ExamTracker
 from .models import ExternalExaminer
 from .models import Module
 from .models import ModuleSize

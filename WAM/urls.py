@@ -56,8 +56,6 @@ urlpatterns = [
         name='delete_assessment_resource'),
     url(r'^modules/add_assessment_sign_off/(?P<module_id>[0-9]+)$', views.add_assessment_sign_off,
         name='add_assessment_sign_off'),
-    url(r'^modules/examtracker/(?P<module_id>[0-9]+)$', views.exam_track_progress, name='exam_track_progress'),
-    url(r'^modules/courseworktracker/(?P<module_id>[0-9]+)$', views.coursework_track_progress, name='coursework_track_progress'),
     url(r'^modules/allocations/(?P<package_id>[0-9]+)/(?P<module_id>[0-9]+)$', views.module_staff_allocation, name='module_staff_allocation'),
     url(r'^modules/create/$', CreateModuleView.as_view(), name='create module'),
     url(r'^modules/update/(?P<pk>[0-9]+)$', UpdateModuleView.as_view(), name='update module'),
