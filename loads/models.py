@@ -88,6 +88,7 @@ class WorkPackage(models.Model):
     draft = models.BooleanField(default=True)
     archive = models.BooleanField(default=False)
     hidden = models.BooleanField(default=False)
+    show_percentages = models.BooleanField(default=True)
     groups = models.ManyToManyField(Group, blank=True)
     nominal_hours = models.PositiveIntegerField(default=1600)
     credit_contact_scaling = models.FloatField(default=8 / 20)

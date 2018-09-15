@@ -33,11 +33,11 @@
       {% for staff, total, first, second, third, scaled in group_list %}
       <tr class="{{forloop.counter|divisibleby:2|yesno:"row2,row1"}}">
         <th>{{ staff }}</th>
-        <td>{{ first|stringformat:".2f" }}</td>
-        <td>{{ second|stringformat:".2f" }}</td>
-        <td>{{ third|stringformat:".2f" }}</td>
-        <td>{{ total }}</td>
-        <td>{{ scaled|stringformat:".0f" }}
+        <td>{{ first|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</td>
+        <td>{{ second|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</td>
+        <td>{{ third|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</td>
+        <td>{{ total|stringformat:".0f" }} {% if show_percentages %}%{% endif %}</td>
+          <td>{{ scaled|stringformat:".0f" }} {% if show_percentages %}%{% endif %}</td>
         <td><a href="{% url 'activities' staff.id %}">Activities</a></td>
         <td><a href="{% url 'tasks_bystaff' staff.id %}">Tasks</a></td>
       </tr>      
