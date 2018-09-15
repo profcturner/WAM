@@ -413,6 +413,7 @@ class Command(BaseCommand):
             # Create the linked staff objects
             staff = Staff.objects.create(
                 user=user,
+                fte=random.choice([100, 100, 100, 100, 60, 50, 40]),
                 title=title,
                 staff_number=username,
                 package=package

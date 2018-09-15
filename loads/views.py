@@ -185,13 +185,13 @@ def delete_assessment_resource(request, resource_id):
     url = reverse('modules_details', kwargs={'module_id': resource.module_id})
     return HttpResponseRedirect(url)
 
+
 def loads(request):
     """Show the loads for all members of staff"""
 
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
-
     package = staff.package
 
     # If either the workpackage for the member of staff is undefined
@@ -200,12 +200,15 @@ def loads(request):
         url = reverse('workpackage_change')
         return HttpResponseRedirect(url)
 
+    # This controls whether hours or percentages are shown
+    show_percentages = package.show_percentages
+
     total = 0.0
     total_staff = 0
     group_data = []
 
     # Go through each group in turn
-    for group in staff.package.groups.all():
+    for group in package.groups.all():
         group_list = []
         group_size = 0
         group_total = 0.0
@@ -221,8 +224,15 @@ def loads(request):
             # Check any staff member with no load is active, if not, skip them
             if not staff.is_active() and load_info[0] == 0:
                 continue
-            combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3],
-                             100 * load_info[0] / staff.fte]
+            if show_percentages:
+                combined_item = [staff, 100 * load_info[0] / package.nominal_hours,
+                            100 * load_info[1] / package.nominal_hours,
+                            100 * load_info[2] / package.nominal_hours,
+                            100 * load_info[3] / package.nominal_hours,
+                            100 * (100 * load_info[0] / staff.fte) / package.nominal_hours]
+            else:
+                combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3],
+                                 100 * load_info[0] / staff.fte]
             group_list.append(combined_item)
             group_total += load_info[0]
             group_size += 1
@@ -249,6 +259,7 @@ def loads(request):
         'total': total,
         'average': average,
         'package': package,
+        'show_percentages': show_percentages,
         'loads_menu': True,
     }
     return HttpResponse(template.render(context, request))
@@ -346,6 +357,8 @@ def activities(request, staff_id):
     # And therefore the package enabled for that user
     package = staff.package
 
+    show_percentages = package.show_percentages
+
     # Now the staff member we want to look at
     staff = get_object_or_404(Staff, pk=staff_id)
     activities = Activity.objects.all().filter(staff=staff).filter(package=package).order_by('name')
@@ -358,7 +371,14 @@ def activities(request, staff_id):
 
     for activity in activities:
         load_info = activity.hours_by_semester()
-        combined_item = [activity, load_info[0], load_info[1], load_info[2], load_info[3]]
+        if show_percentages:
+            combined_item = [activity,
+                             100 * load_info[0] / package.nominal_hours,
+                             100 * load_info[1] / package.nominal_hours,
+                             100 * load_info[2] / package.nominal_hours,
+                             100 * load_info[3] / package.nominal_hours]
+        else:
+            combined_item = [activity, load_info[0], load_info[1], load_info[2], load_info[3]]
         combined_list.append(combined_item)
         semester1_total += load_info[1]
         semester2_total += load_info[2]
@@ -388,21 +408,57 @@ def activities(request, staff_id):
         as_hours_proportion = as_hours[0] * moduledata.assessment_proportion / 100
         ad_hours_proportion = ad_hours[0] * moduledata.admin_proportion / 100
 
-        combined_item = [str(moduledata.module) + ' Contact Hours', c_hours_proportion,
+        if show_percentages:
+            combined_item = [str(moduledata.module) + ' Contact Hours',
+                             100 * c_hours_proportion / package.nominal_hours,
+                             100 * semester1_c_hours / package.nominal_hours,
+                             100 * semester2_c_hours / package.nominal_hours,
+                             100 * semester3_c_hours / package.nominal_hours]
+        else:
+            combined_item = [str(moduledata.module) + ' Contact Hours', c_hours_proportion,
                          semester1_c_hours, semester2_c_hours, semester3_c_hours]
         combined_list_modules.append(combined_item)
-        combined_item = [str(moduledata.module) + ' Admin Hours', ad_hours_proportion,
-                         semester1_ad_hours, semester2_ad_hours, semester3_ad_hours]
+
+        if show_percentages:
+            combined_item = [str(moduledata.module) + ' Admin Hours',
+                             100 * ad_hours_proportion / package.nominal_hours,
+                             100 * semester1_ad_hours / package.nominal_hours,
+                             100 * semester2_ad_hours / package.nominal_hours,
+                             100 * semester3_ad_hours / package.nominal_hours]
+
+        else:
+            combined_item = [str(moduledata.module) + ' Admin Hours', ad_hours_proportion,
+                             semester1_ad_hours, semester2_ad_hours, semester3_ad_hours]
         combined_list_modules.append(combined_item)
-        combined_item = [str(moduledata.module) + ' Assessment Hours', as_hours_proportion,
-                         semester1_as_hours, semester2_as_hours, semester3_as_hours]
+
+        if show_percentages:
+            combined_item = [str(moduledata.module) + ' Assessment Hours',
+                             100 * as_hours_proportion / package.nominal_hours,
+                             100 * semester1_as_hours / package.nominal_hours,
+                             100 * semester2_as_hours / package.nominal_hours,
+                             100 * semester3_as_hours / package.nominal_hours]
+
+        else:
+            combined_item = [str(moduledata.module) + ' Assessment Hours', as_hours_proportion,
+                             semester1_as_hours, semester2_as_hours, semester3_as_hours]
         combined_list_modules.append(combined_item)
 
         semester1_total += (semester1_c_hours + semester1_ad_hours + semester1_as_hours)
         semester2_total += (semester2_c_hours + semester2_ad_hours + semester2_as_hours)
         semester3_total += (semester3_c_hours + semester3_ad_hours + semester3_as_hours)
 
+        #if show_percentages:
+        #    semester1_total = semester1_total * 100 / package.nominal_hours
+        #    semester2_total = semester2_total * 100 / package.nominal_hours
+        #    semester3_total = semester3_total * 100 / package.nominal_hours
+
         total += c_hours_proportion + as_hours_proportion + ad_hours_proportion
+
+    if show_percentages:
+        semester1_total = semester1_total * 100 / package.nominal_hours
+        semester2_total = semester2_total * 100 / package.nominal_hours
+        semester3_total = semester3_total * 100 / package.nominal_hours
+        total = 100 * total / package.nominal_hours
 
     template = loader.get_template('loads/activities.html')
     context = {
@@ -414,6 +470,7 @@ def activities(request, staff_id):
         'semester3_total': semester3_total,
         'total': total,
         'package': package,
+        'show_percentages': show_percentages
     }
     return HttpResponse(template.render(context, request))
 
