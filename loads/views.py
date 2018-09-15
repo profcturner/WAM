@@ -1077,7 +1077,7 @@ def staff_module_allocation(request, staff_id, package_id):
     package = get_object_or_404(WorkPackage, pk=package_id)
 
     # If either the logged in user or target user aren't in the package, this is forbidden
-    if package not in user_staff.get_all_packages() or package not in staff.get_all_packages():
+    if package not in user_staff.get_all_packages() or package not in staff.get_all_packages(include_hidden=True):
         return HttpResponseRedirect(reverse('forbidden'))
 
     # The logged in user should be able to do this via the Admin interface, or disallow.
@@ -1586,10 +1586,6 @@ class ActivityListView(ListView):
     model = Activity
     context_object_name = 'activities'
 
-    def get_context_data(self, **kwargs):
-        data = super().get_context_data(**kwargs)
-        return data
-
     def get_queryset(self):
 
         # Work out the correct package and the staff within in
@@ -1597,6 +1593,15 @@ class ActivityListView(ListView):
         package = staff.package
 
         return Activity.objects.all().filter(package=package)
+
+
+class UnallocatedActivityListView(ActivityListView):
+    """Only look at the"""
+
+    def get_queryset(self):
+
+        queryset = super(UnallocatedActivityListView, self).get_queryset()
+        return queryset.filter(staff=None)
 
 
 class CreateActivityView(PermissionRequiredMixin, CreateView):

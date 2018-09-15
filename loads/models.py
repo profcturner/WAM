@@ -511,13 +511,13 @@ class Staff(models.Model):
 
         return all_tasks
 
-    def get_all_packages(self):
+    def get_all_packages(self, include_hidden=False):
         """'Get all the packages that are relevant for a staff member"""
         groups = Group.objects.all().filter(user=self.user)
         packages = WorkPackage.objects.all().filter(groups__in=groups).distinct()
 
         # Non "staff" users can't see hidden packages.
-        if not self.user.is_staff:
+        if not self.user.is_staff and not include_hidden:
             packages = packages.filter(hidden=False)
 
         return packages
