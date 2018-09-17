@@ -1555,7 +1555,7 @@ class ActivityListView(ListView):
         staff = get_object_or_404(Staff, user=self.request.user)
         package = staff.package
 
-        return Activity.objects.all().filter(package=package).order_by(staff, name)
+        return Activity.objects.all().filter(package=package).order_by("staff", "name")
 
 
 class UnallocatedActivityListView(ActivityListView):
