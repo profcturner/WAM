@@ -1392,7 +1392,7 @@ class ProjectStaff(models.Model):
 
         work_done = []
         # Get all the work packages for the staff member and go through each
-        packages = self.staff.get_all_packages()
+        packages = self.staff.get_all_packages(include_hidden=True)
         for package in packages:
             # Work out the overlap of the project with this package
             start_overlap = max(package.startdate, self.start)
