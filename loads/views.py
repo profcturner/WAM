@@ -6,7 +6,7 @@ from django.urls import reverse, reverse_lazy
 from django.forms import modelformset_factory
 from django.contrib import messages
 
-from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMixin
 
 # Class Views
 from django.views.generic import ListView
@@ -14,12 +14,18 @@ from django.views.generic import UpdateView, CreateView
 
 from django.views import View
 
+# Permission decorators
+from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
+from .decorators import staff_only, external_only, admin_only
+
 # Create your views here.
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect
 
 from django.template import RequestContext, loader
+
+from django.contrib.auth.models import User, Group
 
 from .models import ActivityGenerator
 from .models import AssessmentResource
@@ -51,8 +57,6 @@ from .forms import ExternalExaminerCreationForm
 from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
 
-from django.contrib.auth.models import User, Group
-
 
 def index(request):
     """Main index page for non admin views"""
@@ -72,6 +76,7 @@ def forbidden(request):
     return HttpResponse(template.render({}, request))
 
 
+@login_required
 def download_assessment_resource(request, resource_id):
     """Download an assessment resource"""
     # Get the resource object
@@ -123,6 +128,7 @@ def download_assessment_resource(request, resource_id):
     return response
 
 
+@login_required
 def delete_assessment_resource(request, resource_id):
     """Delete an assessment resource, should not be possible for signed resources, except for superuser"""
     # Get the resource object
@@ -149,7 +155,7 @@ def delete_assessment_resource(request, resource_id):
     permission = False
 
     # If the resource is signed, deletions are forbidden except for superuser
-    signed = len(AssessmentStateSignOff.objects.all().filter(module=resource.module).\
+    signed = len(AssessmentStateSignOff.objects.all().filter(module=resource.module). \
                  filter(created__gt=resource.created))
 
     if signed:
@@ -175,6 +181,8 @@ def delete_assessment_resource(request, resource_id):
     return HttpResponseRedirect(url)
 
 
+@login_required
+@staff_only
 def loads(request):
     """Show the loads for all members of staff"""
 
@@ -215,10 +223,10 @@ def loads(request):
                 continue
             if show_percentages:
                 combined_item = [staff, 100 * load_info[0] / package.nominal_hours,
-                            100 * load_info[1] / package.nominal_hours,
-                            100 * load_info[2] / package.nominal_hours,
-                            100 * load_info[3] / package.nominal_hours,
-                            100 * (100 * load_info[0] / staff.fte) / package.nominal_hours]
+                                 100 * load_info[1] / package.nominal_hours,
+                                 100 * load_info[2] / package.nominal_hours,
+                                 100 * load_info[3] / package.nominal_hours,
+                                 100 * (100 * load_info[0] / staff.fte) / package.nominal_hours]
             else:
                 combined_item = [staff, load_info[0], load_info[1], load_info[2], load_info[3],
                                  100 * load_info[0] / staff.fte]
@@ -254,6 +262,8 @@ def loads(request):
     return HttpResponse(template.render(context, request))
 
 
+@login_required
+@staff_only
 def loads_modules(request, semesters, staff_details=False):
     """Shows allocation information by modules"""
     # Fetch the staff user associated with the person requesting
@@ -339,8 +349,10 @@ def loads_modules(request, semesters, staff_details=False):
     return HttpResponse(template.render(context, request))
 
 
+@login_required
+@staff_only
 def activities(request, staff_id):
-    '''Show the activities for a given staff member'''
+    """Show the activities for a given staff member"""
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
@@ -405,7 +417,7 @@ def activities(request, staff_id):
                              100 * semester3_c_hours / package.nominal_hours]
         else:
             combined_item = [str(moduledata.module) + ' Contact Hours', c_hours_proportion,
-                         semester1_c_hours, semester2_c_hours, semester3_c_hours]
+                             semester1_c_hours, semester2_c_hours, semester3_c_hours]
         combined_list_modules.append(combined_item)
 
         if show_percentages:
@@ -436,7 +448,7 @@ def activities(request, staff_id):
         semester2_total += (semester2_c_hours + semester2_ad_hours + semester2_as_hours)
         semester3_total += (semester3_c_hours + semester3_ad_hours + semester3_as_hours)
 
-        #if show_percentages:
+        # if show_percentages:
         #    semester1_total = semester1_total * 100 / package.nominal_hours
         #    semester2_total = semester2_total * 100 / package.nominal_hours
         #    semester3_total = semester3_total * 100 / package.nominal_hours
@@ -464,8 +476,10 @@ def activities(request, staff_id):
     return HttpResponse(template.render(context, request))
 
 
+@login_required
+@staff_only
 def tasks_index(request):
-    '''Obtains a list of all non archived tasks'''
+    """Obtains a list of all non archived tasks"""
     # Fetch the tasks assigned against the specific user of the staff member
     staff = get_object_or_404(Staff, user=request.user)
     tasks = staff.get_all_tasks()
@@ -484,8 +498,10 @@ def tasks_index(request):
     return HttpResponse(template.render(context, request))
 
 
+@login_required
+@staff_only
 def archived_tasks_index(request):
-    '''Obtains a list of all non archived tasks'''
+    """Obtains a list of all non archived tasks"""
     # Fetch the tasks assigned against the specific user of the staff member
     staff = get_object_or_404(Staff, user=request.user)
     tasks = staff.get_all_tasks(archived=True)
@@ -504,8 +520,10 @@ def archived_tasks_index(request):
     return HttpResponse(template.render(context, request))
 
 
+@login_required
+@staff_only
 def tasks_bystaff(request, staff_id):
-    '''Show the tasks assigned against the specific user of the staff member'''
+    """Show the tasks assigned against the specific user of the staff member"""
     staff = get_object_or_404(Staff, pk=staff_id)
     all_tasks = staff.get_all_tasks()
 
@@ -532,8 +550,9 @@ def tasks_bystaff(request, staff_id):
     return HttpResponse(template.render(context, request))
 
 
+@login_required()
 def tasks_details(request, task_id):
-    '''Obtains a list of all completions for a given task'''
+    """Obtains a list of all completions for a given task"""
     # Get the task itself, and all targetted users
     task = get_object_or_404(Task, pk=task_id)
     all_targets = task.get_all_targets()
@@ -571,33 +590,22 @@ def tasks_details(request, task_id):
     return HttpResponse(template.render(context, request))
 
 
+@login_required
+@staff_only
+@admin_only
 def custom_admin_index(request):
     """The beginnings of a more integrated admin menu"""
 
-    # Get the currently logged in staff member
-    staff = get_object_or_404(Staff, user=request.user)
-
-    # or a user with permission to edit completions
-    can_override = request.user.is_staff
-    if not can_override:
-        return HttpResponseRedirect(reverse('forbidden'))
-
     template = loader.get_template('loads/admin/index.html')
-
     return HttpResponse(template.render({}, request))
 
 
-
+@login_required
+@staff_only
+@admin_only
+@permission_required('loads.add_staff')
 def create_staff_user(request):
     """Allows for the creation of a Staff and linked User object"""
-
-    # Get the currently logged in staff member
-    staff = get_object_or_404(Staff, user=request.user)
-
-    # or a user with permission to edit completions
-    can_override = request.user.has_perm('loads.add_staff')
-    if not can_override:
-        return HttpResponseRedirect(reverse('forbidden'))
 
     if request.method == 'POST':
         form = StaffCreationForm(request.POST)
@@ -614,16 +622,12 @@ def create_staff_user(request):
     return render(request, 'loads/admin/create_staff_user.html', {'form': form})
 
 
+@login_required
+@staff_only
+@admin_only
+@permission_required('loads.add_externalexaminer')
 def create_external_examiner(request):
     """Allows for the creation of an Examiner and linked User object"""
-
-    # Get the currently logged in staff member
-    staff = get_object_or_404(Staff, user=request.user)
-
-    # or a user with permission to edit completions
-    can_override = request.user.has_perm('loads.add_externalexaminer')
-    if not can_override:
-        return HttpResponseRedirect(reverse('forbidden'))
 
     if request.method == 'POST':
         form = ExternalExaminerCreationForm(request.POST)
@@ -640,6 +644,8 @@ def create_external_examiner(request):
     return render(request, 'loads/admin/create_external_examiner.html', {'form': form})
 
 
+@login_required
+@staff_only
 def tasks_completion(request, task_id, staff_id):
     """Processes recording of a task completion"""
     # Get the task itself, and all targetted users
@@ -683,6 +689,8 @@ def tasks_completion(request, task_id, staff_id):
                                                            'urgent': task.is_urgent(), 'staff': staff})
 
 
+@login_required
+@staff_only
 def add_assessment_resource(request, module_id):
     """Provide a form for uploading a module resource"""
     # Fetch the staff user associated with the person requesting
@@ -720,6 +728,8 @@ def add_assessment_resource(request, module_id):
                   {'form': form, 'staff': staff, 'module': module})
 
 
+@login_required
+@staff_only
 def module_staff_allocation(request, module_id, package_id):
     """Edit the allocation of staff to a module member"""
 
@@ -782,20 +792,8 @@ def module_staff_allocation(request, module_id, package_id):
     return render(request, 'loads/modules/allocations.html', {'module': module, 'package': package, 'formset': formset})
 
 
-def module_edit(request, module_id):
-    """Edit a module, but within a WorkPackage"""
-
-    module = get_object_or_404(Module, pk=module_id)
-    if request.method == "POST":
-        form = ModuleForm(request.POST, instance=module)
-        if form.is_valid():
-            module = form.save()
-            return redirect('modules_details', id=module.pk)
-    else:
-        form = ModuleForm(instance=module)
-    return render(request, 'blog/post_edit.html', {'form': form})
-
-
+@login_required
+@staff_only
 def modules_index(request, semesters):
     """Shows a high level list of modules"""
     # Fetch the staff user associated with the person requesting
@@ -883,6 +881,8 @@ def modules_index(request, semesters):
     return HttpResponse(template.render(context, request))
 
 
+@login_required
+@external_only
 def external_modules_index(request):
     """Shows a high level list of modules to an external examiner"""
     # Fetch the staff user associated with the person requesting
@@ -939,6 +939,7 @@ def external_modules_index(request):
     return HttpResponse(template.render(context, request))
 
 
+@login_required
 def modules_details(request, module_id):
     """Detailed information on a given module"""
     # Get the module itself
@@ -948,14 +949,16 @@ def modules_details(request, module_id):
     # Fetch the staff user associated with the person requesting
     try:
         staff = Staff.objects.get(user=request.user)
-        package = staff.package
+        if not module.package in staff.get_all_packages(include_hidden=True):
+            return HttpResponseRedirect(reverse('forbidden'))
     except Staff.DoesNotExist:
         staff = None
 
     # or possibly an external examiner
     try:
         external = ExternalExaminer.objects.get(user=request.user)
-        package = external.package
+        if not external.can_access_module(module):
+            return HttpResponseRedirect(reverse('forbidden'))
     except ExternalExaminer.DoesNotExist:
         external = None
 
@@ -963,9 +966,9 @@ def modules_details(request, module_id):
     if not staff and not external:
         return HttpResponseRedirect(reverse('forbidden'))
 
-    # Get all associated activities, exam and coursework trackers
-    activities = Activity.objects.all().filter(module=module).filter(package=package).order_by('name')
-    modulestaff = ModuleStaff.objects.all().filter(module=module).filter(package=package)
+    # Get all associated activities and allocations
+    activities = Activity.objects.all().filter(module=module).order_by('name')
+    modulestaff = ModuleStaff.objects.all().filter(module=module)
 
     total_contact_proportion = 0
     total_admin_proportion = 0
@@ -989,7 +992,7 @@ def modules_details(request, module_id):
         'modulestaff': modulestaff,
         'activities': activities,
         'assessment_history': assessment_history,
-        'package': package,
+        'package': module.package,
         'total_contact_proportion': total_contact_proportion,
         'total_admin_proportion': total_admin_proportion,
         'total_assessment_proportion': total_assessment_proportion,
@@ -997,6 +1000,7 @@ def modules_details(request, module_id):
     return HttpResponse(template.render(context, request))
 
 
+@login_required
 def add_assessment_sign_off(request, module_id):
     """Detailed information on a given module"""
     # Get the module itself
@@ -1068,6 +1072,11 @@ def add_assessment_sign_off(request, module_id):
     return HttpResponse(template.render(context, request))
 
 
+@login_required
+@staff_only
+@permission_required('loads.add_modulestaff')
+@permission_required('loads.change_modulestaff')
+@permission_required('loads.delete_modulestaff')
 def staff_module_allocation(request, staff_id, package_id):
     """Edit the allocation of modules to a staff member"""
 
@@ -1080,13 +1089,6 @@ def staff_module_allocation(request, staff_id, package_id):
 
     # If either the logged in user or target user aren't in the package, this is forbidden
     if package not in user_staff.get_all_packages() or package not in staff.get_all_packages(include_hidden=True):
-        return HttpResponseRedirect(reverse('forbidden'))
-
-    # The logged in user should be able to do this via the Admin interface, or disallow.
-    permission = request.user.has_perm('loads.add_modulestaff') and request.user.has_perm(
-        'loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
-
-    if not permission:
         return HttpResponseRedirect(reverse('forbidden'))
 
     # Get a formset with only the choosable fields
@@ -1128,8 +1130,10 @@ def staff_module_allocation(request, staff_id, package_id):
     return render(request, 'loads/staff/allocations.html', {'staff': staff, 'package': package, 'formset': formset})
 
 
+@login_required
+@staff_only
 def generators_index(request):
-    '''Obtains a list of all ActivityGenerators in the User's selected WorkPackage'''
+    """Obtains a list of all ActivityGenerators in the User's selected WorkPackage"""
 
     # Fetch the staff user associated with the person requesting
     user_staff = get_object_or_404(Staff, user=request.user)
@@ -1145,17 +1149,19 @@ def generators_index(request):
     return HttpResponse(template.render(context, request))
 
 
+@login_required
+@staff_only
+@permission_required('loads.add_activity')
 def generators_generate_activities(request, generator_id):
     """(Re)generate all activities for a given Activity Generator"""
 
     # Fetch the staff user associated with the person requesting
-    user_staff = get_object_or_404(Staff, user=request.user)
     staff = get_object_or_404(Staff, user=request.user)
     # And the generator
     generator = get_object_or_404(ActivityGenerator, pk=generator_id)
 
     # If either the logged in user or target user aren't in the package, this is forbidden
-    if staff.package not in user_staff.get_all_packages() or not request.user.has_perm('loads.add_activity'):
+    if generator.package not in staff.get_all_packages(include_hidden="True"):
         return HttpResponseRedirect(reverse('forbidden'))
 
     generator.generate_activities()
@@ -1164,8 +1170,11 @@ def generators_generate_activities(request, generator_id):
     return HttpResponseRedirect(url)
 
 
+@login_required
+@staff_only
+@admin_only
 def projects_index(request):
-    '''Obtains a list of all non archived projects'''
+    """Obtains a list of all non archived projects"""
     # Fetch the tasks assigned against the specific user of the staff member
     staff = get_object_or_404(Staff, user=request.user)
     projects = Project.objects.all()
@@ -1177,6 +1186,13 @@ def projects_index(request):
     return HttpResponse(template.render(context, request))
 
 
+@login_required
+@staff_only
+@admin_only
+@permission_required('loads.change_project')
+@permission_required('loads.add_projectstaff')
+@permission_required('loads.change_projectstaff')
+@permission_required('loads.delete_projectstaff')
 def projects_details(request, project_id):
     """Allows a Project and allocated staff to be edited"""
 
@@ -1187,19 +1203,12 @@ def projects_details(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     package = user_staff.package
 
-    # The logged in user should be able to do this via the Admin interface, or disallow changes (views ok)
-    permission = request.user.has_perm('loads.change_project') and request.user.has_perm(
-        'loads.change_projectstaff') and request.user.has_perm('loads.delete_projectstaff') and request.user.has_perm(
-        'loads.add_projectstaff')
-
     # Get a formset with only the choosable fields
     ProjectStaffFormSet = modelformset_factory(ProjectStaff,  # formset=BaseModuleStaffByStaffFormSet,
                                                fields=('staff', 'start', 'end', 'hours_per_week'),
                                                can_delete=True)
 
     if request.method == "POST":
-        if not permission:
-            return HttpResponseRedirect(reverse('forbidden'))
         project_form = ProjectForm(request.POST, instance=project)
         formset = ProjectStaffFormSet(
             request.POST, request.FILES,
@@ -1228,14 +1237,17 @@ def projects_details(request, project_id):
         formset = ProjectStaffFormSet(queryset=ProjectStaff.objects.filter(project=project))
         for form in formset:
             form.fields['staff'].queryset = package.get_all_staff()
-        # Again, only allow modules in the package
-        # for form in formset:
-        #   form.fields['module'].queryset = Module.objects.filter(package=package)
 
     return render(request, 'loads/projects/allocations.html',
                   {'project': project, 'project_form': project_form, 'formset': formset})
 
 
+@login_required
+@staff_only
+@admin_only
+@permission_required('loads.add_projectstaff')
+@permission_required('loads.change_projectstaff')
+@permission_required('loads.delete_projectstaff')
 def projects_generate_activities(request, project_id):
     """(Re)generate all activities for a project"""
 
@@ -1245,25 +1257,16 @@ def projects_generate_activities(request, project_id):
     # And the project we are going to act on
     project = get_object_or_404(Project, pk=project_id)
 
-    # TODO: Establish sensible permissions
-    # If either the logged in user or target user aren't in the package, this is forbidden
-    # if package not in user_staff.get_all_packages() or package not in staff.get_all_packages():
-    #    return HttpResponseRedirect(reverse('forbidden'))
-
-    # The logged in user should be able to do this via the Admin interface, or disallow.
-    permission = request.user.has_perm('loads.add_projectstaff') and request.user.has_perm(
-        'loads.change_projectstaff') and request.user.has_perm('loads.delete_projectstaff')
-    if not permission:
-        return HttpResponseRedirect(reverse('forbidden'))
-
     project.generate_activities()
     messages.success(request, 'Activities Regenerated.')
     url = reverse('projects_index')
     return HttpResponseRedirect(url)
 
 
+@login_required()
 def workpackage_change(request):
     """Allows a user to change their current active workpackage"""
+    # TODO: Needs to allow External Examiners.
     # Get the member of staff for the logged in user
     staff = get_object_or_404(Staff, user=request.user)
 
@@ -1291,18 +1294,14 @@ def workpackage_change(request):
     return render(request, 'loads/workpackage.html', {'form': form, 'staff': staff})
 
 
+@login_required
+@staff_only
+@admin_only
+@user_passes_test(lambda u: u.is_superuser)
 def workpackage_migrate(request):
     """Allows a user to change their current active workpackage"""
     # Get the member of staff for the logged in user
     staff = get_object_or_404(Staff, user=request.user)
-
-    # Check for a valid permission at this stage
-    can_override = (request.user.has_perm('loads.add_activity')
-                    and request.user.has_perm('loads_add_module')
-                    and request.user.has_perm('loads_add_modulestaff'))
-
-    if not can_override:
-        return HttpResponseRedirect(reverse('forbidden'))
 
     # Get all workpackages that touch on the staff member's group
     packages = staff.get_all_packages()
@@ -1345,6 +1344,7 @@ def workpackage_migrate(request):
         form.fields['destination_package'].queryset = packages
 
     return render(request, 'loads/workpackages/migrate.html', {'form': form, 'staff': staff})
+
 
 # Class based views
 
@@ -1395,8 +1395,8 @@ class UpdateTaskView(PermissionRequiredMixin, UpdateView):
         form.fields['groups'].queryset = groups
         return form
 
-    #@method_decorator(permission_required('loads.change_task', raise_exception=True))
-    #def dispatch(self, request):
+    # @method_decorator(permission_required('loads.change_task', raise_exception=True))
+    # def dispatch(self, request):
     #    return super(UpdateTaskView, self).dispatch(request)
 
 
@@ -1522,7 +1522,7 @@ class UpdateProgrammeView(PermissionRequiredMixin, UpdateView):
         return form
 
 
-class ProgrammeList(ListView):
+class ProgrammeList(LoginRequiredMixin, ListView):
     """Generic view for Programme List"""
     model = Programme
     context_object_name = 'programmes'
@@ -1544,27 +1544,17 @@ class ProgrammeList(ListView):
         return Programme.objects.all().filter(package=package)
 
 
-class ActivityListView(ListView):
+class ActivityListView(LoginRequiredMixin, ListView):
     """Generic view for the Activities List"""
     model = Activity
     context_object_name = 'activities'
 
     def get_queryset(self):
-
         # Work out the correct package and the staff within in
         staff = get_object_or_404(Staff, user=self.request.user)
         package = staff.package
 
         return Activity.objects.all().filter(package=package).order_by("staff", "name")
-
-
-class UnallocatedActivityListView(ActivityListView):
-    """Only look at the"""
-
-    def get_queryset(self):
-
-        queryset = super(UnallocatedActivityListView, self).get_queryset()
-        return queryset.filter(staff=None)
 
 
 class CreateActivityView(PermissionRequiredMixin, CreateView):
@@ -1627,4 +1617,3 @@ class UpdateActivityView(PermissionRequiredMixin, UpdateView):
         self.object.package = package
         response = super(UpdateActivityView, self).form_valid(form)
         return response
-
