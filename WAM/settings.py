@@ -88,6 +88,19 @@ DATABASES = {
     }
 }
 
+#DATABASES = {
+#        'default': {
+#                    'ENGINE': 'django.db.backends.mysql',
+#                    'NAME': 'wam',
+#                    'USER': 'wam',
+#                    'PASSWORD': 'wam',
+#                    'HOST': 'localhost',   # Or an IP Address that your DB is hosted on
+#                    'PORT': '3306',
+#                }
+#    }
+
+
+
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Internationalization
