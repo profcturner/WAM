@@ -53,6 +53,11 @@
 		<li class="menutop">
       <a title="click to access section: Help" href="https://github.com/profcturner/WAM/wiki" target="_blank" >Help</a>
     </li>
+  {% if not request.meta.remote_user %}
+  <li class="menutop">
+      <a title="click to access section: Help" href="{% url 'logout' %}">Logout</a>
+    </li>
+  {% endif %}
 
 
 	</ul>

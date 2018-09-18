@@ -76,6 +76,14 @@ def forbidden(request):
     return HttpResponse(template.render({}, request))
 
 
+def logged_out(request):
+    """Show that we are logged out"""
+
+    template = loader.get_template('loads/logged_out.html')
+
+    return HttpResponse(template.render({}, request))
+
+
 @login_required
 def download_assessment_resource(request, resource_id):
     """Download an assessment resource"""
