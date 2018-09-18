@@ -1,4 +1,4 @@
-'''A custom command to initially populate the database'''
+"""A custom command to initially populate the database"""
 # Code to implement a custom command
 
 import random
@@ -8,11 +8,6 @@ from django.core.management.base import BaseCommand, CommandError
 
 # We need to manipulate User and Group Information
 from django.contrib.auth.models import User, Group
-
-# We will be using mail functionality, and templates to create them
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import get_template
-from django.template import Context
 
 # And some models
 from loads.models import Category
@@ -29,37 +24,32 @@ from loads.models import Module
 from loads.models import WorkPackage
 from loads.models import ExternalExaminer
 
-# We need to access a few settings
-from django.conf import settings
 
 class Command(BaseCommand):
     help = 'Initially populate a database with defaults, and optionally, test data'
 
     def add_arguments(self, parser):
         parser.add_argument('--add-core-config',
-            action='store_true',
-            dest='add-core-config',
-            default=False,
-            help='Add core configuration data')
+                            action='store_true',
+                            dest='add-core-config',
+                            default=False,
+                            help='Add core configuration data')
 
         parser.add_argument('--add-test-data',
-            action='store_true',
-            dest='add-test-data',
-            default=False,
-            help='Don\'t just add initial basics, but test data for testing and training')
+                            action='store_true',
+                            dest='add-test-data',
+                            default=False,
+                            help='Don\'t just add initial basics, but test data for testing and training')
 
         parser.add_argument('--test-prefix',
-            dest='test-prefix',
-            default="TEST",
-            help='This is added to usernames and groups etc. to avoid conflicts')
+                            dest='test-prefix',
+                            default="TEST",
+                            help='This is added to usernames and groups etc. to avoid conflicts')
 
-            
     def handle(self, *args, **options):
-        #TODO needs some decent exception handling
-        verbosity = options['verbosity']
+        # TODO needs some decent exception handling
         add_core_config = options['add-core-config']
         add_test_data = options['add-test-data']
-        
 
         self.stdout.write('Populating data into database')
 
@@ -74,8 +64,8 @@ class Command(BaseCommand):
 
         self.stdout.write('Complete.')
 
-
-    def database_not_empty(self):
+    @staticmethod
+    def database_not_empty():
         """Check if any data is already there"""
 
         if Category.objects.all().count():
@@ -98,7 +88,6 @@ class Command(BaseCommand):
 
         # We don't check anything else for now, maybe we should, but these items would be needed to have much else
         return False
-
 
     def populate_basic_config(self, options):
         """Add the basic configuration required to get going"""
@@ -129,7 +118,6 @@ class Command(BaseCommand):
             self.stdout.write('.. Add AssessmentStates')
         self.add_assessment_state()
 
-
     def add_categories_activities(self):
         """Add some basic Categories and ActivityTypes"""
 
@@ -145,12 +133,10 @@ class Command(BaseCommand):
         ActivityType.objects.create(name="Research Grant", category=research_category)
         ActivityType.objects.create(name="Teaching Administration", category=education_category)
 
-
     def add_campus(self):
         """Add a campus to be renames"""
 
         Campus.objects.create(name="Rename this Campus")
-
 
     def add_module_sizes(self):
         """Add some ModuleSize objects"""
@@ -162,7 +148,6 @@ class Command(BaseCommand):
         ModuleSize.objects.create(text='100 - 200', admin_scaling=1.3, assessment_scaling=1.3)
         ModuleSize.objects.create(text='200+', admin_scaling=1.4, assessment_scaling=1.4)
 
-
     def add_assessment_resource_types(self):
         """Add some sensible AssessmentResourceTypes"""
 
@@ -173,7 +158,6 @@ class Command(BaseCommand):
         AssessmentResourceType.objects.create(name="Moderation")
         AssessmentResourceType.objects.create(name="External Comment")
         AssessmentResourceType.objects.create(name="Comment")
-
 
     def add_assessment_state(self):
         """Add a basic AssessmentState workflow"""
@@ -276,7 +260,6 @@ class Command(BaseCommand):
         initial_state.next_states.add(moderated_ok_state)
         initial_state.next_states.add(moderated_not_ok_state)
 
-
     def populate_test_data(self, options):
         """Add users, modules and programmes etc."""
 
@@ -298,7 +281,6 @@ class Command(BaseCommand):
 
         # The Modules
         self.create_modules(package, options)
-
 
     def create_work_package(self, options):
         """Create an test work package"""
@@ -335,7 +317,7 @@ class Command(BaseCommand):
             name=test_prefix + " Work Package",
             details="This is for testing and training",
             startdate=date.today(),
-            enddate=date.today()+timedelta(days=364),
+            enddate=date.today() + timedelta(days=364),
             hidden=True,
             draft=True,
         )
@@ -344,7 +326,6 @@ class Command(BaseCommand):
         package.groups.add(group)
 
         return package
-
 
     def get_staff_names(self):
         """Return a list of tuples with some test staff names"""
@@ -373,7 +354,6 @@ class Command(BaseCommand):
         ]
 
         return staff_names
-
 
     def create_staff(self, package, options):
         """Create the staff objects as above and add them to a WorkPackage"""
@@ -415,9 +395,9 @@ class Command(BaseCommand):
 
             # Create the linked staff objects
             # Let's have mostly Full Time staff, but with some PT staff too
-            staff = Staff.objects.create(
+            Staff.objects.create(
                 user=user,
-                fte=random.choice([100]*10 + [50]*2 + [60] + [40]),
+                fte=random.choice([100] * 10 + [50] * 2 + [60] + [40]),
                 title=title,
                 staff_number=username,
                 package=package
@@ -430,7 +410,6 @@ class Command(BaseCommand):
             # A different username for the next one
             username_number += 1
 
-
     def get_external_names(self):
         """Define names for external examiners"""
 
@@ -441,7 +420,6 @@ class Command(BaseCommand):
         ]
 
         return external_names
-
 
     def create_externals(self, package, options):
         """Create the external objects as above and set their WorkPackage"""
@@ -480,7 +458,7 @@ class Command(BaseCommand):
 
             # Create the linked staff objects
             # Let's have mostly Full Time staff, but with some PT staff too
-            external = ExternalExaminer.objects.create(
+            ExternalExaminer.objects.create(
                 user=user,
                 title=title,
                 staff_number=username,
@@ -489,7 +467,6 @@ class Command(BaseCommand):
 
             # A different username for the next one
             username_number += 1
-
 
     def get_programme_names(self):
         """Some basic programmes"""
@@ -501,7 +478,6 @@ class Command(BaseCommand):
         ]
 
         return programme_names
-
 
     def create_programmes(self, package, options):
         """Create some programmes and add them to a package"""
@@ -520,8 +496,6 @@ class Command(BaseCommand):
             )
 
             programme.examiners.add(random.choice(externals))
-
-
 
     def get_module_names(self):
         """Some basic module names"""
@@ -542,7 +516,6 @@ class Command(BaseCommand):
         ]
 
         return module_names
-
 
     def create_modules(self, package, options):
         """Create the modules"""
