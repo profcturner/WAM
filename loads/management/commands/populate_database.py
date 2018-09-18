@@ -417,7 +417,7 @@ class Command(BaseCommand):
             # Let's have mostly Full Time staff, but with some PT staff too
             staff = Staff.objects.create(
                 user=user,
-                fte=random.choice([100, 100, 100, 100, 60, 50, 40]),
+                fte=random.choice([100]*10 + [50]*2 + [60] + [40]),
                 title=title,
                 staff_number=username,
                 package=package
