@@ -125,3 +125,5 @@ STATIC_URL = '/static/'
 # Where do we store media
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
+
+LOGOUT_REDIRECT_URL = 'logged out'
