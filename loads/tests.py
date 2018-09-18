@@ -27,8 +27,6 @@ from .models import Module
 from .models import ModuleSize
 from .models import ModuleStaff
 from .models import Programme
-from .models import ExamTracker
-from .models import CourseworkTracker
 from .models import Project
 from .models import ProjectStaff
 from .models import WorkPackage
