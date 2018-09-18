@@ -553,7 +553,7 @@ class Command(BaseCommand):
         campuses = list(Campus.objects.all())
         module_sizes = list(ModuleSize.objects.all())
         programmes = list(Programme.objects.all().filter(package=package))
-        staff = list(Staff.objects.all())
+        staff = list(Staff.objects.all().filter(package=package))
 
         for (module_code, module_name) in self.get_module_names():
             if verbosity:
