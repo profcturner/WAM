@@ -15,8 +15,6 @@ Including another URLconf
 """
 from django.conf.urls import include, url
 from django.contrib import admin
-from django.contrib.auth import views as auth_views
-
 
 from loads import views
 
@@ -33,8 +31,6 @@ from loads.views import UpdateActivityView
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
-    url(r'^accounts/login/$', auth_views.login, name='login'),
-    url(r'^accounts/logout/$', auth_views.logout, name='logout'),
     url(r'^workpackage/change/$', views.workpackage_change, name='workpackage_change'),
     url(r'^workpackage/migrate/$', views.workpackage_migrate, name='workpackage_migrate'),    
     url(r'^loads/$', views.loads, name='loads'),
@@ -72,7 +68,6 @@ urlpatterns = [
     url(r'^projects/generate_activities/(?P<project_id>[0-9]+)$', views.projects_generate_activities, name='projects_generate_activities'),
     url(r'^staff/allocation/(?P<package_id>[0-9]+)/(?P<staff_id>[0-9]+)$', views.staff_module_allocation, name='staff_module_allocation'),    
     url(r'^forbidden/$', views.forbidden, name='forbidden'),
-    url(r'^logged_out/$', views.logged_out, name='logged out'),
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
     url(r'^admin/', admin.site.urls),
     url(r'^cadmin/$', views.custom_admin_index, name='custom_admin_index'),
