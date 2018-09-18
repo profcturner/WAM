@@ -27,6 +27,7 @@ from loads.models import Staff
 from loads.models import Programme
 from loads.models import Module
 from loads.models import WorkPackage
+from loads.models import ExternalExaminer
 
 # We need to access a few settings
 from django.conf import settings
@@ -289,12 +290,14 @@ class Command(BaseCommand):
         # Then the Staff
         self.create_staff(package, options)
 
+        # Then the External Examiners
+        self.create_externals(package, options)
+
         # Then Programmes
         self.create_programmes(package, options)
 
         # The Modules
         self.create_modules(package, options)
-
 
 
     def create_work_package(self, options):
@@ -411,6 +414,7 @@ class Command(BaseCommand):
             user.save()
 
             # Create the linked staff objects
+            # Let's have mostly Full Time staff, but with some PT staff too
             staff = Staff.objects.create(
                 user=user,
                 fte=random.choice([100, 100, 100, 100, 60, 50, 40]),
@@ -427,12 +431,73 @@ class Command(BaseCommand):
             username_number += 1
 
 
+    def get_external_names(self):
+        """Define names for external examiners"""
+
+        # It's only a joke...
+        external_names = [
+            ("Dr", "Victor", "von Doom"),
+            ("Dr", "Otto", "Octavius")
+        ]
+
+        return external_names
+
+
+    def create_externals(self, package, options):
+        """Create the external objects as above and set their WorkPackage"""
+
+        test_prefix = options['test-prefix']
+        verbosity = options['verbosity']
+
+        # Set up an initial username
+        username_number = 1000
+
+        # Loop through all the sample data above
+        for (title, first_name, last_name) in self.get_external_names():
+            if verbosity:
+                self.stdout.write(".. Creating External: {} {} {}".format(title, first_name, last_name))
+
+            username = test_prefix + "ext" + str(username_number)
+
+            if User.objects.all().filter(username=username):
+                self.stderr.write("ERROR: user already exists")
+                continue
+
+            if ExternalExaminer.objects.all().filter(staff_number=username):
+                self.stderr.write("ERROR: staff number already in user")
+                continue
+
+            user = User.objects.create(
+                username=username,
+                email="invalid@invalid.com",
+                password="invalid",
+                first_name=first_name,
+                last_name=last_name)
+
+            # We don't want these people to be able to login!
+            user.set_unusable_password()
+            user.save()
+
+            # Create the linked staff objects
+            # Let's have mostly Full Time staff, but with some PT staff too
+            external = ExternalExaminer.objects.create(
+                user=user,
+                title=title,
+                staff_number=username,
+                package=package
+            )
+
+            # A different username for the next one
+            username_number += 1
+
+
     def get_programme_names(self):
         """Some basic programmes"""
 
         programme_names = [
             ('1000', 'BSc Hons Guided Mutations'),
-            ('1001', 'MSc Hons Avenging Justice Fundamentals')
+            ('1001', 'MSc Hons Avenging Justice Fundamentals'),
+            ('1002', 'MEng Hons Terran and Asgardian Technology')
         ]
 
         return programme_names
@@ -443,14 +508,19 @@ class Command(BaseCommand):
 
         verbosity = options['verbosity']
 
+        externals = list(ExternalExaminer.objects.all().filter(package=package))
+
         for (programme_code, programme_name) in self.get_programme_names():
             if verbosity:
                 self.stdout.write(".. Creating Programme: {} {}".format(programme_code, programme_name))
-            Programme.objects.create(
+            programme = Programme.objects.create(
                 programme_code=programme_code,
                 programme_name=programme_name,
-                package=package
+                package=package,
             )
+
+            programme.examiners.add(random.choice(externals))
+
 
 
     def get_module_names(self):
@@ -463,7 +533,12 @@ class Command(BaseCommand):
             ('J101', 'Justice Fundamentals'),
             ('J102', 'Avenging Fundamentals'),
             ('J103', 'Planning to Take Down Your Rogue Friends'),
-            ('J104', 'Building defensive technology')
+            ('J104', 'Building Defensive Technology'),
+            ('A101', 'Arc Reactor Technology'),
+            ('A102', 'Murder Bot Fundamentals, the Lessons of Ultron'),
+            ('A103', 'Nanotechnology Armour Basics'),
+            ('A104', 'Kryptonian and Asgardian Physiology'),
+            ('A105', 'The Sokovia Accords')
         ]
 
         return module_names
