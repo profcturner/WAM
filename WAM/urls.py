@@ -33,8 +33,8 @@ from loads.views import UpdateActivityView
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
-    url(r'^accounts/login/$', auth_views.login, name='login'),
-    url(r'^accounts/logout/$', auth_views.logout, name='logout'),
+    url(r'^accounts/login/$', auth_views.LoginView.as_view(), name='login'),
+    url(r'^accounts/logout/$', auth_views.LogoutView.as_view(), name='logout'),
     url(r'^workpackage/change/$', views.workpackage_change, name='workpackage_change'),
     url(r'^workpackage/migrate/$', views.workpackage_migrate, name='workpackage_migrate'),    
     url(r'^loads/$', views.loads, name='loads'),
