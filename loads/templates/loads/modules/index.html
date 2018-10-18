@@ -47,9 +47,17 @@ Use this form to restrict the modules shown if desired.
     
   <p>Total of {{ combined_list|length}} module{{combined_list|length|pluralize}}.
   </p>
+
+    {% if programme %}
+        <p><strong>Only modules on the Programme {{ programme }}
+        {% if lead_programme %}
+            and for which that is the lead programme
+        {% endif %}
+            are shown.</strong></p>
+    {% endif %}
     
 {% else %}
-    <p>No modules currently exist for this package.</p>
+    <p>No modules currently meet the chosen criteria for this package.</p>
 {% endif %}
 
 <h2>Add Module</h2>

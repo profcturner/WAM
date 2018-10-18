@@ -902,6 +902,8 @@ def modules_index(request, semesters):
         'combined_list': combined_list,
         'valid_semesters': valid_semesters,
         'package': package,
+        'programme': programme,
+        'lead_programme': lead_programme,
     }
     return HttpResponse(template.render(context, request))
 
