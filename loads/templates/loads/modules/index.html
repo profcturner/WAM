@@ -1,6 +1,6 @@
 {% include "loads/header.html" %}
 
-<p>Selected Work Package : {{package}} <a href="{%url 'workpackage_change' %}">(Change Package)</a></p>
+<p>Selected Work Package : {{package}} <a href="{%url 'workpackage_change' %}?next={{ request.path|urlencode }}">(Change Package)</a></p>
 
 {% if package.in_the_past %}
 <h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
@@ -9,6 +9,8 @@
 {% if package.in_the_future %}
 <h1><span style="color:red">Warning: The currently selected Work Package is in the Future.</span></h1>
 {% endif %}
+
+Use this form to restrict the modules shown if desired.
 
 <form action="" method="post">
     {% csrf_token %}

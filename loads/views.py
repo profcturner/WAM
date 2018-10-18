@@ -1394,8 +1394,9 @@ class CreateTaskView(PermissionRequiredMixin, CreateView):
         package = staff.package
         package_staff = package.get_all_staff()
 
-        # Get all the groups this person is on.
-        groups = self.request.user.groups.all()
+        # Get all the groups this person might use, by aggregating them from packages.
+        packages = staff.get_all_packages()
+        groups = Group.objects.all().filter(workpackage__in=packages).distinct()
 
         form.fields['targets'].queryset = package_staff
         form.fields['groups'].queryset = groups
@@ -1418,8 +1419,9 @@ class UpdateTaskView(PermissionRequiredMixin, UpdateView):
         package = staff.package
         package_staff = package.get_all_staff()
 
-        # Get all the groups this person is on.
-        groups = self.request.user.groups.all()
+        # Get all the groups this person might use, by aggregating them from packages.
+        packages = staff.get_all_packages()
+        groups = Group.objects.all().filter(workpackage__in=packages).distinct()
 
         form.fields['targets'].queryset = package_staff
         form.fields['groups'].queryset = groups
