@@ -826,7 +826,7 @@ def modules_index(request, semesters):
         if form.is_valid():
             semesters = form.cleaned_data['semesters']
             programme = form.cleaned_data['programme']
-            lead_programe = form.cleaned_data['lead_programme']
+            lead_programme = form.cleaned_data['lead_programme']
 
     # if a GET (or any other method) we'll create a form from the current logged in user
     else:
