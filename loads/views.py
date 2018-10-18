@@ -849,7 +849,7 @@ def modules_index(request, semesters):
         if programme and module not in programme.modules.all():
             continue
         # And skip if lead programme is set, and this isn't the lead programme
-        if programme and lead_programme and module.lead_programme is not programme:
+        if programme and lead_programme and not (module.lead_programme == programme):
             continue
         # Is it valid for the semester, i.e. are and of its semesters in the passed in one?
         if len(valid_semesters):
