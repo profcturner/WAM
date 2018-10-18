@@ -13,6 +13,7 @@ from .models import AssessmentStateSignOff
 from .models import ExternalExaminer
 from .models import Staff
 from .models import TaskCompletion
+from .models import Programme
 from .models import Project
 from .models import WorkPackage
 
@@ -64,6 +65,9 @@ class ModulesIndexForm(forms.Form):
             ),
         ]
     )
+    programme = forms.ModelChoiceField(queryset=Programme.objects.all())
+    lead_programme = forms.BooleanField(required=False, initial=False)
+
 
 
 class AssessmentResourceForm(ModelForm):

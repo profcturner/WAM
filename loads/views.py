@@ -809,22 +809,32 @@ def modules_index(request, semesters):
     # And therefore the package enabled for that user
     package = staff.package
 
+    # By default, no programme or lead programme filter is set
+    programme = None
+    lead_programme = None
+
+    # Get all the modules in the package, pending further filtering
     modules = Module.objects.all().filter(package=package).order_by('module_code')
 
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request
         form = ModulesIndexForm(request.POST)
+        form.fields['programme'].queryset = Programme.objects.all().filter(package=package)
 
         # check whether it's valid:
         if form.is_valid():
             semesters = form.cleaned_data['semesters']
+            programme = form.cleaned_data['programme']
+            lead_programe = form.cleaned_data['lead_programme']
 
     # if a GET (or any other method) we'll create a form from the current logged in user
     else:
         form = ModulesIndexForm()
         # If semesters came via get, let's populate the form
         form.fields['semesters'].initial = semesters
+        form.fields['programme'].queryset = Programme.objects.all().filter(package=package)
+
 
         # Check for any semester limitations, split by comma if something is actually there
     if semesters:
@@ -832,8 +842,15 @@ def modules_index(request, semesters):
     else:
         valid_semesters = list()
 
+
     combined_list = []
     for module in modules:
+        # If there's a selected programme and this module isn't it, then skip
+        if programme and module not in programme.modules.all():
+            continue
+        # And skip if lead programme is set, and this isn't the lead programme
+        if programme and lead_programme and module.lead_programme is not programme:
+            continue
         # Is it valid for the semester, i.e. are and of its semesters in the passed in one?
         if len(valid_semesters):
             module_semesters = module.semester.split(',')
