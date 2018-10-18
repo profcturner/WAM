@@ -953,10 +953,12 @@ class Task(models.Model):
     url = models.URLField(blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     details = models.TextField()
-    deadline = models.DateTimeField()
-    archive = models.BooleanField(default=False)
-    targets = models.ManyToManyField(Staff, blank=True)
-    groups = models.ManyToManyField(Group, blank=True)
+    deadline = models.DateTimeField(help_text="This is a date and time in ISO format (YYYY-MM-DD HH:MM:SS)")
+    archive = models.BooleanField(default=False, help_text="Archived tasks will send no further notifications")
+    targets = models.ManyToManyField(Staff, blank=True,
+                                     help_text="Hold down ctrl or cmd to select multiple users")
+    groups = models.ManyToManyField(Group, blank=True,
+                                    help_text="Hold down ctrl or cmd to select multiple groups")
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
