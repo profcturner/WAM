@@ -1307,9 +1307,14 @@ def workpackage_change(request):
         if form.is_valid():
             form.save()
 
-            # redirect to the loads page
-            url = reverse('loads')
-            return HttpResponseRedirect(url)
+            # Try to find where we came from
+            next = request.POST.get('next', '/')
+            if next:
+                return HttpResponseRedirect(next)
+            else:
+                # redirect to the loads page
+                url = reverse('loads')
+                return HttpResponseRedirect(url)
 
     # if a GET (or any other method) we'll create a form from the current logged in user
     else:
