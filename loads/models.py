@@ -232,12 +232,17 @@ class WorkPackage(models.Model):
 
             old_module = Module.objects.get(pk=original_pk)
             old_module_programmes = old_module.programmes.all()
+            old_module_moderators = old_module.moderators.all()
 
             for old_programme in old_module_programmes:
                 # Remove the old programme reference
                 module.programmes.remove(old_programme)
                 # And add the mapped (new) one
                 module.programmes.add(Programme.objects.get(pk=programme_mapping[old_programme.pk]))
+
+            # Copy moderators too
+            for moderator in old_module_moderators:
+                module.moderators.add(moderator)
             # Save the many to manys
             module.save()
 

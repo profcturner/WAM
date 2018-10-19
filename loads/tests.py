@@ -405,10 +405,6 @@ class AssessmentResourceTestCase(TestCase):
         self.assertEqual(resource.is_downloadable_by_staff(coordinator), True)
         self.assertEqual(resource.is_downloadable_by_external(coordinator), False)
 
-        # self.client = Client()
-        # self.client.force_login(user)
-        # url = reverse('download_assessment_resource', args=(resource.id,))
-        # response = self.client.get(url)
 
     def test_resource_team_permissions(self):
         team_member = Staff.objects.get(user__username="academicB")
