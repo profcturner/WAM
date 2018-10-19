@@ -949,7 +949,7 @@ def external_modules_index(request):
         if len(signoffs) > 0:
             signoff = signoffs[0]
             for state in signoff.assessment_state.next_states.all():
-                if state.can_be_set_by_external(staff, module):
+                if state.can_be_set_by_external(external, module):
                     action_possible = True
         else:
             signoff = False
