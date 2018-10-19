@@ -7,9 +7,9 @@ from .models import ExternalExaminer
 def staff_only(function):
     """Checks the logged in User has a valid related Staff object"""
     def wrapper(request, *args, **kwargs):
-        staff = Staff.objects.get(user=request.user)
-
-        if not staff:
+        try:
+            staff = Staff.objects.get(user=request.user)
+        except Staff.DoesNotExist:
             # We should redirect really, but for now
             raise PermissionDenied
         else:
@@ -24,9 +24,9 @@ def staff_only(function):
 def external_only(function):
     """Checks the logged in User has a valid related Staff object"""
     def wrapper(request, *args, **kwargs):
-        external = ExternalExaminer.objects.get(user=request.user)
-
-        if not external:
+        try:
+            external = ExternalExaminer.objects.get(user=request.user)
+        except ExternalExaminer.DoesNotExist:
             # We should redirect really, but for now
             raise PermissionDenied
         else:
