@@ -68,6 +68,16 @@ def index(request):
     return HttpResponse(template.render(context, request))
 
 
+def external_index(request):
+    """The main home page for External Examiners"""
+
+    template = loader.get_template('loads/external/index.html')
+    context = {
+        'home_page': True,
+    }
+    return HttpResponse(template.render(context, request))
+
+
 def forbidden(request):
     """General permissions failure warning"""
 
@@ -910,7 +920,7 @@ def modules_index(request, semesters):
 
 @login_required
 @external_only
-def external_modules_index(request):
+def external_modules_index(request, semesters):
     """Shows a high level list of modules to an external examiner"""
     # Fetch the staff user associated with the person requesting
     external = get_object_or_404(ExternalExaminer, user=request.user)

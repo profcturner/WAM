@@ -1,5 +1,14 @@
 {% include "loads/header.html" %}
 
+{% if package.in_the_past %}
+<h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
+<p><span style="color:red">You should not be signing off resources unless this is a correction.</span></p>
+{% endif %}
+
+{% if package.in_the_future %}
+<h1><span style="color:red">Warning: The currently selected Work Package is in the Future.</span></h1>
+{% endif %}
+
 <h2>Sign-off resources for {{ module }}</h2>
 
 <p>Here you can sign off resources or comment on previous signoffs. Note that once you create a sign-off the resources

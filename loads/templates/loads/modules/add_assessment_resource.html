@@ -1,7 +1,15 @@
 {% include "loads/header.html" %}
 
-<h2>Upload Assessment Resource for {{ module }}</h2>
+{% if staff.package.in_the_past %}
+<h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
+<p><span style="color:red">You should not be uploading resources unless they are a correction.</span></p>
+{% endif %}
 
+{% if staff.package.in_the_future %}
+<h1><span style="color:red">Warning: The currently selected Work Package is in the Future.</span></h1>
+{% endif %}
+
+<h2>Upload Assessment Resource for {{ module }}</h2>
 
 <form action="" method="post" enctype="multipart/form-data">
     {% csrf_token %}
