@@ -1101,6 +1101,7 @@ def add_assessment_sign_off(request, module_id):
 
     template = loader.get_template('loads/modules/add_assessment_signoff.html')
     context = {
+        'package': package,
         'module': module,
         'assessment_signoffs': assessment_signoffs,
         'next_states': next_states,
