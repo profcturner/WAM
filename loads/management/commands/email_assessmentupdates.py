@@ -118,7 +118,7 @@ class Command(BaseCommand):
         # Trim off any sign-offs before the current one (in case more happened before this job)
         corrected_history = list()
         for (item, item_resources) in assessment_history:
-            if item.created <= signoff.created:
+            if item and (item.created <= signoff.created):
                 corrected_history.append((item, item_resources))
 
         if verbosity:
