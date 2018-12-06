@@ -100,31 +100,16 @@ def download_assessment_resource(request, resource_id):
     # Get the resource object
     resource = get_object_or_404(AssessmentResource, pk=resource_id)
 
-    # TODO: this is none too elegant, and could be outsourced
     # Fetch the staff user associated with the person requesting
     try:
         staff = Staff.objects.get(user=request.user)
     except Staff.DoesNotExist:
         staff = None
 
-    # or possibly an external examiner
-    try:
-        examiner = ExternalExaminer.objects.get(user=request.user)
-    except ExternalExaminer.DoesNotExist:
-        examiner = None
-
-    # If neither here, time to boot
-    if not staff and not examiner:
+    if not staff:
         return HttpResponseRedirect(reverse('forbidden'))
 
-    # Assume a lack of permissions
-    permission = False
-
-    if staff:
-        permission = resource.is_downloadable_by_staff(staff)
-
-    if examiner:
-        permission = resource.is_downloadable_by_external(examiner)
+    permission = resource.is_downloadable_by(staff)
 
     if not permission:
         return HttpResponseRedirect(reverse('forbidden'))
@@ -159,14 +144,8 @@ def delete_assessment_resource(request, resource_id):
     except Staff.DoesNotExist:
         staff = None
 
-    # or possibly an external examiner
-    try:
-        examiner = ExternalExaminer.objects.get(user=request.user)
-    except ExternalExaminer.DoesNotExist:
-        examiner = None
-
     # If neither here, time to boot
-    if not staff and not examiner:
+    if not staff:
         return HttpResponseRedirect(reverse('forbidden'))
 
     # Assume a lack of permissions
@@ -181,12 +160,8 @@ def delete_assessment_resource(request, resource_id):
             permission = True
     else:
         # Unsigned resources can be deleted, by owners and module coordinators
-        if staff:
-            if resource.owner == staff or resource.module.coordinator == staff:
-                permission = True
-
-        if examiner:
-            permission = resource.owner == examiner
+        if resource.owner == staff or resource.module.coordinator == staff:
+            permission = True
 
     if not permission:
         return HttpResponseRedirect(reverse('forbidden'))
@@ -923,18 +898,68 @@ def modules_index(request, semesters):
 def external_modules_index(request, semesters):
     """Shows a high level list of modules to an external examiner"""
     # Fetch the staff user associated with the person requesting
-    external = get_object_or_404(ExternalExaminer, user=request.user)
+    external = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
     package = external.package
+
+    # By default, no programme or lead programme filter is set
+    programme = None
+    lead_programme = None
 
     # Get the list of programmes that they examine
     examined_programmes = external.get_examined_programmes()
 
-    # Get all the modules in the package, we'll show them all
+    # Get all the modules in the package, pending further filtering
     modules = Module.objects.all().filter(package=package).order_by('module_code')
+
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request
+        form = ModulesIndexForm(request.POST)
+        form.fields['programme'].queryset = examined_programmes
+
+        # check whether it's valid:
+        if form.is_valid():
+            semesters = form.cleaned_data['semesters']
+            programme = form.cleaned_data['programme']
+            lead_programme = form.cleaned_data['lead_programme']
+
+    # if a GET (or any other method) we'll create a form from the current logged in user
+    else:
+        form = ModulesIndexForm()
+        # If semesters came via get, let's populate the form
+        form.fields['semesters'].initial = semesters
+        form.fields['programme'].queryset = examined_programmes
+
+
+        # Check for any semester limitations, split by comma if something is actually there
+    if semesters:
+        valid_semesters = semesters.split(',')
+    else:
+        valid_semesters = list()
 
     combined_list = []
     for module in modules:
+        # Controversial... filter out modules not relevant
+        if not external.can_examine_module(module):
+            continue
+        # If there's a selected programme and this module isn't it, then skip
+        if programme and module not in programme.modules.all():
+            continue
+        # And skip if lead programme is set, and this isn't the lead programme
+        if programme and lead_programme and not (module.lead_programme == programme):
+            continue
+        # Is it valid for the semester, i.e. are and of its semesters in the passed in one?
+        if len(valid_semesters):
+            module_semesters = module.semester.split(',')
+            valid_semester = False
+            for m_sem in module_semesters:
+                for v_sem in valid_semesters:
+                    if m_sem == v_sem:
+                        valid_semester = True
+            if not valid_semester:
+                continue
+
         # Store all relationships to the modules
         relationship = []
 
@@ -969,6 +994,7 @@ def external_modules_index(request, semesters):
 
     template = loader.get_template('loads/modules/index.html')
     context = {
+        'form': form,
         'external': external,
         'combined_list': combined_list,
         'package': package,
@@ -982,26 +1008,18 @@ def modules_details(request, module_id):
     # Get the module itself
     module = get_object_or_404(Module, pk=module_id)
 
-    # TODO: this is none too elegant, and could be outsourced
     # Fetch the staff user associated with the person requesting
     try:
         staff = Staff.objects.get(user=request.user)
-        if not module.package in staff.get_all_packages(include_hidden=True):
-            return HttpResponseRedirect(reverse('forbidden'))
+
+        if staff.is_external:
+            if not staff.can_examine_module(module):
+                return HttpResponseRedirect(reverse('forbidden'))
+        else:
+            if not module.package in staff.get_all_packages(include_hidden=True):
+                return HttpResponseRedirect(reverse('forbidden'))
     except Staff.DoesNotExist:
         staff = None
-
-    # or possibly an external examiner
-    try:
-        external = ExternalExaminer.objects.get(user=request.user)
-        if not external.can_access_module(module):
-            return HttpResponseRedirect(reverse('forbidden'))
-    except ExternalExaminer.DoesNotExist:
-        external = None
-
-    # If neither here, time to boot
-    if not staff and not external:
-        return HttpResponseRedirect(reverse('forbidden'))
 
     # Get all associated activities and allocations
     activities = Activity.objects.all().filter(module=module).order_by('name')
@@ -1051,15 +1069,8 @@ def add_assessment_sign_off(request, module_id):
     except Staff.DoesNotExist:
         staff = None
 
-    # or possibly an external examiner
-    try:
-        external = ExternalExaminer.objects.get(user=request.user)
-        package = external.package
-    except ExternalExaminer.DoesNotExist:
-        external = None
-
     # If neither here, time to boot
-    if not staff and not external:
+    if not staff:
         return HttpResponseRedirect(reverse('forbidden'))
 
     # Get all signoffs to date
