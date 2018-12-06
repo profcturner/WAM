@@ -115,7 +115,10 @@ class WorkPackage(models.Model):
         for programme in programmes:
             # Remember the original primary key
             original_pk = programme.pk
-            # Now invalidate it
+            # And get the directors and examiners
+            original_directors = programme.directors.all()
+            original_examiners = programme.examiners.all()
+            # Now invalidate the key
             programme.pk = None
             # And now point to the new package
             programme.package = self
@@ -123,6 +126,15 @@ class WorkPackage(models.Model):
             programme.save()
             # Record the mapping from the old programme to the new
             mapping_programmes.update({original_pk: programme.pk})
+
+            for director in original_directors:
+                programme.directors.add(director)
+
+            for examiner in original_examiners:
+                programme.examiners.add(examiner)
+
+            # Save the many to manys
+            programme.save()
 
         return mapping_programmes
 
