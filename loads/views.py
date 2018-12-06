@@ -1590,13 +1590,6 @@ class ProgrammeList(LoginRequiredMixin, ListView):
         except Staff.DoesNotExist:
             staff = None
 
-        # or possibly an external examiner
-        try:
-            external = ExternalExaminer.objects.get(user=self.request.user)
-            package = external.package
-        except ExternalExaminer.DoesNotExist:
-            external = None
-
         return Programme.objects.all().filter(package=package)
 
 
