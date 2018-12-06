@@ -67,9 +67,9 @@ class WorkPackageMigrationTestCase(TestCase):
 
         assessment_staff = Staff.objects.create(user=user_aF)
 
-        lead_examiner = ExternalExaminer.objects.create(user=user_eA)
-        associated_examiner = ExternalExaminer.objects.create(user=user_eB)
-        other_examiner = ExternalExaminer.objects.create(user=user_eC)
+        lead_examiner = Staff.objects.create(user=user_eA, is_external=True, has_workload=False)
+        associated_examiner = Staff.objects.create(user=user_eB, is_external=True, has_workload=False)
+        other_examiner = Staff.objects.create(user=user_eC, is_external=True, has_workload=False)
 
         # Add the user to AssessmentStaff
         AssessmentStaff.objects.create(staff=assessment_staff, package=package)
@@ -243,6 +243,9 @@ class WorkPackageMigrationTestCase(TestCase):
         source_module_ABC101 = source_modules.get(module_code="ABC101")
         destination_module_ABC101 = destination_modules.get(module_code="ABC101")
 
+        # Moderators - check it copied
+        self.assertEqual(len(destination_module_ABC101.moderators.all()), 1)
+
         # And now staff allocations
         source_modulestaff = ModuleStaff.objects.all().filter(package=source)
         self.assertEqual(len(source_modulestaff), 1)
@@ -338,9 +341,9 @@ class AssessmentResourceTestCase(TestCase):
 
         assessment_staff = Staff.objects.create(user=user_aF)
 
-        lead_examiner = ExternalExaminer.objects.create(user=user_eA)
-        associated_examiner = ExternalExaminer.objects.create(user=user_eB)
-        other_examiner = ExternalExaminer.objects.create(user=user_eC)
+        lead_examiner = Staff.objects.create(user=user_eA, is_external=True, has_workload=False)
+        associated_examiner = Staff.objects.create(user=user_eB, is_external=True, has_workload=False)
+        other_examiner = Staff.objects.create(user=user_eC, is_external=True, has_workload=False)
 
         # Add the user to AssessmentStaff
         AssessmentStaff.objects.create(staff=assessment_staff, package=package)
@@ -452,7 +455,7 @@ class AssessmentResourceTestCase(TestCase):
         self.assertEqual(resource.is_downloadable_by_external(other), False)
 
     def test_resource_lead_examiner_permissions(self):
-        lead_examiner = ExternalExaminer.objects.get(user__username="externalA")
+        lead_examiner = Staff.objects.get(user__username="externalA")
         resource = AssessmentResource.objects.get(name="test")
 
         # Lead Examiners should be able to download
@@ -461,7 +464,7 @@ class AssessmentResourceTestCase(TestCase):
         self.assertEqual(resource.is_downloadable_by_external(lead_examiner), True)
 
     def test_resource_associate_examiner_permissions(self):
-        associate_examiner = ExternalExaminer.objects.get(user__username="externalB")
+        associate_examiner = Staff.objects.get(user__username="externalB")
         resource = AssessmentResource.objects.get(name="test")
 
         # Lead Examiners should be able to download
@@ -470,7 +473,7 @@ class AssessmentResourceTestCase(TestCase):
         self.assertEqual(resource.is_downloadable_by_external(associate_examiner), True)
 
     def test_resource_other_examiner_permissions(self):
-        other_examiner = ExternalExaminer.objects.get(user__username="externalC")
+        other_examiner = Staff.objects.get(user__username="externalC")
         resource = AssessmentResource.objects.get(name="test")
 
         # Other Examiners should not be able to download
