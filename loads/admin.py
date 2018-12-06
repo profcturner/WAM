@@ -52,6 +52,11 @@ class AssessmentStaffAdmin(admin.ModelAdmin):
     list_display = ('package', 'staff')
     list_filter = ('package', 'staff')
 
+class AssessmentStateSignOffAdmin(admin.ModelAdmin):
+    list_display = ('module', 'signed_by', 'assessment_state', 'created')
+    list_filter = ('module__package__name',)
+
+
 class ModuleAdmin(admin.ModelAdmin):
     list_display = ('package', 'module_code', 'module_name', 'semester')
     list_filter = ('package','semester')
@@ -96,7 +101,7 @@ admin.site.register(ActivityType)
 admin.site.register(AssessmentResource)
 admin.site.register(AssessmentResourceType)
 admin.site.register(AssessmentState)
-admin.site.register(AssessmentStateSignOff)
+admin.site.register(AssessmentStateSignOff, AssessmentStateSignOffAdmin)
 admin.site.register(AssessmentStaff, AssessmentStaffAdmin)
 admin.site.register(Body)
 admin.site.register(Campus)
