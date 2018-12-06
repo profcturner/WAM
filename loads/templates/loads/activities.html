@@ -1,4 +1,4 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %} {% block content %}
 
 <h1>Activity breakdown for {{staff}} <a href="{% url 'staff_module_allocation' package.id staff.id %}">(Edit)</a></h1>  
 
@@ -65,4 +65,4 @@
     </table>
 
 
-{% include "loads/footer.html" %}
+{% endblock content %}

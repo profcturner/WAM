@@ -1,4 +1,6 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
 
 {% if staff.package.in_the_past %}
 <h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
@@ -19,4 +21,4 @@
     <input type="submit" value="Submit" />
 </form>  
 
-{% include "loads/footer.html" %}
+{% endblock content %}

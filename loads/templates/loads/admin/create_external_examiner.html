@@ -1,4 +1,4 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %} {% block content %}
 
 <h2>Create External Examiner User</h2>
 
@@ -19,4 +19,4 @@ allows login of remote users. Ask your site admin if you are unsure. You will ne
     </table>
 </form>
 
-{% include "loads/footer.html" %}
+{% endblock content %}

@@ -1,4 +1,6 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
 
 <h2>Manage Allocations for {{module}}</h2>
 <h2>Package {{package}}</h2>
@@ -53,4 +55,4 @@
 </script>
 
 
-{% include "loads/footer.html" %}
+{% endblock content %}

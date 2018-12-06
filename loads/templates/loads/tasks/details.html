@@ -1,4 +1,4 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %} {% block content %}
 
 <h2>Details for task {{ task.name }}</h2>
 
@@ -91,4 +91,4 @@ Non completions: {{combined_list_incomplete|length}}.<br />
 </p>
     
 
-{% include "loads/footer.html" %}
+{% endblock content %}

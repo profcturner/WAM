@@ -1,4 +1,6 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
 
 <h2>Details for Module {{ module.name }} <a href="{% url 'update module' module.pk %}">(Edit)</a></h2>
 
@@ -197,4 +199,4 @@
 
 {% endif %}
 
-{% include "loads/footer.html" %}
+{% endblock content %}

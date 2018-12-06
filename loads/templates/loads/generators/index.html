@@ -1,4 +1,4 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %} {% block content %}
 
 <h2>Activity Generators</h2>
 
@@ -30,4 +30,4 @@
     <p>No activity generators are available in this work package.</p>
 {% endif %}
 
-{% include "loads/footer.html" %}
+{% endblock content %}

@@ -1,4 +1,4 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %} {% block content %}
 
 {% load staticfiles %}
 <!-- Include formset plugin - including jQuery dependency -->
@@ -66,4 +66,4 @@
 <p><a href="{% url 'loads_modules' semesters='' %}">Loads by Modules</a>.</p>
 
 
-{% include "loads/footer.html" %}
+{% endblock content %}

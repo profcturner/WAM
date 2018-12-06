@@ -431,12 +431,16 @@ class Staff(models.Model):
     title           the title of the member of staff (Dr, Mr etc)
     staff_number    the staff number
     fte             the percentage of time the member of staff is available for
+    is_external     whether the person is an external examiner
+    has_workload    whether the person should be considered to have a workload
     package         the active work package to edit or display
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     staff_number = models.CharField(max_length=20)
     fte = models.PositiveSmallIntegerField(default=100)
+    is_external = models.BooleanField(default=False)
+    has_workload = models.BooleanField(default=True)
     package = models.ForeignKey(WorkPackage, null=True, on_delete=models.SET_NULL)
 
     objects = StaffManager()
@@ -533,6 +537,29 @@ class Staff(models.Model):
 
         return packages
 
+    def get_examined_programmes(self):
+        examined_programmes = Programme.objects.all().filter(examiners=self).distinct()
+        return examined_programmes
+
+    def can_examine_module(self, module):
+        """Checks if the examiner should have general access to a module"""
+
+        examined_programmes = self.get_examined_programmes()
+
+        # External Examiners can download if they examine the lead programme
+        if module.lead_programme:
+            if module.lead_programme in examined_programmes:
+                return True
+
+        # Or if they are an examiner (for information) for another listed programme
+        if module.programmes:
+            if any(programme in examined_programmes for programme in module.programmes.all()):
+                return True
+
+        # Otherwise, there is no access
+        return False
+
+
     class Meta:
         verbose_name_plural = 'staff'
 
@@ -541,7 +568,7 @@ class AssessmentStaff(models.Model):
     """Stores which staff can manage Assessment Resources"""
 
     package = models.ForeignKey(WorkPackage, on_delete=models.CASCADE)
-    staff = models.ForeignKey(Staff, on_delete=models.CASCADE)
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, limit_choices_to={'is_external': False})
     # TODO: what they will have access to.
 
     class Meta:
@@ -612,7 +639,8 @@ class Activity(models.Model):
     activity_type = models.ForeignKey('ActivityType', on_delete=models.CASCADE)
     module = models.ForeignKey('Module', blank=True, null=True, on_delete=models.CASCADE)
     comment = models.CharField(max_length=200, default='', blank=True)
-    staff = models.ForeignKey(Staff, null=True, blank=True, on_delete=models.SET_NULL)
+    staff = models.ForeignKey(Staff, null=True, blank=True, on_delete=models.SET_NULL,
+                              limit_choices_to={'is_external': False})
     package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
     activity_set = models.ForeignKey('ActivitySet', blank=True, null=True, on_delete=models.CASCADE)
 
@@ -762,7 +790,8 @@ class ModuleStaff(models.Model):
     """
 
     module = models.ForeignKey('Module', on_delete=models.CASCADE)
-    staff = models.ForeignKey('Staff', on_delete=models.CASCADE)
+    staff = models.ForeignKey('Staff', on_delete=models.CASCADE,
+                              limit_choices_to={'has_workload': True})
     package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
     # TODO package is implicitly linked by module already...?
 
@@ -805,9 +834,14 @@ class Programme(models.Model):
 
     programme_code = models.CharField(max_length=10)
     programme_name = models.CharField(max_length=200)
-    examiners = models.ManyToManyField(ExternalExaminer, blank=True)
+    #deprecated_examiners = models.ManyToManyField(ExternalExaminer, blank=True)
+    examiners = models.ManyToManyField(Staff, blank=True,
+                                       limit_choices_to={'is_external': True},
+                                       related_name='examined_programmes')
     package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
-    directors = models.ManyToManyField(Staff, blank=True)
+    directors = models.ManyToManyField(Staff, blank=True,
+                                       limit_choices_to={'is_external': False},
+                                       related_name='directed_programmes')
 
     def __str__(self):
         return str(self.programme_code) + ': ' + str(self.programme_name)
@@ -848,8 +882,10 @@ class Module(models.Model):
     details = models.TextField(blank=True, null=True)
     programmes = models.ManyToManyField(Programme, blank=True, related_name='modules')
     lead_programme = models.ForeignKey(Programme, blank=True, null=True, related_name='lead_modules', on_delete=models.SET_NULL)
-    coordinator = models.ForeignKey(Staff, blank=True, null=True, related_name='coordinated_modules', on_delete=models.SET_NULL)
-    moderators = models.ManyToManyField(Staff, blank=True, related_name='moderated_modules')
+    coordinator = models.ForeignKey(Staff, blank=True, null=True, related_name='coordinated_modules',
+                                    on_delete=models.SET_NULL, limit_choices_to={'is_external': False})
+    moderators = models.ManyToManyField(Staff, blank=True, related_name='moderated_modules',
+                                        limit_choices_to={'is_external': False})
 
     def get_contact_hours(self):
         """returns the contact hours for the module
@@ -1099,6 +1135,10 @@ class AssessmentResource(models.Model):
         if not isinstance(staff, Staff):
             return False
 
+        # This case isn't for externals
+        if staff.is_external:
+            return False
+
         # Module Coordinators can download
         if self.module.coordinator == staff:
             return True
@@ -1124,7 +1164,7 @@ class AssessmentResource(models.Model):
         return False
 
     def is_downloadable_by_external(self, external):
-        """determines if a specific ExternalExaminer member may download the resource
+        """determines if a specific Staff who is an external examiner member may download the resource
 
             The examiner can download a resource if and only if:
 
@@ -1134,24 +1174,29 @@ class AssessmentResource(models.Model):
             returns True if permitted, False otherwise
         """
 
-        # Ensure we have an Examiner object
-        if not isinstance(external, ExternalExaminer):
+        # Ensure we have an Staff object
+        if not isinstance(external, Staff):
             return False
 
-        return external.can_access_module(self.module)
+        # Who is an external
+        if not external.is_external:
+            return False
 
-    def is_downloadable_by(self, person):
-        """checks is a resource is downloadable by a member of Staff or an ExternalExaminer
+        return external.can_examine_module(self.module)
+
+    def is_downloadable_by(self, staff):
+        """checks is a resource is downloadable by a member of Staff or an external examiner
 
             see is_downloadable_by_staff() or is_downloadable_by_external() for more details
 
             returns True if permitted, False otherwise
         """
-        if isinstance(person, Staff):
-            return self.is_downloadable_by_staff(person)
 
-        if isinstance(person, ExternalExaminer):
-            return self.is_downloadable_by_external(person)
+        if staff.is_external:
+            return self.is_downloadable_by_external(staff)
+
+        else:
+            return self.is_downloadable_by_staff(staff)
 
         return False
 
@@ -1216,27 +1261,22 @@ class AssessmentState(models.Model):
         if isinstance(person, User):
             # See if they are staff
             staff = Staff.objects.all().get(user=person)
-            if staff:
-                person = staff
-            else:
-                external = ExternalExaminer.objects.all().get(user=person)
-                if external:
-                    person = external
-                else:
-                    return False
+            if not staff:
+                return False
 
-        if isinstance(person, Staff):
+        if staff.is_external:
+            return self.can_be_set_by_external(person, module)
+        else:
             return self.can_be_set_by_staff(person, module)
 
-        if isinstance(person, ExternalExaminer):
-            return self.can_be_set_by_external(person, module)
-
-        return False
 
     def can_be_set_by_staff(self, staff, module):
         """determines if a member of staff can set this state for a module
 
             returns True if permitted, False otherwise"""
+
+        if staff.is_external:
+            return False
 
         actors = self.get_actor_list()
 
@@ -1268,13 +1308,16 @@ class AssessmentState(models.Model):
         return False
 
     def can_be_set_by_external(self, external, module):
-        """determines if a specific ExternalExaminer member may set this state for a module
+        """determines if a specific external examiner Staff member may set this state for a module
 
             returns True if permitted, False otherwise
         """
 
-        # Ensure we have an Examiner object
-        if not isinstance(external, ExternalExaminer):
+        # Ensure we have an Staff object with the correct settings
+        if not isinstance(external, Staff):
+            return False
+
+        if not external.is_external:
             return False
 
         # If external is not in the actor list, reject
@@ -1282,7 +1325,7 @@ class AssessmentState(models.Model):
             return False
 
         # Now it's about checking they have permission at all
-        return external.can_access_module(module)
+        return external.can_examine_module(module)
 
     class Meta:
         ordering = ['priority']
@@ -1381,7 +1424,7 @@ class ProjectStaff(models.Model):
     hours_per_week  The hours per week (excluding holidays) in this period
     """
 
-    staff = models.ForeignKey(Staff, on_delete=models.CASCADE)
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, limit_choices_to={'is_external': False})
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     start = models.DateField()
     end = models.DateField()

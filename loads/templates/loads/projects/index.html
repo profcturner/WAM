@@ -1,4 +1,4 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %} {% block content %}
   
 <h2>Projects</h2>
 
@@ -35,4 +35,4 @@
     <p>No unarchived projects are available.</p>
 {% endif %}
 
-{% include "loads/footer.html" %}
+{% endblock content %}

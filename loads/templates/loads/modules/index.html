@@ -1,4 +1,6 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
 
 <p>Selected Work Package : {{package}} <a href="{%url 'workpackage_change' %}?next={{ request.path|urlencode }}">(Change Package)</a></p>
 
@@ -60,8 +62,10 @@ Use this form to restrict the modules shown if desired.
     <p>No modules currently meet the chosen criteria for this package.</p>
 {% endif %}
 
+{% if not logged_in_staff.is_external %}
 <h2>Add Module</h2>
 
 <a href="{% url 'create module' %}">Click here to create a new Module.</a>
 
-{% include "loads/footer.html" %}
+{% endif %}
+{% endblock %}

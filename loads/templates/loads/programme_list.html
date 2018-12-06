@@ -1,4 +1,4 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %} {% block content %}
 
 {# <p>Selected Work Package : {{package}} <a href="{%url 'workpackage_change' %}">(Change Package)</a></p> #}
 
@@ -23,4 +23,4 @@
 
 <a href="{% url 'create programme' %}">Click here to create a new Programme.</a>
 
-{% include "loads/footer.html" %}
+{% endblock content %}

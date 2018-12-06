@@ -1,4 +1,4 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %} {% block content %}
 
 <h2>Change Active WorkPackage for {{ staff }}</h2>
 
@@ -14,4 +14,4 @@ Current active workpackage is {{ staff.package }}.
     <input type="hidden" name="next" value="{{ request.GET.next }}">
 </form>  
 
-{% include "loads/footer.html" %}
+{% endblock content %}

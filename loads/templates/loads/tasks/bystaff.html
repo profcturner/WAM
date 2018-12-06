@@ -1,4 +1,4 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %} {% block content %}
   
 
 {% if combined_list_incomplete %}
@@ -51,4 +51,4 @@
     <p>No activities are available for {{ staff }}.</p>
 {% endif %}
 
-{% include "loads/footer.html" %}
+{% endblock content %}

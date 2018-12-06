@@ -1,4 +1,4 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %} {% block content %}
 
 <h2>{{ task.name }}</h2>
 
@@ -56,4 +56,4 @@ Please confirm completion of this task by {{ staff }}. The date and time you rec
     <input type="submit" value="Submit" />
 </form>  
 
-{% include "loads/footer.html" %}
+{% endblock content %}

@@ -1,4 +1,6 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
 
 {% if package.in_the_past %}
 <h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
@@ -56,4 +58,4 @@ already added can no longer be deleted.</p>
     <p>No assessment sign-offs recorded for this module.</p>
 {% endif %}
 
-{% include "loads/footer.html" %}
+{% endblock content %}

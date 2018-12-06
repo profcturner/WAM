@@ -1,4 +1,4 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %} {% block content %}
 
 {% if form.instance.pk %}
 <h2>Update Programme</h2>
@@ -21,4 +21,4 @@
     </table>
 </form>
 
-{% include "loads/footer.html" %}
+{% endblock content %}

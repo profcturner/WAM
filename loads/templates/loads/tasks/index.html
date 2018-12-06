@@ -1,4 +1,4 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %} {% block content %}
 
 {% if archived %}
 <h2>Archived Tasks</h2>
@@ -42,4 +42,4 @@
 
 <p><a href="{% url 'create task' %}">Click here to add a new Task</a></p>
 
-{% include "loads/footer.html" %}
+{% endblock content %}

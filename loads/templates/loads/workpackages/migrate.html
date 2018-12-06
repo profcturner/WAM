@@ -1,4 +1,4 @@
-{% include "loads/header.html" %}
+{% extends "loads/base_automatic.html" %} {% block content %}
 
 <h2>Migrate WorkPackage</h2>
 
@@ -22,4 +22,4 @@ so that it can then be edited appropriately for the next year.
     <input type="submit" value="Submit" />
 </form>  
 
-{% include "loads/footer.html" %}
+{% endblock content %}
