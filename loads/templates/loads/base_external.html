@@ -6,6 +6,8 @@
 {% load tz %}
 {% url 'external_index' as index %}
 {% url 'external_modules_index' semesters="" as external_modules_index %}
+{% url 'tasks_index' as tasks_index %}
+{% url 'programmes_index' as programmes_index %}
 
 
 <div id="menu">
@@ -14,10 +16,16 @@
       <a title="click to access section: Home" class="{%if home_page %}active{% endif %}first" href="{% url 'external_index' %}">Home</a>
     </li>
     <li class="menutop">
-      <a title="click to access section: Programmes" class="{% active request programmes_index %}" href="{% url 'programmes_index' %}">Programmes</a>
+      <a title="click to access section: Tasks" class="{% active request tasks_index %}" href="{% url 'tasks_index' %}">Tasks</a>
     </li>
     <li class="menutop">
       <a title="click to access section: Modules" class="{% active request external_modules_index %}" href="{% url 'external_modules_index' semesters="" %}">Modules</a>
+    </li>
+    <li class="menutop">
+      <a title="click to access section: Programmes" class="{% active request programmes_index %}" href="{% url 'programmes_index' %}">Programmes</a>
+    </li>
+  	<li class="menutop">
+      <a title="click to access section: Help" href="https://github.com/profcturner/WAM/wiki" target="_blank" >Help</a>
     </li>
     {% if not request.meta.remote_user %}
     <li class="menutop">
