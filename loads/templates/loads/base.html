@@ -1,0 +1,63 @@
+{% load staticfiles %}
+
+<link rel="stylesheet" type="text/css" href="http://cdn.ulster.ac.uk/home/ulster-frontend/css/microsites-branding-shared.css" />
+<link rel="stylesheet" type="text/css" href="http://cdn.ulster.ac.uk/home/ulster-frontend/css/microsites-footer-shared.css" />
+<link rel="stylesheet" type="text/css" href="{% static 'loads/microsites-footer-shared.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static 'loads/default.css' %}" />
+<title>{% block title %}Workload Modelling{% endblock %}</title>
+
+<div id="header">
+  <div id="institution_logo"><img src="//cdn.ulster.ac.uk/home/ulster-frontend/img/microsites/ulster-university-logo.png" height="62px" title="Institution Logo"/><span>Workload Modelling</span></div>
+    {% load tags %}
+    {% load tz %}
+
+    {% block menu %}
+    <div id="menu">
+        <ul>
+            <li class="menutop home">
+                <a title="click to access section: Home" class="{%if home_page %}active{% endif %}first" href="{% url 'index' %}">Home</a>
+            </li>
+            <li class="menutop">
+                <a title="click to access section: Help" href="{% url 'logout' %}">Logout</a>
+            </li>
+        </ul>
+    </div>
+
+    <div id="submenu">
+      <ul>
+      </ul>
+	</div>
+</div>
+
+{% endblock %}
+
+</div>
+
+{% if messages %}
+<div id="messages">
+    {% for message in messages %}
+        <p class="message">{{ message }}</p>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div id="content_block">
+    <br />
+    {% block content %}{% endblock %}
+</div>
+
+<footer class="microsite">
+  <div id="footer">
+    <p>
+       &copy; Copyright <a href="http://www.ulster.ac.uk">Ulster University</a>
+    </p>
+
+    <ul>
+      <li><a href="{% url 'admin:index' %}">Advanced Administration</a>
+      </li>
+    </ul>
+  </div>
+</footer>
+
+
+

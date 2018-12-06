@@ -1,0 +1,69 @@
+{% extends 'loads/base.html' %}
+
+{% block menu %}
+
+{% load tags %}
+{% load tz %}
+
+
+{% url 'index' as index %}
+{% url 'loads' as loads %}
+{% url 'tasks_index' as tasks_index %}
+{% url 'activities_index' as activities_index %}
+{% url 'modules_index' semesters="" as modules_index %}
+{% url 'programmes_index' as programmes_index %}
+{% url 'projects_index' as projects_index %}
+{% url 'generators_index' as generators_index %}
+
+
+<div id="menu">
+  <ul>
+    <li class="menutop home">
+      <a title="click to access section: Home" class="{%if home_page %}active{% endif %}first" href="{% url 'index' %}">Home</a>
+    </li>
+	<li class="menutop">
+      <a title="click to access section: Loads" class="{% active request loads %}" href="{% url 'loads' %}">Loads</a>
+    </li>
+	<li class="menutop">
+      <a title="click to access section: Tasks" class="{% active request tasks_index %}" href="{% url 'tasks_index' %}">Tasks</a>
+    </li>
+    <li class="menutop">
+      <a title="click to access section: Activities" class="{% active request activities_index %}" href="{% url 'activities_index' %}">Activities</a>
+    </li>
+    <li class="menutop">
+      <a title="click to access section: Programmes" class="{% active request programmes_index %}" href="{% url 'programmes_index' %}">Programmes</a>
+    </li>
+    <li class="menutop">
+      <a title="click to access section: Modules" class="{% active request modules_index %}" href="{% url 'modules_index' semesters="" %}">Modules</a>
+    </li>
+	<li class="menutop">
+      <a title="click to access section: Projects" class="{% active request projects_index %}" href="{% url 'projects_index' %}">Projects</a>
+    </li>
+	<li class="menutop">
+      <a title="click to access section: Generators" class="{% active request generators_index %}" href="{% url 'generators_index' %}">Generators</a>
+    </li>
+	<li class="menutop">
+      <a title="click to access section: Help" href="https://github.com/profcturner/WAM/wiki" target="_blank" >Help</a>
+    </li>
+    {% if not request.meta.remote_user %}
+    <li class="menutop">
+      <a title="click to access section: Help" href="{% url 'logout' %}">Logout</a>
+    </li>
+    {% endif %}
+	</ul>
+</div>
+
+<div id="submenu">
+  <ul>
+    {% if loads_menu %}
+    <li><a href="{% url 'loads' %}">Loads By Staff</a></li>
+    <li><a href="{% url 'loads_modules' semesters='' %}">Loads By Modules</a></li>
+    {% endif %}
+    {% if tasks_menu %}
+    <li><a href="{% url 'tasks_index' %}">Active Tasks</a></li>
+    <li><a href="{% url 'archived_tasks_index' %}">Archived Tasks</a></li>
+    {% endif %}
+	</ul>
+</div>
+
+{% endblock %}

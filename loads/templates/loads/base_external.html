@@ -1,0 +1,36 @@
+{% extends 'loads/base.html' %}
+
+{% block menu %}
+
+{% load tags %}
+{% load tz %}
+{% url 'index' as index %}
+{% url 'external_modules_index' semesters="" as external_modules_index %}
+
+
+<div id="menu">
+  <ul>
+    <li class="menutop home">
+      <a title="click to access section: Home" class="{%if home_page %}active{% endif %}first" href="{% url 'index' %}">Home</a>
+    </li>
+    <li class="menutop">
+      <a title="click to access section: Programmes" class="{% active request programmes_index %}" href="{% url 'programmes_index' %}">Programmes</a>
+    </li>
+    <li class="menutop">
+      <a title="click to access section: Modules" class="{% active request external_modules_index %}" href="{% url 'external_modules_index' semesters="" %}">Modules</a>
+    </li>
+    {% if not request.meta.remote_user %}
+    <li class="menutop">
+      <a title="click to access section: Help" href="{% url 'logout' %}">Logout</a>
+    </li>
+    {% endif %}
+	</ul>
+</div>
+
+<div id="submenu">
+  <ul>
+  </ul>
+</div>
+
+
+{% endblock %}
