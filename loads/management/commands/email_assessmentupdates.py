@@ -103,8 +103,8 @@ class Command(BaseCommand):
                     email_targets.append(external.user)
             # Or a member of assessment staff
             if target == signoff.assessment_state.ASSESSMENT_STAFF:
-                for staff in AssessmentStaff.objects.all().filter(package=signoff.module.package):
-                    email_targets.append(staff.user)
+                for assessment_staff in AssessmentStaff.objects.all().filter(package=signoff.module.package):
+                    email_targets.append(assessment_staff.staff.user)
 
         email_addresses = list()
         separator = ', '
