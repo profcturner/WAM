@@ -2,7 +2,6 @@
 
 from django.core.exceptions import PermissionDenied
 from .models import Staff
-from .models import ExternalExaminer
 
 def staff_only(function):
     """Checks the logged in User has a valid related Staff object"""
@@ -25,7 +24,9 @@ def external_only(function):
     """Checks the logged in User has a valid related Staff object"""
     def wrapper(request, *args, **kwargs):
         try:
-            external = ExternalExaminer.objects.get(user=request.user)
+            staff = Staff.objects.get(user=request.user)
+            if not staff.is_external:
+                raise PermissionDenied
         except ExternalExaminer.DoesNotExist:
             # We should redirect really, but for now
             raise PermissionDenied
