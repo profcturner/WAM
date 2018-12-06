@@ -61,6 +61,7 @@ class ProgrammeAdmin(admin.ModelAdmin):
 
 class StaffAdmin(admin.ModelAdmin):
     list_display = ('title','first_name','last_name','staff_number','fte','total_hours')
+    list_filter = ('package','is_external','has_workload')
     
 class TaskAdmin(admin.ModelAdmin):
     list_display = ('name', 'category', 'deadline')
