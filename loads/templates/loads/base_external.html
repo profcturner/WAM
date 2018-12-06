@@ -4,14 +4,14 @@
 
 {% load tags %}
 {% load tz %}
-{% url 'index' as index %}
+{% url 'external_index' as index %}
 {% url 'external_modules_index' semesters="" as external_modules_index %}
 
 
 <div id="menu">
   <ul>
     <li class="menutop home">
-      <a title="click to access section: Home" class="{%if home_page %}active{% endif %}first" href="{% url 'index' %}">Home</a>
+      <a title="click to access section: Home" class="{%if home_page %}active{% endif %}first" href="{% url 'external_index' %}">Home</a>
     </li>
     <li class="menutop">
       <a title="click to access section: Programmes" class="{% active request programmes_index %}" href="{% url 'programmes_index' %}">Programmes</a>
