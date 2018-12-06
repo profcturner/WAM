@@ -235,7 +235,7 @@ class ExternalExaminerCreationForm(forms.Form):
             # Fall back to the username
             staff_number = username
 
-        if ExternalExaminer.objects.filter(staff_number=staff_number).count():
+        if Staff.objects.filter(staff_number=staff_number).count():
             raise ValidationError("Staff number already exists")
         return staff_number
 
@@ -290,8 +290,9 @@ class ExternalExaminerCreationForm(forms.Form):
             user.save()
 
         # And now create the linked External Examiner object
-        ExternalExaminer.objects.create(
+        Staff.objects.create(
             user=user,
+            is_external=True,
             title=self.cleaned_data.get('title'),
             staff_number=staff_number,
             package=self.cleaned_data.get('package')
