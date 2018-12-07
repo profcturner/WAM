@@ -119,14 +119,13 @@ def download_assessment_resource(request, resource_id):
 
     # Get the base filename, and try and work out the type
     filename = os.path.basename(resource.resource.name)
-    file_mimetype = mimetypes.guess_type(filename)
+    file_mimetype = mimetypes.guess_type(filename)[0]
 
     # Start a response
     response = HttpResponse(resource.resource.file, content_type=file_mimetype)
 
     # Let's suggest the filename
-    response['Content-Disposition'] = 'inline; filename=%s' % filename
-    response['X-Sendfile'] = filename
+    response['Content-Disposition'] = 'inline; filename="%s"' % filename
     response['Content-Length'] = len(resource.resource.file)
     return response
 
