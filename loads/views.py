@@ -125,10 +125,9 @@ def download_assessment_resource(request, resource_id):
     response = HttpResponse(resource.resource.file, content_type=file_mimetype)
 
     # Let's suggest the filename
-    response['Content-Type'] = file_mimetype
     response['Content-Disposition'] = 'inline; filename=%s' % filename
     response['X-Sendfile'] = filename
-    # response['Content-Length'] = os.stat(settings.MEDIA_ROOT + os.sep + resource.resource.name).st_size
+    response['Content-Length'] = len(resource.resource.file)
     return response
 
 
