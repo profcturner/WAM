@@ -1263,23 +1263,18 @@ class AssessmentState(models.Model):
         """Return a list of acceptable actors"""
         return self.notify.split(',')
 
-    def can_be_set_by(self, person, module):
-        """checks if a State can be set on a given module by a giver person
+    def can_be_set_by(self, staff, module):
+        """checks if a State can be set on a given module by a given person
 
             see is_downloadable_by_staff() or is_downloadable_by_external() for more details
 
             returns True if permitted, False otherwise
         """
-        if isinstance(person, User):
-            # See if they are staff
-            staff = Staff.objects.all().get(user=person)
-            if not staff:
-                return False
 
         if staff.is_external:
-            return self.can_be_set_by_external(person, module)
+            return self.can_be_set_by_external(staff, module)
         else:
-            return self.can_be_set_by_staff(person, module)
+            return self.can_be_set_by_staff(staff, module)
 
 
     def can_be_set_by_staff(self, staff, module):

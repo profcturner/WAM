@@ -1086,7 +1086,7 @@ def add_assessment_sign_off(request, module_id):
 
     # These are the possible successor states, but same may not be allowed to the current user
     for state in next_states:
-        if not state.can_be_set_by(request.user, module):
+        if not state.can_be_set_by(staff, module):
             next_states = next_states.exclude(pk=state.pk)
 
     # if this is a POST request we need to process the form data
