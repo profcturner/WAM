@@ -27,7 +27,7 @@ def external_only(function):
             staff = Staff.objects.get(user=request.user)
             if not staff.is_external:
                 raise PermissionDenied
-        except ExternalExaminer.DoesNotExist:
+        except Staff.DoesNotExist:
             # We should redirect really, but for now
             raise PermissionDenied
         else:
