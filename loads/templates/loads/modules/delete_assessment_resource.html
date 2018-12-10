@@ -1,0 +1,16 @@
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
+
+{% if resource.module.package.in_the_past %}
+<h1><span style="color:red">Warning: The Work Package for this item is in the Past.</span></h1>
+<p><span style="color:red">You should not be deleting resources unless they are a correction.</span></p>
+{% endif %}
+
+<h2>Delete Assessment Resource for {{ resource.module }}</h2>
+
+    <p>You are deleting {{ resource }}, this cannot be undone. Are you sure?</p>
+
+    <p><a href="{% url 'delete_assessment_resource' resource.id confirm=True %}">Confirm</a> | <a href="{% url 'modules_details' resource.module.id %}">Cancel</a></p>
+
+{% endblock content %}

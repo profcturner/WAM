@@ -131,7 +131,7 @@ def download_assessment_resource(request, resource_id):
 
 
 @login_required
-def delete_assessment_resource(request, resource_id):
+def delete_assessment_resource(request, resource_id, confirm=None):
     """Delete an assessment resource, should not be possible for signed resources, except for superuser"""
     # Get the resource object
     resource = get_object_or_404(AssessmentResource, pk=resource_id)
@@ -166,7 +166,15 @@ def delete_assessment_resource(request, resource_id):
         return HttpResponseRedirect(reverse('forbidden'))
 
     # Ok, we are allowed to delete
-    # TODO: Absolutely need confirmation logic
+    # Check if the deletion is confirmed
+    if not confirm:
+        context = {
+            'resource': resource
+        }
+        template = loader.get_template('loads/module/delete_assessment_resource.html')
+        return HttpResponse(template.render(context, request))
+
+    # If we are still here we can delete safely
     resource.delete()
 
     url = reverse('modules_details', kwargs={'module_id': resource.module_id})
@@ -1665,3 +1673,4 @@ class UpdateActivityView(PermissionRequiredMixin, UpdateView):
         self.object.package = package
         response = super(UpdateActivityView, self).form_valid(form)
         return response
+
