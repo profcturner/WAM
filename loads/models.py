@@ -1260,7 +1260,7 @@ class AssessmentState(models.Model):
         return self.actors.split(',')
 
     def get_notify_list(self):
-        """Return a list of acceptable actors"""
+        """Return a list of types of people to be notified when this state occurs"""
         return self.notify.split(',')
 
     def can_be_set_by(self, staff, module):
