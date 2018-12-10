@@ -58,7 +58,7 @@ urlpatterns = [
     url(r'^modules/details/(?P<module_id>[0-9]+)$', views.modules_details, name='modules_details'),
     url(r'^modules/add_assessment_resource/(?P<module_id>[0-9]+)$', views.add_assessment_resource, name='add_assessment_resource'),
     url(r'^modules/download_assessment_resource/(?P<resource_id>[0-9]+)$', views.download_assessment_resource, name='download_assessment_resource'),
-    url(r'^modules/delete_assessment_resource/(?P<resource_id>[0-9]+)(/confirm)?$', views.delete_assessment_resource,
+    url(r'^modules/delete_assessment_resource/(?P<resource_id>[0-9]+)(?P<confirm>/confirm)?$', views.delete_assessment_resource,
         name='delete_assessment_resource'),
     url(r'^modules/add_assessment_sign_off/(?P<module_id>[0-9]+)$', views.add_assessment_sign_off,
         name='add_assessment_sign_off'),

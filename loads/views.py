@@ -171,7 +171,7 @@ def delete_assessment_resource(request, resource_id, confirm=None):
         context = {
             'resource': resource
         }
-        template = loader.get_template('loads/module/delete_assessment_resource.html')
+        template = loader.get_template('loads/modules/delete_assessment_resource.html')
         return HttpResponse(template.render(context, request))
 
     # If we are still here we can delete safely

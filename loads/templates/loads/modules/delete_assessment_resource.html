@@ -11,6 +11,6 @@
 
     <p>You are deleting {{ resource }}, this cannot be undone. Are you sure?</p>
 
-    <p><a href="{% url 'delete_assessment_resource' resource.id confirm=True %}">Confirm</a> | <a href="{% url 'modules_details' resource.module.id %}">Cancel</a></p>
+    <p><a href="{% url 'delete_assessment_resource' resource.id "/confirm" %}">Confirm</a> | <a href="{% url 'modules_details' resource.module.id %}">Cancel</a></p>
 
 {% endblock content %}
