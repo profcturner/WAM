@@ -65,7 +65,7 @@ class Command(BaseCommand):
                 if self.email_updates_for_signoff(signoff, options):
                     count += 1
 
-        if not quiet:
+        if (not quiet) or count:
             self.stdout.write(str(count) + ' update(s) sent')
 
         if verbosity and options['test-only']:
