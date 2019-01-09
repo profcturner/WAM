@@ -67,6 +67,7 @@ class ModulesIndexForm(forms.Form):
     )
     programme = forms.ModelChoiceField(queryset=Programme.objects.all(), required=False)
     lead_programme = forms.BooleanField(required=False, initial=False)
+    show_people = forms.BooleanField(required=False, initial=False)
 
 
 
