@@ -804,6 +804,9 @@ def modules_index(request, semesters):
     # By default, no programme or lead programme filter is set
     programme = None
     lead_programme = None
+    # Don't show people by default
+    show_people = False
+
 
     # Get all the modules in the package, pending further filtering
     modules = Module.objects.all().filter(package=package).order_by('module_code')
@@ -819,6 +822,7 @@ def modules_index(request, semesters):
             semesters = form.cleaned_data['semesters']
             programme = form.cleaned_data['programme']
             lead_programme = form.cleaned_data['lead_programme']
+            show_people = form.cleaned_data['show_people']
 
     # if a GET (or any other method) we'll create a form from the current logged in user
     else:
@@ -896,6 +900,7 @@ def modules_index(request, semesters):
         'package': package,
         'programme': programme,
         'lead_programme': lead_programme,
+        'show_people': show_people,
     }
     return HttpResponse(template.render(context, request))
 
@@ -912,6 +917,8 @@ def external_modules_index(request, semesters):
     # By default, no programme or lead programme filter is set
     programme = None
     lead_programme = None
+    # Don't show people by default
+    show_people = False
 
     # Get the list of programmes that they examine
     examined_programmes = external.get_examined_programmes()
@@ -930,6 +937,8 @@ def external_modules_index(request, semesters):
             semesters = form.cleaned_data['semesters']
             programme = form.cleaned_data['programme']
             lead_programme = form.cleaned_data['lead_programme']
+            show_people = form.cleaned_data['show_people']
+
 
     # if a GET (or any other method) we'll create a form from the current logged in user
     else:
@@ -1005,6 +1014,7 @@ def external_modules_index(request, semesters):
         'external': external,
         'combined_list': combined_list,
         'package': package,
+        'show_people': show_people,
     }
     return HttpResponse(template.render(context, request))
 

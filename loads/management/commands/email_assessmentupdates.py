@@ -65,7 +65,7 @@ class Command(BaseCommand):
                 if self.email_updates_for_signoff(signoff, options):
                     count += 1
 
-        if not quiet:
+        if (not quiet) or count:
             self.stdout.write(str(count) + ' update(s) sent')
 
         if verbosity and options['test-only']:
@@ -107,7 +107,6 @@ class Command(BaseCommand):
                     email_targets.append(assessment_staff.staff.user)
 
         email_addresses = list()
-        separator = ', '
 
         for target in email_targets:
             email_addresses.append("{} {} <{}>".format(target.first_name, target.last_name, target.email))
@@ -151,11 +150,11 @@ class Command(BaseCommand):
 
         email_subject = 'Assessment Sign-off update for {}'.format(signoff.module)
 
-        from_email, to = settings.WAM_AUTO_EMAIL_FROM, separator.join(email_addresses)
+        from_email = settings.WAM_AUTO_EMAIL_FROM
         text_content = plaintext.render(context_dict)
         html_content = html.render(context_dict)
 
-        email = EmailMultiAlternatives(email_subject, text_content, from_email, [to])
+        email = EmailMultiAlternatives(email_subject, text_content, from_email, email_addresses)
         email.attach_alternative(html_content, "text/html")
 
         if not options['test-only']:
