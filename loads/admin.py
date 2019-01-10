@@ -48,6 +48,10 @@ class ActivityGeneratorAdmin(admin.ModelAdmin):
     #list_display = ('name', 'created')
     list_filter = ('package', 'activity_type')
 
+class AssessmentResourceAdmin(admin.ModelAdmin):
+    list_display = ('name', 'module', 'owner', 'created')
+    list_filter = ('module__package__name',)
+
 class AssessmentStaffAdmin(admin.ModelAdmin):
     list_display = ('package', 'staff')
     list_filter = ('package', 'staff')
@@ -55,7 +59,6 @@ class AssessmentStaffAdmin(admin.ModelAdmin):
 class AssessmentStateSignOffAdmin(admin.ModelAdmin):
     list_display = ('module', 'signed_by', 'assessment_state', 'created')
     list_filter = ('module__package__name',)
-
 
 class ModuleAdmin(admin.ModelAdmin):
     list_display = ('package', 'module_code', 'module_name', 'semester')
@@ -98,7 +101,7 @@ admin.site.register(Activity, ActivityAdmin)
 admin.site.register(ActivityGenerator, ActivityGeneratorAdmin)
 admin.site.register(ActivitySet, ActivitySetAdmin)
 admin.site.register(ActivityType)
-admin.site.register(AssessmentResource)
+admin.site.register(AssessmentResource, AssessmentResourceAdmin)
 admin.site.register(AssessmentResourceType)
 admin.site.register(AssessmentState)
 admin.site.register(AssessmentStateSignOff, AssessmentStateSignOffAdmin)
