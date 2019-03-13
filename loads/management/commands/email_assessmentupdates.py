@@ -99,8 +99,10 @@ class Command(BaseCommand):
                     email_targets.append(module_staff.staff.user)
             # Or an external examiner
             if target == signoff.assessment_state.EXTERNAL:
-                for external in signoff.module.lead_programme.examiners.all():
-                    email_targets.append(external.user)
+                # A Lead Programme must be defined
+                if signoff.module.lead_programme:
+                    for external in signoff.module.lead_programme.examiners.all():
+                        email_targets.append(external.user)
             # Or a member of assessment staff
             if target == signoff.assessment_state.ASSESSMENT_STAFF:
                 for assessment_staff in AssessmentStaff.objects.all().filter(package=signoff.module.package):
