@@ -16,6 +16,10 @@
 <p>Here you can sign off resources or comment on previous signoffs. Note that once you create a sign-off the resources
 already added can no longer be deleted.</p>
 
+{% if assessment_signoffs.0 %}
+<p>{{ assessment_signoffs.0.assessment_state.next_states_guidance|safe }}</p>
+{% endif %}
+
 {% if next_states %}
 <form action="" method="post" enctype="multipart/form-data">
     {% csrf_token %}

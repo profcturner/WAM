@@ -1216,13 +1216,14 @@ class AssessmentResource(models.Model):
 class AssessmentState(models.Model):
     """Allows for configurable Assessment Resource Workflow
 
-    name            The name of the state
-    description     More details on the state
-    actors          The user types who can create this state, CSV field
-    notify          The user types to notify that the state has been created
-    initial_state   Can this be an initial state?
-    next_states     Permissible states to move to from this one
-    priority        To allow the states to be sorted for presentation to the user
+    name                  The name of the state
+    description           More details on the state
+    actors                The user types who can create this state, CSV field
+    notify                The user types to notify that the state has been created
+    initial_state         Can this be an initial state?
+    next_states           Permissible states to move to from this one
+    next_states_guidance  Help for the user in selecting the next state, in HTML
+    priority              To allow the states to be sorted for presentation to the user
 
     actors and notify should be comma separated lists as in USER_TYPES below.
     """
@@ -1250,6 +1251,7 @@ class AssessmentState(models.Model):
     notify = models.TextField()
     initial_state = models.BooleanField(default = False)
     next_states = models.ManyToManyField('self', blank=True, symmetrical=False, related_name='children')
+    next_states_guidance = models.TextField(blank=True, null=True)
     priority = models.IntegerField()
 
     def __str__(self):
