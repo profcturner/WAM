@@ -6,9 +6,8 @@ Your attention is drawn to this assessment sign off on module:<br /><br />
 
     <strong>{{ signoff.module }}</strong>.<br /><br />
 
-
 {% if assessment_history.0.0.assessment_state.next_states_guidance %}
-    <strong>Guidance:</strong><br /><br />
+    <strong>Guidance:</strong><br />
     <p>{{ assessment_history.0.0.assessment_state.next_states_guidance|safe }}</p>
 {% endif %}
 
