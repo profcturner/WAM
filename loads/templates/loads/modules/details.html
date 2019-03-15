@@ -163,6 +163,8 @@
 
 {% if assessment_history.0.0.assessment_state.next_states_guidance %}
 <p class="important">{{ assessment_history.0.0.assessment_state.next_states_guidance|safe }}</p>
+{%  else %}
+<p class="important">Please upload assessment items below, and sign them off when satisfied.</p>
 {% endif %}
 
 <p>
