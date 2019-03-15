@@ -6,6 +6,12 @@ Your attention is drawn to this assessment sign off on module:<br /><br />
 
     <strong>{{ signoff.module }}</strong>.<br /><br />
 
+
+{% if assessment_history.0.0.assessment_state.next_states_guidance %}
+    <strong>Guidance:</strong><br /><br />
+    <p>{{ assessment_history.0.0.assessment_state.next_states_guidance|safe }}</p>
+{% endif %}
+
     Any previous history is shown for reference.</p>
 
 <p><a href="{{ base_url }}{% url 'modules_details' signoff.module.id %}">Further details are available online.</a></p>

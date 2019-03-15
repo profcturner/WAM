@@ -161,6 +161,10 @@
 
 <h2>Assessment Resources</h2>
 
+{% if assessment_history.0.0.assessment_state.next_states_guidance %}
+<p class="important">{{ assessment_history.0.0.assessment_state.next_states_guidance|safe }}</p>
+{% endif %}
+
 <p>
 <a href="{% url 'add_assessment_resource' module.id %}">add assessment resource</a> |
     <a href="{% url 'add_assessment_sign_off' module.id %}">sign off resources</a>
