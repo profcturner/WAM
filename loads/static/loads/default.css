@@ -51,10 +51,9 @@ a:hover {
 
 .important{
   padding:0.5em;
-  border: 1px blue dotted;
+  border: 3px #3780e6 dotted;
   margin: 0.2em;
-  background:#ffdddd;
-  color:#990000;
+  max-width: 800px;
 }
 
 #content_block 
