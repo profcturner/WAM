@@ -1033,7 +1033,7 @@ def modules_details(request, module_id):
             if not staff.can_examine_module(module):
                 return HttpResponseRedirect(reverse('forbidden'))
         else:
-            if not module.package in staff.get_all_packages(include_hidden=True):
+            if not staff.user.is_superuser and not module.package in staff.get_all_packages(include_hidden=True):
                 return HttpResponseRedirect(reverse('forbidden'))
     except Staff.DoesNotExist:
         staff = None

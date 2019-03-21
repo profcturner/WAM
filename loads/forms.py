@@ -107,7 +107,19 @@ class ProjectForm(ModelForm):
 class AssessmentStateSignOffForm(ModelForm):
     class Meta:
         model = AssessmentStateSignOff
-        fields = ['assessment_state', 'notes']
+        fields = ['assessment_state', 'notes', 'module', 'signed_by']
+        widgets = {'module': forms.HiddenInput(), 'signed_by': forms.HiddenInput()}
+
+    def clean(self):
+        """Check the user can invoke this state"""
+        assessment_state = self.cleaned_data['assessment_state']
+        module = self.cleaned_data['module']
+        signed_by = self.cleaned_data['signed_by']
+        #staff = Staff.objects.get(user=signed_by)
+
+        #if not assessment_state.can_be_set_by(staff, module):
+        #    raise ValidationError("You don't have permission to select that state.")
+        return assessment_state
 
 
 class StaffCreationForm(forms.Form):
