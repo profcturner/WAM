@@ -308,6 +308,43 @@ class WorkPackageMigrationTestCase(TestCase):
             self.assertEqual(len(Activity.objects.all().filter(activity_set=activity_set)), 1)
 
 
+    def test_package_migration_orphaned_modules(self):
+        """A test for the correct migration of modules that have no parent programme"""
+        destination = WorkPackage.objects.get(name="destination")
+        source = WorkPackage.objects.get(name="source")
+
+        # Just copy programmes first
+        options = dict()
+        options['copy_programmes'] = True
+        options['copy_activities_generated'] = True
+        options['copy_activities_custom'] = True
+        options['copy_modules'] = True
+        options['copy_activities_modules'] = True
+        options['copy_modulestaff'] = True
+
+        # Orphan a module
+        module = Module.objects.get(module_code="ABC101")
+        # Remove the lead programme
+        module.lead_programme = None
+        for programme in module.programmes.all():
+            module.programmes.remove(programme)
+
+        # Now perform the clone
+        destination.clone_from(source, options)
+        # Attempt to run a second time to ensure idempotency
+        destination.clone_from(source, options)
+
+        # check the numbers of module in each package are correct
+        source_modules = Module.objects.all().filter(package=source).filter(module_code="ABC101")
+        self.assertEqual(len(source_modules), 1)
+        destination_modules = Module.objects.all().filter(package=destination).filter(module_code="ABC101")
+        self.assertEqual(len(destination_modules), 1)
+
+        # and modules
+        #source_module_ABC101 = source_modules.get(module_code="ABC101")
+        #destination_module_ABC101 = destination_modules.get(module_code="ABC101")
+
+
 class AssessmentResourceTestCase(TestCase):
     def setUp(self):
         # Create a workpackage
