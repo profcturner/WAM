@@ -4,15 +4,17 @@
 <!-- Include formset plugin - including jQuery dependency -->
 <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 <script src="{% static 'loads/persist-headers.js' %}"></script>
-<p>Selected Work Package : {{package}} <a href="{%url 'workpackage_change' %}">(Change Package)</a></p>
+<p>Selected Year : {{package}} <a href="{%url 'workpackage_change' %}">(Change Year)</a></p>
 
 {% if package.draft %}
 <h1>This is a DRAFT allocation and may be incomplete.</h1>
 {% endif %}
 
+
 {% if package.in_the_past %}
 <h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
-{% endif %} 
+    <h2><span style="color:red">You probably want to change the year above.</span></h2>
+{% endif %}
 
 {% if package.in_the_future %}
 <h1><span style="color:red">Warning: The currently selected Work Package is in the Future.</span></h1>

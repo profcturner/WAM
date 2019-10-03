@@ -96,7 +96,7 @@
 
 <h2>Related Activity Information</h2>
 
-<p>Selected Work Package : {{package}}</p>
+<p>Selected Year : {{package}}</p>
 
 {% if package.draft %}
 <h1>This is a DRAFT allocation and may be incomplete.</h1>
@@ -104,7 +104,8 @@
 
 {% if package.in_the_past %}
 <h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
-{% endif %} 
+    <h2><span style="color:red">You probably want to change the year.</span></h2>
+{% endif %}
 
 {% if package.in_the_future %}
 <h1><span style="color:red">Warning: The currently selected Work Package is in the Future.</span></h1>
