@@ -108,10 +108,16 @@ class Command(BaseCommand):
                 for assessment_staff in AssessmentStaff.objects.all().filter(package=signoff.module.package):
                     email_targets.append(assessment_staff.staff.user)
 
+        # Create lists for email addresses to notify and those that are inactive
         email_addresses = list()
+        inactive_addresses = list()
 
         for target in email_targets:
-            email_addresses.append("{} {} <{}>".format(target.first_name, target.last_name, target.email))
+            # Check if the user is active
+            if target.is_active:
+                email_addresses.append("{} {} <{}>".format(target.first_name, target.last_name, target.email))
+            else:
+                inactive_addresses.append("{} {} <{}>".format(target.first_name, target.last_name, target.email))
 
         # Get the whole assessment history
         assessment_history = signoff.module.get_assessment_history()
@@ -131,6 +137,9 @@ class Command(BaseCommand):
             if verbosity > 2:
                 for address in email_addresses:
                     self.stdout.write(self.style.SUCCESS('  Notify: {}'.format(address)))
+                for address in inactive_addresses:
+                    self.stdout.write(self.style.WARNING('  Don\'t Notify Inactive User: {}'.format(address)))
+
 
         # If there's nobody to write to, bail out
         if not len(email_addresses):
