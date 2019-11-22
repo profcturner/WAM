@@ -1051,7 +1051,22 @@ def modules_details(request, module_id):
         total_assessment_proportion += allocation.assessment_proportion
 
     # Get all the sign offs and assessment history
+    # There's a subtle bug in using just the history for help, so using signoffs too.
     assessment_history = module.get_assessment_history()
+    # Get all signoffs to date
+    assessment_signoffs = AssessmentStateSignOff.objects.all().filter(module=module).order_by('-created')
+
+    # Detect if any assessment resources exist that are not signed
+    unsigned_items = False
+    # Check the most recent tuple of signoffs and items exists
+    if assessment_history[0]:
+        # If it does, get the signoff
+        (signoff, items) = assessment_history[0]
+        # If the signoff is None, it means the items are not signed
+        if signoff is None:
+            #there are unsigned items
+            unsigned_items = True
+
 
     template = loader.get_template('loads/modules/details.html')
     context = {
@@ -1064,10 +1079,12 @@ def modules_details(request, module_id):
         'modulestaff': modulestaff,
         'activities': activities,
         'assessment_history': assessment_history,
+        'assessment_signoffs': assessment_signoffs,
         'package': module.package,
         'total_contact_proportion': total_contact_proportion,
         'total_admin_proportion': total_admin_proportion,
         'total_assessment_proportion': total_assessment_proportion,
+        'unsigned_items': unsigned_items,
     }
     return HttpResponse(template.render(context, request))
 

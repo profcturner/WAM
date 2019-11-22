@@ -162,11 +162,18 @@
 
 <h2>Assessment Resources</h2>
 
-{% if assessment_history.0.0.assessment_state.next_states_guidance %}
-<p class="important">{{ assessment_history.0.0.assessment_state.next_states_guidance|safe }}</p>
+{% if assessment_signoffs.0.assessment_state.next_states_guidance %}
+<p class="important">{{ assessment_signoffs.0.assessment_state.next_states_guidance|safe }}</p>
 {%  else %}
 <p class="important">Please upload assessment items below, and sign them off when satisfied.</p>
 {% endif %}
+
+{% if unsigned_items %}
+    <p class="important">These are some items that are not yet "signed-off". They can be deleted, or added to until they are signed off. <br/>
+        Please note that these items are not considered final until they are signed off.</p>
+{% endif %}
+
+
 
 <p>
 <a href="{% url 'add_assessment_resource' module.id %}">add assessment resource</a> |
@@ -205,5 +212,6 @@
     <p>No assessment resources recorded for this module.</p>
 
 {% endif %}
+<textarea rows="20" onclick="this.focus();this.select()" style="width: 100%;"> {% filter force_escape %} {% debug %} {% endfilter %}</textarea>
 
 {% endblock content %}
