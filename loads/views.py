@@ -889,7 +889,7 @@ def modules_index(request, semesters):
         else:
             signoff = False
 
-        combined_item = [module, relationship, resource, signoff, action_possible]
+        combined_item = [module, relationship, resource, signoff, action_possible, module.get_lead_examiners()]
         combined_list.append(combined_item)
 
     template = loader.get_template('loads/modules/index.html')

@@ -978,6 +978,17 @@ class Module(models.Model):
 
         return history
 
+    def get_lead_examiners(self):
+        """return any examiners for the lead_programme for this module"""
+
+        # Check the a lead programme is actually defined
+        if self.lead_programme:
+            # return those examiners
+            return self.lead_programme.examiners.all()
+        else:
+            # return a compatible list of "no" Staff objects
+            return Staff.objects.none()
+
     def __str__(self):
         return self.module_code + ' : ' + self.module_name
 

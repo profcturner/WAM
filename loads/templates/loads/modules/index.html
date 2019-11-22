@@ -28,10 +28,10 @@ Use this form to restrict the modules shown if desired.
       <tr>
         <th>Module Code</th><th>Module Name</th><th>Relationship</th><th>Most Recent Assessment Status</th><th>Details</th>
           {% if show_people %}
-              <th>Module Coordinator</th><th>Moderator</th>
+              <th>Module Coordinator</th><th>Moderator</th><th>Lead Examiner</th>
           {% endif %}
       </tr>
-      {% for module, relationship, resource, signoff, action_possible in combined_list %}
+      {% for module, relationship, resource, signoff, action_possible, examiners in combined_list %}
       <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
         <th>{{ module.module_code }}</th>
         <td>{{ module.module_name }}</td>
@@ -50,6 +50,7 @@ Use this form to restrict the modules shown if desired.
         {% if show_people %}
             <td>{{ module.coordinator }}</td>
             <td>{% for moderator in module.moderators.all %}{{ moderator }}{% endfor %}</td>
+            <td>{% for examiner in examiners %}{{ examiner }}{% endfor %}</td>
         {% endif %}
 
       </tr>      
