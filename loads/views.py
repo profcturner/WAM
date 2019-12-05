@@ -1059,7 +1059,7 @@ def modules_details(request, module_id):
     # Detect if any assessment resources exist that are not signed
     unsigned_items = False
     # Check the most recent tuple of signoffs and items exists
-    if assessment_history[0]:
+    if assessment_history and assessment_history[0]:
         # If it does, get the signoff
         (signoff, items) = assessment_history[0]
         # If the signoff is None, it means the items are not signed
