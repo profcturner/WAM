@@ -344,6 +344,50 @@ class WorkPackageMigrationTestCase(TestCase):
         #source_module_ABC101 = source_modules.get(module_code="ABC101")
         #destination_module_ABC101 = destination_modules.get(module_code="ABC101")
 
+    def test_package_migration_module_from_otherpackage(self):
+        """A test for when a module has a programme from outside the sourcepackage"""
+
+        destination = WorkPackage.objects.get(name="destination")
+        source = WorkPackage.objects.get(name="source")
+
+        # Create an alternative source package
+        alternate_source = WorkPackage.objects.create(name="alt_source", startdate="2017-09-01", enddate="2018-08-31")
+        # And a programme within it
+        lead_programme = Programme.objects.create(
+            programme_code="987",
+            programme_name="BSc Alternative Breaking Things",
+            package=alternate_source)
+
+
+        # Copy most stuff
+        options = dict()
+        options['copy_programmes'] = True
+        options['copy_activities_generated'] = True
+        options['copy_activities_custom'] = True
+        options['copy_modules'] = True
+        options['copy_activities_modules'] = True
+        options['copy_modulestaff'] = True
+
+        # Change the programme of a module to one in another workpackage
+        module = Module.objects.get(module_code="ABC101")
+        # Change the lead programme, remove any others
+        module.lead_programme = lead_programme
+        for programme in module.programmes.all():
+            module.programmes.remove(programme)
+        module.programmes.add(lead_programme)
+
+        # Now perform the clone
+        destination.clone_from(source, options)
+        # Attempt to run a second time to ensure idempotency
+        destination.clone_from(source, options)
+
+        # check the numbers of module in each package are correct
+        source_modules = Module.objects.all().filter(package=source).filter(module_code="ABC101")
+        self.assertEqual(len(source_modules), 1)
+        destination_modules = Module.objects.all().filter(package=destination).filter(module_code="ABC101")
+        self.assertEqual(len(destination_modules), 1)
+
+
 
 class AssessmentResourceTestCase(TestCase):
     def setUp(self):

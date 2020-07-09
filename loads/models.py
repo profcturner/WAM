@@ -249,8 +249,12 @@ class WorkPackage(models.Model):
             for old_programme in old_module_programmes:
                 # Remove the old programme reference
                 module.programmes.remove(old_programme)
-                # And add the mapped (new) one
-                module.programmes.add(Programme.objects.get(pk=programme_mapping[old_programme.pk]))
+                # And add the mapped (new) one - if there is a mapping (the only circumstances in which there
+                # isn't a mapping is if the old programme didn't exist in the source package)
+                if not old_programme.pk in programme_mapping:
+                    messages.append(("Error", "Cloning Module Data", f"{module} had a programme outside package, removing it"))
+                else:
+                    module.programmes.add(Programme.objects.get(pk=programme_mapping[old_programme.pk]))
 
             # Copy moderators too
             for moderator in old_module_moderators:
