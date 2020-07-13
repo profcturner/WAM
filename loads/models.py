@@ -236,7 +236,7 @@ class WorkPackage(models.Model):
             module.package = self
 
             # Correct programme mappings to the new copies, first for the lead_programme, but only if data is there
-            if module.lead_programme:
+            if module.lead_programme and module.lead_programme.pk in programme_mapping:
                 module.lead_programme = Programme.objects.get(pk=programme_mapping[module.lead_programme.pk])
             # And now for the slightly more complex many to many programmes
             # We need to force a save before Many to Many mappings can be corrected.
