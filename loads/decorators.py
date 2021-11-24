@@ -10,7 +10,8 @@ def staff_only(function):
             staff = Staff.objects.get(user=request.user)
         except Staff.DoesNotExist:
             # We should redirect really, but for now
-            raise PermissionDenied
+            raise PermissionDenied("""Your user has no matching staff object.
+            This is likely to be because no account has been created for you.""")
         else:
             return function(request, *args, **kwargs)
 
@@ -29,7 +30,8 @@ def external_only(function):
                 raise PermissionDenied
         except Staff.DoesNotExist:
             # We should redirect really, but for now
-            raise PermissionDenied
+            raise PermissionDenied("""Your user has no matching staff object.
+            This is likely to be because no account has been created for you.""")
         else:
             return function(request, *args, **kwargs)
 
@@ -46,7 +48,7 @@ def admin_only(function):
             return function(request, *args, **kwargs)
         else:
             # We should redirect really, but for now
-            raise PermissionDenied
+            raise PermissionDenied("You do not have admin permissions.")
 
     # Keep the name and doc values intact after wrapping
     wrapper.__doc__ = function.__doc__

@@ -7,6 +7,7 @@ from django.forms import modelformset_factory
 from django.contrib import messages
 
 from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 
 # Class Views
 from django.views.generic import ListView
@@ -1622,9 +1623,10 @@ class ProgrammeList(LoginRequiredMixin, ListView):
             staff = Staff.objects.get(user=self.request.user)
             package = staff.package
         except Staff.DoesNotExist:
-            staff = None
-
-        return Programme.objects.all().filter(package=package)
+            raise PermissionDenied("""Your user has no matching staff object.
+            This is likely to be because no account has been created for you.""")
+        else:
+            return Programme.objects.all().filter(package=package)
 
 
 class ActivityListView(LoginRequiredMixin, ListView):
