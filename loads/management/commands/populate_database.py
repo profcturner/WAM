@@ -22,7 +22,6 @@ from loads.models import Staff
 from loads.models import Programme
 from loads.models import Module
 from loads.models import WorkPackage
-from loads.models import ExternalExaminer
 
 
 class Command(BaseCommand):
@@ -441,7 +440,7 @@ class Command(BaseCommand):
                 self.stderr.write("ERROR: user already exists")
                 continue
 
-            if ExternalExaminer.objects.all().filter(staff_number=username):
+            if Staff.objects.all().filter(staff_number=username):
                 self.stderr.write("ERROR: staff number already in user")
                 continue
 
@@ -458,10 +457,12 @@ class Command(BaseCommand):
 
             # Create the linked staff objects
             # Let's have mostly Full Time staff, but with some PT staff too
-            ExternalExaminer.objects.create(
+            Staff.objects.create(
                 user=user,
                 title=title,
                 staff_number=username,
+                is_external=True,
+                has_workload=False,
                 package=package
             )
 
@@ -484,7 +485,7 @@ class Command(BaseCommand):
 
         verbosity = options['verbosity']
 
-        externals = list(ExternalExaminer.objects.all().filter(package=package))
+        externals = list(Staff.objects.all().filter(package=package).filter(is_external=True))
 
         for (programme_code, programme_name) in self.get_programme_names():
             if verbosity:
