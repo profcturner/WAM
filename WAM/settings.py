@@ -115,3 +115,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
 LOGOUT_REDIRECT_URL = 'logged out'
+
+# New in Django 3.2, we should set an explicit automatic primary key type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
