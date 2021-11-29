@@ -6,4 +6,8 @@
 
     <p>Something went wrong, sorry about that. The admin has been emailed.</p>
 
+    {% if exception %}
+        <h2>Further information:</h2><p>{{ exception }}</p>
+    {% endif %}
+
 {% endblock %}
