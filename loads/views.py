@@ -219,9 +219,18 @@ def loads(request):
         staff_list = Staff.objects.all().filter(user__in=users).order_by('user__last_name')
         for staff in staff_list:
             load_info = staff.hours_by_semester(package=package)
+            # Note below: the reason for checking any load as will as conditions is to allow
+            # colleagues to appear in other workpackages in times they had an allocated load, even
+            # if they are now inactive or flagged as having no workload
+
             # Check any staff member with no load is active, if not, skip them
             if not staff.is_active() and load_info[0] == 0:
                 continue
+            # If this colleague isn't flagged as having a workload and doesn't have any, also skip
+            if not staff.has_workload and load_info[0] ==0:
+                continue
+
+            # Ok, we should include this colleague
             if show_percentages:
                 combined_item = [staff, 100 * load_info[0] / package.nominal_hours,
                                  100 * load_info[1] / package.nominal_hours,

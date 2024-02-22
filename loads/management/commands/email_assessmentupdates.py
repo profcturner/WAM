@@ -140,7 +140,6 @@ class Command(BaseCommand):
                 for address in inactive_addresses:
                     self.stdout.write(self.style.WARNING('  Don\'t Notify Inactive User: {}'.format(address)))
 
-
         # If there's nobody to write to, bail out
         if not len(email_addresses):
             # Nobody to talk to!
