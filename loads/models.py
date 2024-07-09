@@ -833,10 +833,13 @@ class ModuleSize(models.Model):
     text = models.CharField(max_length=10)
     admin_scaling = models.FloatField()
     assessment_scaling = models.FloatField()
+    order = models.IntegerField(default=1)
 
     def __str__(self):
         return str(self.text)
 
+    class Meta:
+        ordering = ['order']
 
 class Programme(models.Model):
     """Basic information about a programme of study
