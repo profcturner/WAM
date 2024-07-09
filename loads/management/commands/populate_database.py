@@ -140,12 +140,12 @@ class Command(BaseCommand):
     def add_module_sizes(self):
         """Add some ModuleSize objects"""
 
-        ModuleSize.objects.create(text='0 - 10', admin_scaling=0.5, assessment_scaling=0.5)
-        ModuleSize.objects.create(text='11 - 20', admin_scaling=0.7, assessment_scaling=0.7)
-        ModuleSize.objects.create(text='20 - 50', admin_scaling=1.0, assessment_scaling=1.0)
-        ModuleSize.objects.create(text='50 - 100', admin_scaling=1.2, assessment_scaling=1.2)
-        ModuleSize.objects.create(text='100 - 200', admin_scaling=1.3, assessment_scaling=1.3)
-        ModuleSize.objects.create(text='200+', admin_scaling=1.4, assessment_scaling=1.4)
+        ModuleSize.objects.create(text='0 - 10', admin_scaling=0.5, assessment_scaling=0.5, order=1)
+        ModuleSize.objects.create(text='11 - 20', admin_scaling=0.7, assessment_scaling=0.7, order=2)
+        ModuleSize.objects.create(text='21 - 50', admin_scaling=1.0, assessment_scaling=1.0, order=3)
+        ModuleSize.objects.create(text='51 - 100', admin_scaling=1.2, assessment_scaling=1.2, order=4)
+        ModuleSize.objects.create(text='101 - 200', admin_scaling=1.3, assessment_scaling=1.3, order=5)
+        ModuleSize.objects.create(text='200+', admin_scaling=1.4, assessment_scaling=1.4, order=6)
 
     def add_assessment_resource_types(self):
         """Add some sensible AssessmentResourceTypes"""
