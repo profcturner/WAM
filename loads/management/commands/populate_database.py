@@ -4,7 +4,7 @@
 import random
 from datetime import date, timedelta
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 
 # We need to manipulate User and Group Information
 from django.contrib.auth.models import User, Group

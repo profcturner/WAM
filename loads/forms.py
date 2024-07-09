@@ -10,7 +10,6 @@ from django.core.exceptions import ValidationError
 
 from .models import AssessmentResource
 from .models import AssessmentStateSignOff
-from .models import ExternalExaminer
 from .models import Staff
 from .models import TaskCompletion
 from .models import Programme
@@ -70,7 +69,6 @@ class ModulesIndexForm(forms.Form):
     show_people = forms.BooleanField(required=False, initial=False)
 
 
-
 class AssessmentResourceForm(ModelForm):
     """This form is used to upload an assessment resource"""
 
@@ -115,9 +113,9 @@ class AssessmentStateSignOffForm(ModelForm):
         assessment_state = self.cleaned_data['assessment_state']
         module = self.cleaned_data['module']
         signed_by = self.cleaned_data['signed_by']
-        #staff = Staff.objects.get(user=signed_by)
+        # staff = Staff.objects.get(user=signed_by)
 
-        #if not assessment_state.can_be_set_by(staff, module):
+        # if not assessment_state.can_be_set_by(staff, module):
         #    raise ValidationError("You don't have permission to select that state.")
         return assessment_state
 

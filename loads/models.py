@@ -138,7 +138,6 @@ class WorkPackage(models.Model):
 
         return mapping_programmes
 
-
     def __clone_activity_sets(self, source_package, options, messages):
         """Copies relevant activity sets with a mapping
 
@@ -182,7 +181,7 @@ class WorkPackage(models.Model):
         messages.append(("Information", "Cloning Generated Activities not belonging to a Module", ""))
         activities = \
             Activity.objects.all().filter(package=source_package). \
-            filter(activity_set__isnull=False).filter(module__isnull=True)
+                filter(activity_set__isnull=False).filter(module__isnull=True)
         for activity in activities:
             # Ignore project related activities
             if activity.activity_set.project:
@@ -252,7 +251,8 @@ class WorkPackage(models.Model):
                 # And add the mapped (new) one - if there is a mapping (the only circumstances in which there
                 # isn't a mapping is if the old programme didn't exist in the source package)
                 if not old_programme.pk in programme_mapping:
-                    messages.append(("Error", "Cloning Module Data", f"{module} had a programme outside package, removing it"))
+                    messages.append(
+                        ("Error", "Cloning Module Data", f"{module} had a programme outside package, removing it"))
                 else:
                     module.programmes.add(Programme.objects.get(pk=programme_mapping[old_programme.pk]))
 
@@ -301,7 +301,6 @@ class WorkPackage(models.Model):
 
         return mapping_module
 
-
     def __clone_check_options(self, options, messages):
         """Checks for logically inconsistent options"""
 
@@ -312,7 +311,6 @@ class WorkPackage(models.Model):
             errors = True
 
         return errors
-
 
     def clone_from(self, source_package, options):
         """Copy from another package into the current package
@@ -337,19 +335,23 @@ class WorkPackage(models.Model):
         messages = []
 
         if (Activity.objects.filter(package=self).count()
-                + Programme.objects.filter(package=self).count()
-                + Module.objects.filter(package=self).count()
-                + ModuleStaff.objects.filter(package=self).count()) > 0:
+            + Programme.objects.filter(package=self).count()
+            + Module.objects.filter(package=self).count()
+            + ModuleStaff.objects.filter(package=self).count()) > 0:
             messages.append(("Error", "Destination Workpackage not empty", "Aborting"))
             return messages
 
         if options['copy_programmes']:
             programme_mapping = self.__clone_programmes(source_package, options, messages)
+        else:
+            programme_mapping = None
 
         # We need to make to work out what activity sets are in play, make copies and recall a mapping        
         if options['copy_activities_generated']:
             mapping_activity_set = self.__clone_activity_sets(source_package, options, messages)
             self.__clone_generated_activities(source_package, options, messages, mapping_activity_set)
+        else:
+            mapping_activity_set = None
 
         # Copy Activities that are not associated with a Module or an ActivitySet
         if options['copy_activities_custom']:
@@ -530,12 +532,11 @@ class Staff(models.Model):
         # And those assigned against the group
         groups = Group.objects.all().filter(user=self.user)
         if not archived:
-            group_tasks = Task.objects.all().filter(groups__in=groups).\
+            group_tasks = Task.objects.all().filter(groups__in=groups). \
                 exclude(archive=True).distinct().order_by('deadline')
         else:
-            group_tasks = Task.objects.all().filter(groups__in=groups).\
+            group_tasks = Task.objects.all().filter(groups__in=groups). \
                 filter(archive=True).distinct().order_by('deadline')
-
 
         # Combine them
         all_tasks = user_tasks | group_tasks
@@ -575,7 +576,6 @@ class Staff(models.Model):
         # Otherwise, there is no access
         return False
 
-
     class Meta:
         verbose_name_plural = 'staff'
 
@@ -585,6 +585,7 @@ class AssessmentStaff(models.Model):
 
     package = models.ForeignKey(WorkPackage, on_delete=models.CASCADE)
     staff = models.ForeignKey(Staff, on_delete=models.CASCADE, limit_choices_to={'is_external': False})
+
     # TODO: what they will have access to.
 
     class Meta:
@@ -841,6 +842,7 @@ class ModuleSize(models.Model):
     class Meta:
         ordering = ['order']
 
+
 class Programme(models.Model):
     """Basic information about a programme of study
 
@@ -900,7 +902,8 @@ class Module(models.Model):
     package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
     details = models.TextField(blank=True, null=True)
     programmes = models.ManyToManyField(Programme, blank=True, related_name='modules')
-    lead_programme = models.ForeignKey(Programme, blank=True, null=True, related_name='lead_modules', on_delete=models.SET_NULL)
+    lead_programme = models.ForeignKey(Programme, blank=True, null=True, related_name='lead_modules',
+                                       on_delete=models.SET_NULL)
     coordinator = models.ForeignKey(Staff, blank=True, null=True, related_name='coordinated_modules',
                                     on_delete=models.SET_NULL, limit_choices_to={'is_external': False})
     moderators = models.ManyToManyField(Staff, blank=True, related_name='moderated_modules',
@@ -1228,8 +1231,6 @@ class AssessmentResource(models.Model):
         else:
             return self.is_downloadable_by_staff(staff)
 
-        return False
-
 
 class AssessmentState(models.Model):
     """Allows for configurable Assessment Resource Workflow
@@ -1267,13 +1268,13 @@ class AssessmentState(models.Model):
     description = models.TextField()
     actors = models.TextField()
     notify = models.TextField()
-    initial_state = models.BooleanField(default = False)
+    initial_state = models.BooleanField(default=False)
     next_states = models.ManyToManyField('self', blank=True, symmetrical=False, related_name='children')
     next_states_guidance = models.TextField(blank=True, null=True)
     priority = models.IntegerField()
 
     def __str__(self):
-        return str (self.name)
+        return str(self.name)
 
     def get_actor_list(self):
         """Return a list of acceptable actors"""
@@ -1295,7 +1296,6 @@ class AssessmentState(models.Model):
             return self.can_be_set_by_external(staff, module)
         else:
             return self.can_be_set_by_staff(staff, module)
-
 
     def can_be_set_by_staff(self, staff, module):
         """determines if a member of staff can set this state for a module
@@ -1329,7 +1329,7 @@ class AssessmentState(models.Model):
 
         # Assessment Staff
         if self.ASSESSMENT_STAFF in actors and \
-            len(AssessmentStaff.objects.all().filter(staff=staff).filter(package=module.package)):
+                len(AssessmentStaff.objects.all().filter(staff=staff).filter(package=module.package)):
             return True
 
         return False
@@ -1348,7 +1348,7 @@ class AssessmentState(models.Model):
             return False
 
         # If external is not in the actor list, reject
-        if not self.EXTERNAL in self.get_actor_list():
+        if self.EXTERNAL not in self.get_actor_list():
             return False
 
         # Now it's about checking they have permission at all
@@ -1356,7 +1356,6 @@ class AssessmentState(models.Model):
 
     class Meta:
         ordering = ['priority']
-
 
 
 class AssessmentStateSignOff(models.Model):
@@ -1378,7 +1377,7 @@ class AssessmentStateSignOff(models.Model):
     notes = models.TextField()
 
     def __str__(self):
-        return str (self.assessment_state)
+        return str(self.assessment_state)
 
 
 class Body(models.Model):
@@ -1467,7 +1466,6 @@ class ProjectStaff(models.Model):
         # TODO: If there is project time outside any workpackage it will be "lost"
         # TODO: Also there is no protection for overlapping allocations for the same staff member
 
-        work_done = []
         # Get all the work packages for the staff member and go through each
         packages = self.staff.get_all_packages(include_hidden=True)
         for package in packages:

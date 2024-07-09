@@ -21,7 +21,6 @@ from .models import AssessmentStaff
 from .models import Body
 from .models import Campus
 from .models import Category
-from .models import ExternalExaminer
 from .models import Module
 from .models import ModuleSize
 from .models import ModuleStaff
@@ -36,54 +35,69 @@ from .models import WorkPackage
 
 # Some code to augment the admin views in some cases
 
+
 class ActivityAdmin(admin.ModelAdmin):
-    list_display = ('package', 'name', 'module', 'staff', 'hours', 'percentage', 'semester', 'activity_type', 'is_allocated')
-    list_filter = ('package', 'module','staff')
+    list_display = ('package', 'name', 'module', 'staff', 'hours', 'percentage', 'semester', 'activity_type',
+                    'is_allocated')
+    list_filter = ('package', 'module', 'staff')
+
 
 class ActivitySetAdmin(admin.ModelAdmin):
     list_display = ('name', 'created')
     list_filter = ('generator', 'project')
 
+
 class ActivityGeneratorAdmin(admin.ModelAdmin):
-    #list_display = ('name', 'created')
+    # list_display = ('name', 'created')
     list_filter = ('package', 'activity_type')
+
 
 class AssessmentResourceAdmin(admin.ModelAdmin):
     list_display = ('name', 'module', 'owner', 'created')
     list_filter = ('module__package__name',)
 
+
 class AssessmentStaffAdmin(admin.ModelAdmin):
     list_display = ('package', 'staff')
     list_filter = ('package', 'staff')
+
 
 class AssessmentStateSignOffAdmin(admin.ModelAdmin):
     list_display = ('module', 'signed_by', 'assessment_state', 'created')
     list_filter = ('module__package__name',)
 
+
 class ModuleAdmin(admin.ModelAdmin):
     list_display = ('package', 'module_code', 'module_name', 'semester')
-    list_filter = ('package','semester')
+    list_filter = ('package', 'semester')
+
 
 class ProgrammeAdmin(admin.ModelAdmin):
     list_filter = ('package',)
 
+
 class StaffAdmin(admin.ModelAdmin):
-    list_display = ('title','first_name','last_name','staff_number','fte','total_hours')
-    list_filter = ('package','is_external','has_workload')
-    
+    list_display = ('title', 'first_name', 'last_name', 'staff_number', 'fte', 'total_hours')
+    list_filter = ('package', 'is_external', 'has_workload')
+
+
 class TaskAdmin(admin.ModelAdmin):
     list_display = ('name', 'category', 'deadline')
-    list_filter = ('archive','category')
-    
+    list_filter = ('archive', 'category')
+
+
 class TaskCompletionAdmin(admin.ModelAdmin):
     list_display = ('task', 'staff', 'when', 'comment')
-    
+
+
 class ModuleStaffAdmin(admin.ModelAdmin):
     list_display = ('package', 'module', 'staff', 'contact_proportion', 'admin_proportion', 'assessment_proportion')
     list_filter = ('package__name',)
-    
+
+
 class WorkPackageAdmin(admin.ModelAdmin):
     list_display = ('name', 'startdate', 'enddate', 'draft', 'archive')
+
 
 # Define an inline admin descriptor for Staff model
 # which acts a bit like a singleton
@@ -91,10 +105,6 @@ class StaffInline(admin.StackedInline):
     model = Staff
     can_delete = False
     verbose_name_plural = 'staff'
-
-# Define a new User admin
-class UserAdmin(UserAdmin):
-    inlines = (StaffInline, )
 
 
 admin.site.register(Activity, ActivityAdmin)

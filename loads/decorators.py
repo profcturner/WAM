@@ -3,6 +3,7 @@
 from django.core.exceptions import PermissionDenied
 from .models import Staff
 
+
 def staff_only(function):
     """Checks the logged in User has a valid related Staff object"""
     def wrapper(request, *args, **kwargs):
@@ -62,5 +63,3 @@ def admin_only(function):
     wrapper.__doc__ = function.__doc__
     wrapper.__name__ = function.__name__
     return wrapper
-
-

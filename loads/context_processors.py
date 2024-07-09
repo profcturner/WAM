@@ -2,6 +2,7 @@
 
 from loads.models import Staff
 
+
 def staff(request):
     """A context processor to add the logged in member of staff"""
 

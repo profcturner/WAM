@@ -1,6 +1,6 @@
 """A custom command to send reminder emails for open tasks to staff"""
 # Code to implement a custom command
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 
 # We will be using mail functionality, and templates to create them
 from django.core.mail import EmailMultiAlternatives
