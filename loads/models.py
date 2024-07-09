@@ -87,7 +87,7 @@ class WorkPackage(models.Model):
     show_percentages = models.BooleanField(default=True)
     groups = models.ManyToManyField(Group, blank=True)
     nominal_hours = models.PositiveIntegerField(default=1600)
-    credit_contact_scaling = models.FloatField(default=8 / 20)
+    credit_contact_scaling = models.FloatField(default=2.5)
     contact_admin_scaling = models.FloatField(default=1)
     contact_assessment_scaling = models.FloatField(default=1)
     working_days = models.PositiveIntegerField(default=228)
