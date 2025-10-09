@@ -474,6 +474,38 @@ class Staff(models.Model):
         """return the last name of the linked user account"""
         return self.user.last_name
 
+    def hours_by_type(self, package=0):
+        """Calculate the total allocated hours for a given WorkPackage
+
+        If package is zero it attempts to find the value for the logged in user
+        """
+
+        # Create a dict for all available categories, starting with 0 hours in each
+
+        hours_by_category = dict()
+        categories = Category.objects.all()
+        for category in categories:
+            hours_by_category[category] = 0
+
+        # Get all the activities and add the relative totals
+        activities = Activity.objects.all().filter(staff=self.id).filter(package=package)
+        for activity in activities:
+            hours = activity.total_hours()
+            hours_by_category[activity.activity_type.category] += hours
+
+        # Add hours calculated from "automatic" module allocation
+        modulestaff = ModuleStaff.objects.all().filter(staff=self.id).filter(package=package)
+        for moduledata in modulestaff:
+            c_hours = moduledata.module.get_contact_hours_by_semester()
+            as_hours = moduledata.module.get_assessment_hours_by_semester()
+            ad_hours = moduledata.module.get_admin_hours_by_semester()
+
+            hours = c_hours + as_hours + ad_hours
+            hours_by_category[activity.activity_type.category] += hours
+
+        return hours_by_category
+
+
     def hours_by_semester(self, package=0):
         """Calculate the total allocated hours for a given WorkPackage
 
@@ -671,13 +703,20 @@ class Activity(models.Model):
         """returns True if the activity is allocated to a member of staff, False otherwise"""
         return self.staff is not None
 
-    def hours_by_semester(self):
-        """Works out the hours in each semester for this activity and returns as a list"""
+    def total_hours(self):
+        """Works out total hours regardless of whether the activity is hours or percentage based"""
         # First calculate the hours over all semesters
         if self.hours_percentage == self.HOURS:
             total_hours = self.hours
         else:
             total_hours = self.percentage * self.package.nominal_hours / 100
+
+        return total_hours
+
+    def hours_by_semester(self):
+        """Works out the hours in each semester for this activity and returns as a list"""
+        # First calculate the hours over all semesters
+        total_hours = self.total_hours()
 
         return divide_by_semesters(total_hours, self.semester)
 
