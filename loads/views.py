@@ -28,7 +28,7 @@ from django.template import RequestContext, loader
 
 from django.contrib.auth.models import User, Group
 
-from .models import ActivityGenerator
+from .models import ActivityGenerator, Category
 from .models import AssessmentResource
 from .models import AssessmentStaff
 from .models import AssessmentState
@@ -57,6 +57,8 @@ from .forms import StaffCreationForm
 from .forms import ExternalExaminerCreationForm
 from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
+
+from operator import itemgetter
 
 
 def index(request):
@@ -266,6 +268,116 @@ def loads(request):
         'total': total,
         'average': average,
         'package': package,
+        'show_percentages': show_percentages,
+        'loads_menu': True,
+    }
+    return HttpResponse(template.render(context, request))
+
+
+@login_required
+@staff_only
+def loads_by_staff_chart(request):
+    """Show a graph of the loads for all members of staff in a group"""
+    # We might want to use this example.
+    # https://crinkles.dev/writing/css-only-stacked-bar-chart/
+
+    # Fetch the staff user associated with the person requesting
+    staff = get_object_or_404(Staff, user=request.user)
+    # And therefore the package enabled for that user
+    package = staff.package
+
+    # We will likely want this to be configurable
+    sort_lists = True
+
+    # If either the workpackage for the member of staff is undefined
+    # or it's set to a package they are not "in" send them to the chooser
+    #if not package or package not in staff.get_all_packages():
+    #    url = reverse('workpackage_change')
+    #    return HttpResponseRedirect(url)
+
+    # This controls whether hours or percentages are shown
+    #show_percentages = package.show_percentages
+
+    # If the staff member is a superuser just check the workpackage exists
+    if staff.user.is_superuser:
+        if not package:
+            url = reverse('workpackage_change')
+            return HttpResponseRedirect(url)
+    else:
+        # or it's set to a package they are not "in" send them to the chooser
+        if not package or package not in staff.get_all_packages():
+            #TODO: Probably really want to 403 this...
+            url = reverse('workpackage_change')
+            return HttpResponseRedirect(url)
+
+    # This controls whether hours or percentages are shown
+    show_percentages = package.show_percentages
+    show_percentages = True
+
+    total = 0.0
+    total_staff = 0
+    group_data = []
+
+    # Go through each group in turn
+    for group in package.groups.all():
+        group_list = []
+        group_size = 0
+        group_total = 0.0
+        group_average = 0.0
+        group_allocated_staff = 0
+        group_allocated_average = 0.0
+        # Get the users in the group
+        users = User.objects.all().filter(groups__in=[group]).distinct().order_by('last_name')
+        # And the associated staff objects
+        staff_list = Staff.objects.all().filter(user__in=users).order_by('user__last_name')
+        for staff in staff_list:
+            staff_load_by_category = staff.hours_by_type(package=package)
+
+            # Note below: the reason for checking any load as will as conditions is to allow
+            # colleagues to appear in other workpackages in times they had an allocated load, even
+            # if they are now inactive or flagged as having no workload
+
+            hours = sum(staff_load_by_category.values())
+            #hours = 10
+            # Check any staff member with no load is active, if not, skip them
+            if not staff.is_active() and hours == 0:
+                continue
+            # If this colleague isn't flagged as having a workload and doesn't have any, also skip
+            if not staff.has_workload and hours ==0:
+                continue
+
+            combined_item = [staff, staff_load_by_category, hours]
+            group_list.append(combined_item)
+            group_total += hours
+            group_size += 1
+            if hours !=0:
+                # Also count staff with allocated hours
+                group_allocated_staff += 1
+        if group_size:
+            group_average = group_total / group_size
+        if group_allocated_staff:
+            group_allocated_average = group_total / group_allocated_staff
+
+        if sort_lists:
+            group_list = sorted(group_list, key=lambda item : item[2], reverse=True)
+
+        group_data.append(
+            [group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average])
+        total += group_total
+        total_staff += len(staff_list)
+
+    if total_staff:
+        average = total / total_staff
+    else:
+        average = 0
+
+    template = loader.get_template('loads/loads_charts.html')
+    context = {
+        'group_data': group_data,
+        'total': total,
+        'average': average,
+        'package': package,
+        'categories': Category.objects.all(),
         'show_percentages': show_percentages,
         'loads_menu': True,
     }

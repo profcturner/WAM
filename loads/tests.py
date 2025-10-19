@@ -397,6 +397,10 @@ class AssessmentResourceTestCase(TestCase):
         # Create a campus
         campus = Campus.objects.create(name="campus")
 
+        # Create a Category and ActivityType
+        category = Category.objects.create(name="Education", abbreviation="education", colour="red")
+        ActivityType.objects.create(name="Lecturing", category=category)
+
         # Create a Module Size
         modulesize = ModuleSize.objects.create(text="50", admin_scaling=1.0, assessment_scaling=1.0)
 

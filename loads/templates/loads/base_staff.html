@@ -63,6 +63,7 @@
     {% if loads_menu %}
     <li><a href="{% url 'loads' %}">Loads By Staff</a></li>
     <li><a href="{% url 'loads_modules' semesters='' %}">Loads By Modules</a></li>
+    <li><a href="{% url 'loads_charts' %}">Load Charts</a></li>
     {% endif %}
     {% if tasks_menu %}
     <li><a href="{% url 'tasks_index' %}">Active Tasks</a></li>

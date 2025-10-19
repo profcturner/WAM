@@ -1,0 +1,176 @@
+{% extends "loads/base_automatic.html" %} {% block content %}
+
+{% load static %}
+<!-- Include formset plugin - including jQuery dependency -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="{% static 'loads/persist-headers.js' %}"></script>
+
+<!-- Credit: https://codepen.io/richardramsay/pen/ZKmQJv -->
+<link rel="stylesheet" type="text/css" href="{% static 'loads/load_charts.css' %}" />
+
+<p>Selected Year : {{package}} <a href="{%url 'workpackage_change' %}">(Change Year)</a></p>
+
+{% if package.draft %}
+<h1>This is a DRAFT allocation and may be incomplete.</h1>
+{% endif %}  
+
+{% if package.in_the_past %}
+<h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
+    <h2><span style="color:red">You probably want to change the year above.</span></h2>
+{% endif %}
+
+{% if package.in_the_future %}
+<h1><span style="color:red">Warning: The currently selected Work Package is in the Future.</span></h1>
+{% endif %}  
+
+{% if group_data %}
+  {% for group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average in group_data %}
+  <h2>{{group}}</h2>
+    {% if group_list %}
+    <div class="graphic">
+
+      {% for staff, loads_by_category, hours in group_list %}
+      <div class="row">
+          <h6>{{ staff }}</h6>
+          <div class="chart">
+            {% for category, value in loads_by_category.items %}
+                <span class="block" title="{{ category.abbreviation }}">
+                {% if show_percentages %}
+                    <span class="value">{{ value }}%</span>
+                {% else %}
+                    <span class="value">{{ value }}</span>
+                {% endif %}
+                </span>
+
+            {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <p>
+      Total hours for all activities in this group is {{ group_total }}, with 
+      average hours per staff member is 
+      {{ group_average|stringformat:".0f" }}, for allocated staff only the average hours per staff member is 
+      {{ group_allocated_average|stringformat:".0f" }}.
+    </p>
+    {% else %}
+    <p>No allocations for this group at this time.</p>
+    {% endif %}
+  {% endfor %}
+  <h2>Overall Totals</h2>
+  <p>
+  Total hours for all activities is {{ total }}, average hours by staff member {{ average|stringformat:".0f" }}.
+  </p>
+  
+{% else %}
+  <p>No data for this work package at this time.</p>
+{% endif %}
+
+
+<p><a href="{% url 'loads_modules' semesters='' %}">Loads by Modules</a>.</p>
+
+    <figure>
+  <div class="y-axis">
+    <h3>Y-Axis Title</h3>
+  </div>
+
+  <div class="graphic">
+
+    <div class="row">
+      <h6>Bar One</h6>
+      <div class="chart">
+        <span class="block" title="Category A">
+           <span class="value">57%</span>
+        </span>
+        <span class="block" title="Category B">
+           <span class="value">13%</span>
+        </span>
+        <span class="block" title="Category C">
+           <span class="value">8%</span>
+        </span>
+        <span class="block" title="Category D">
+           <span class="value">2%</span>
+        </span>
+        <span class="block" title="Category E">
+            <span class="value">17%</span>
+        </span>
+        <span class="block" title="Category F">
+            <span class="value">3%</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="row">
+      <h6>Bar Two</h6>
+      <div class="chart">
+        <span class="block" title="Category A">
+            <span class="value">29%</span>
+        </span>
+        <span class="block" title="Category B">
+            <span class="value">21%</span>
+        </span>
+        <span class="block" title="Category C">
+             <span class="value">19%</span>
+        </span>
+        <span class="block" title="Category D">
+             <span class="value">6%</span>
+        </span>
+        <span class="block" title="Category E">
+             <span class="value">19%</span>
+        </span>
+        <span class="block" title="Category F">
+             <span class="value">6%</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="row">
+      <h6>Bar Three</h6>
+      <div class="chart">
+        <span class="block" title="Category A">
+             <span class="value">8%</span>
+        </span>
+        <span class="block" title="Category B">
+             <span class="value">11%</span>
+        </span>
+        <span class="block" title="Category C">
+             <span class="value">34%</span>
+        </span>
+        <span class="block" title="Category D">
+             <span class="value">2%</span>
+        </span>
+        <span class="block" title="Category E">
+             <span class="value">32%</span>
+        </span>
+        <span class="block" title="Category F">
+             <span class="value">13%</span>
+        </span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="x-axis">
+    <h3>X-Axis Title</h3>
+    <ul class="legend">
+      <li>Category A</li>
+      <li>Category B</li>
+      <li>Category C</li>
+      <li>Category D</li>
+      <li>Category E</li>
+      <li>Category F</li>
+    </ul>
+  </div>
+
+</figure>
+
+    <script type="text/javascript">
+$('.value').each(function() {
+	var text = $(this).text();
+	$(this).parent().css('width', text);
+});
+
+$('.block').tooltip();
+</script>
+
+{% endblock content %}

@@ -10,6 +10,8 @@ from django.core.validators import validate_comma_separated_integer_list
 # code to handle timezones
 from django.utils.timezone import utc
 
+from WAM.settings import WAM_DEFAULT_ACTIVITY_TYPE
+
 
 def divide_by_semesters(total_hours, semester_string):
     """divide hours equally between targeted semesters
@@ -496,12 +498,13 @@ class Staff(models.Model):
         # Add hours calculated from "automatic" module allocation
         modulestaff = ModuleStaff.objects.all().filter(staff=self.id).filter(package=package)
         for moduledata in modulestaff:
-            c_hours = moduledata.module.get_contact_hours_by_semester()
-            as_hours = moduledata.module.get_assessment_hours_by_semester()
-            ad_hours = moduledata.module.get_admin_hours_by_semester()
+            c_hours = moduledata.module.get_contact_hours()
+            as_hours = moduledata.module.get_assessment_hours()
+            ad_hours = moduledata.module.get_admin_hours()
 
             hours = c_hours + as_hours + ad_hours
-            hours_by_category[activity.activity_type.category] += hours
+
+            hours_by_category[moduledata.activity_type.category] += hours
 
         return hours_by_category
 
@@ -630,10 +633,15 @@ class AssessmentStaff(models.Model):
 class Category(models.Model):
     """Categories of activity
 
-    name    whether the activity is Teaching, Research etc.
+    name            whether the activity is Teaching, Research etc.
+    abbreviation    an abbreviated name, if it exists
+    colour          colour to represent this category (in web formats)
     """
 
     name = models.CharField(max_length=100)
+    abbreviation = models.CharField(max_length=100)
+    colour = models.CharField(max_length=30)
+
 
     def __str__(self):
         return self.name
@@ -850,6 +858,7 @@ class ModuleStaff(models.Model):
                               limit_choices_to={'has_workload': True})
     package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
     # TODO package is implicitly linked by module already...?
+    activity_type = models.ForeignKey('ActivityType', on_delete=models.CASCADE, default=WAM_DEFAULT_ACTIVITY_TYPE)
 
     contact_proportion = models.PositiveSmallIntegerField()
     admin_proportion = models.PositiveSmallIntegerField()

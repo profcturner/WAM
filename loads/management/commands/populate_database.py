@@ -120,14 +120,14 @@ class Command(BaseCommand):
     def add_categories_activities(self):
         """Add some basic Categories and ActivityTypes"""
 
-        admin_category = Category.objects.create(name="Administration")
-        research_category = Category.objects.create(name="Research and Impact")
-        education_category = Category.objects.create(name="Learning and Teaching")
+        admin_category = Category.objects.create(name="Administration", abbreviation="admin", colour="red")
+        research_category = Category.objects.create(name="Research and Impact", abbreviation="research", colour="green")
+        education_category = Category.objects.create(name="Learning and Teaching", abbreviation="education", colour="blue")
 
+        ActivityType.objects.create(name="Lectures and Tutorials", category=education_category)
         ActivityType.objects.create(name="General Administration", category=admin_category)
         ActivityType.objects.create(name="Faculty Committee Representation", category=admin_category)
         ActivityType.objects.create(name="Health and Safety", category=admin_category)
-        ActivityType.objects.create(name="Lectures and Tutorials", category=education_category)
         ActivityType.objects.create(name="Research Administration", category=research_category)
         ActivityType.objects.create(name="Research Grant", category=research_category)
         ActivityType.objects.create(name="Teaching Administration", category=education_category)

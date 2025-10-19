@@ -38,6 +38,7 @@ urlpatterns = [
     re_path(r'^workpackage/change/$', views.workpackage_change, name='workpackage_change'),
     re_path(r'^workpackage/migrate/$', views.workpackage_migrate, name='workpackage_migrate'),    
     re_path(r'^loads/$', views.loads, name='loads'),
+    re_path(r'^loads_charts/$', views.loads_by_staff_chart, name='loads_charts'),
     re_path(r'^loads/modules/(?P<semesters>[0-9,]*)$', views.loads_modules, name='loads_modules'),
     re_path(r'^activities/(?P<staff_id>[0-9]+)$', views.activities, name='activities'),
     re_path(r'^activities/index/$', ActivityListView.as_view(), name='activities_index'),
