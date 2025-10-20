@@ -50,6 +50,21 @@ figure {
 .row + .row + .row .chart {
 	animation-delay: .4s;
 }
+.block-background {
+    position: block;
+    height: 40px;
+    width: 1000px;
+    opacity: 1;
+	color: #fff;
+	font-size: .75em;
+	float: left;
+	background-color: grey;
+	position: relative;
+	overflow: hidden;
+	opacity: 1;
+	transition: opacity, .3s ease;
+	cursor: pointer;
+}
 .block {
 	display: block;
 	height: 40px;
@@ -62,7 +77,6 @@ figure {
 	opacity: 1;
 	transition: opacity, .3s ease;
 	cursor: pointer;
-    min-width: 1em;
 }
 .block:nth-of-type(2),
 .legend li:nth-of-type(2):before {
@@ -126,9 +140,9 @@ figure {
 @media screen and (min-width: 768px) {
 	h6 {
 		padding: 0;
-		width: 200px;
+		width: 75px;
 		float: left;
-		line-height: 20px;
+		line-height: 40px;
 	}
 	.block {
 		font-size: 1em;

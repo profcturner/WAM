@@ -31,8 +31,9 @@
 
       {% for staff, loads_by_category, hours in group_list %}
       <div class="row">
-          <h6>{{ staff }}</h6>
+          <h6 title="{{ staff }}">{{ staff.last_name }}</h6>
           <div class="chart">
+            <span class="block-background" title="Unallocated">
             {% for category, value in loads_by_category.items %}
                 <span class="block" title="{{ category.abbreviation }}">
                 {% if show_percentages %}
@@ -43,6 +44,7 @@
                 </span>
 
             {% endfor %}
+            </span>
         </div>
       </div>
       {% endfor %}
