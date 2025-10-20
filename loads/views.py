@@ -194,11 +194,17 @@ def loads(request):
     # And therefore the package enabled for that user
     package = staff.package
 
-    # If either the workpackage for the member of staff is undefined
-    # or it's set to a package they are not "in" send them to the chooser
-    if not package or package not in staff.get_all_packages():
-        url = reverse('workpackage_change')
-        return HttpResponseRedirect(url)
+    # If the staff member is a superuser just check the workpackage exists
+    if staff.user.is_superuser:
+        if not package:
+            url = reverse('workpackage_change')
+            return HttpResponseRedirect(url)
+    else:
+        # or it's set to a package they are not "in" send them to the chooser
+        if not package or package not in staff.get_all_packages():
+            #TODO: Probably really want to 403 this...
+            url = reverse('workpackage_change')
+            return HttpResponseRedirect(url)
 
     # This controls whether hours or percentages are shown
     show_percentages = package.show_percentages
