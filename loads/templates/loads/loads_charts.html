@@ -29,23 +29,20 @@
     {% if group_list %}
     <div class="graphic">
 
-      {% for staff, loads_by_category, hours in group_list %}
+      {% for staff, loads_by_category, percentage_by_category, hours in group_list %}
       <div class="row">
           <h6 title="{{ staff }}">{{ staff.last_name }}</h6>
           <div class="chart">
             <span class="block-background" title="Unallocated">
-            {% for category, value in loads_by_category.items %}
+            {% for category, value in percentage_by_category.items %}
                 <span class="block" title="{{ category.abbreviation }}">
-                {% if show_percentages %}
-                    <span class="value">{{ value }}%</span>
-                {% else %}
-                    <span class="value">{{ value }}</span>
-                {% endif %}
+                    <span class="value">{{ value|floatformat:1 }}%</span>
                 </span>
 
             {% endfor %}
             </span>
         </div>
+      <!-- <h6>{{ hours }} Hours</h6> -->
       </div>
       {% endfor %}
     </div>

@@ -476,10 +476,13 @@ class Staff(models.Model):
         """return the last name of the linked user account"""
         return self.user.last_name
 
-    def hours_by_type(self, package=0):
-        """Calculate the total allocated hours for a given WorkPackage
+    def hours_by_category(self, package=0):
+        """
+        Calculate the total allocated hours for a given WorkPackage
 
         If package is zero it attempts to find the value for the logged in user
+
+        :return: a dict of key = Category, value = hours
         """
 
         # Create a dict for all available categories, starting with 0 hours in each
@@ -507,6 +510,26 @@ class Staff(models.Model):
             hours_by_category[moduledata.activity_type.category] += hours
 
         return hours_by_category
+
+    def percentage_by_category(self, package=0, hours_by_category=hours_by_category):
+        """
+            Calculates the percentage of the nominal total load for each category
+
+            Note that percentages may therefore sum to less or more than 100%
+
+        :param: the work package to use, 0 denotes currently selected package
+        :param hours_by_category will use the return from hours_by_category if it exists
+        :return: a dict of key = Category, value = percentage
+        """
+        if(hours_by_category) is None:
+            hours_by_category = self.hours_by_category(package)
+
+        percentage_by_category = dict()
+        categories = Category.objects.all()
+        for category in categories:
+            percentage_by_category[category] = 100 * hours_by_category[category] / package.nominal_hours;
+
+        return percentage_by_category
 
 
     def hours_by_semester(self, package=0):

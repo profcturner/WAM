@@ -337,7 +337,8 @@ def loads_by_staff_chart(request):
         # And the associated staff objects
         staff_list = Staff.objects.all().filter(user__in=users).order_by('user__last_name')
         for staff in staff_list:
-            staff_load_by_category = staff.hours_by_type(package=package)
+            staff_load_by_category = staff.hours_by_category(package=package)
+            staff_percentage_by_category = staff.percentage_by_category(package=package, hours_by_category=staff_load_by_category)
 
             # Note below: the reason for checking any load as will as conditions is to allow
             # colleagues to appear in other workpackages in times they had an allocated load, even
@@ -352,7 +353,8 @@ def loads_by_staff_chart(request):
             if not staff.has_workload and hours ==0:
                 continue
 
-            combined_item = [staff, staff_load_by_category, hours]
+            # Ok, we are going to process them, we will need percentage breakdown too.
+            combined_item = [staff, staff_load_by_category, staff_percentage_by_category, hours]
             group_list.append(combined_item)
             group_total += hours
             group_size += 1
@@ -364,8 +366,9 @@ def loads_by_staff_chart(request):
         if group_allocated_staff:
             group_allocated_average = group_total / group_allocated_staff
 
+        # We are probably going to want to sort by maximum hours descending, that's subscript 3 on combined items
         if sort_lists:
-            group_list = sorted(group_list, key=lambda item : item[2], reverse=True)
+            group_list = sorted(group_list, key=lambda item : item[3], reverse=True)
 
         group_data.append(
             [group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average])
