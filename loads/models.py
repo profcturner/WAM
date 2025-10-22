@@ -7,9 +7,6 @@ from django.contrib.auth.models import User, Group
 
 from django.core.validators import validate_comma_separated_integer_list
 
-# code to handle timezones
-from django.utils.timezone import utc
-
 from WAM.settings import WAM_DEFAULT_ACTIVITY_TYPE
 
 
@@ -1110,14 +1107,14 @@ class Task(models.Model):
 
     def is_urgent(self):
         """returns True is the task is 7 days away or less, False otherwise"""
-        now = datetime.datetime.utcnow().replace(tzinfo=utc)
+        now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
         seconds_left = (self.deadline - now).total_seconds()
         # If a task is less than a week from deadline consider it urgent
         return bool(seconds_left < 60 * 60 * 24 * 7)
 
     def is_overdue(self):
         """returns True is the deadline has passed, False otherwise"""
-        now = datetime.datetime.utcnow().replace(tzinfo=utc)
+        now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
         seconds_left = (self.deadline - now).total_seconds()
         return bool(seconds_left < 0)
 
