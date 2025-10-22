@@ -26,6 +26,9 @@ SECRET_KEY = 'i(@t%n%skz1v)y-%b4+krov&l1efdc__m+oh!jn59%(!4n1r7+'
 WAM_URL = "http://localhost"
 WAM_AUTO_EMAIL_FROM = "c.turner@ulster.ac.uk"
 
+# This is the activity type for module staff allocations
+WAM_DEFAULT_ACTIVITY_TYPE = 1
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 ALLOWED_HOSTS = ["127.0.0.1"]
