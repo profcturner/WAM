@@ -577,6 +577,9 @@ class Staff(models.Model):
 
     def get_all_packages(self, include_hidden=False):
         """'Get all the packages that are relevant for a staff member"""
+        if self.user.is_superuser:
+            return WorkPackage.objects.all()
+
         groups = Group.objects.all().filter(user=self.user)
         packages = WorkPackage.objects.all().filter(groups__in=groups).distinct()
 
