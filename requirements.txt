@@ -1,2 +1,4 @@
+# This is a rather naive pip requirements file, used for CI in GitHub
+# TODO: we might want to add version information in here.
 django
 django-utils
