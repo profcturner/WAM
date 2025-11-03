@@ -29,6 +29,11 @@ WAM_AUTO_EMAIL_FROM = "c.turner@ulster.ac.uk"
 # This is the activity type for module staff allocations
 WAM_DEFAULT_ACTIVITY_TYPE = 1
 
+# Whether to have ADFS authentication
+# You will need other configuration changes, please see
+# https://github.com/profcturner/WAM/wiki/ADFS---Azure-Authentication
+WAM_ADFS_AUTH = False
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 ALLOWED_HOSTS = ["127.0.0.1"]
@@ -37,7 +42,6 @@ ALLOWED_HOSTS = ["127.0.0.1"]
 
 
 # Application definition
-
 INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
@@ -123,8 +127,7 @@ LOGOUT_REDIRECT_URL = 'logged out'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Create a local settings file called local_settings.py to override details
-
 try:
-    from local_settings import *
+    from WAM.local_settings import *
 except ImportError:
     pass
