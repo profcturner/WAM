@@ -8,6 +8,8 @@ from django.urls import reverse
 
 from django.contrib.auth.models import User, Group
 
+from io import StringIO
+
 # Import some models
 
 from .models import ActivityGenerator
@@ -731,31 +733,38 @@ class UserCreationTestCase(TestCase):
         self.assertFalse(invalid_user.is_active)
 
 class CommandsTestCase(TestCase):
+    """Test Populate Database commands, which can fail due to schema changes"""
     def test_create_schema(self):
-        " Test my custom command."
+        """ Test creation of scheme through --add-core-config """
 
+        out = StringIO()
         args = ['--add-core-config']
         opts = {}
-        call_command('populate_database', *args, **opts)
+        call_command('populate_database', stdout=out, *args, **opts)
+        self.assertIn("Complete.", out.getvalue())
+
 
     def test_create_test_data_no_config(self):
-        #TODO: this needs better handling, if I don't wrap the exception, it fails on the (correct) stderr
+        """ Test that --add-test-data misfires correctly if we haven't called --add-core-config """
 
+        out = StringIO()
+        err = StringIO()
         args = ['--add-test-data']
         opts = {}
-        try:
-            call_command('populate_database', *args, **opts)
-        except Exception as e:
-            print(e)
+
+        call_command('populate_database', stdout=out, stderr=err, *args, **opts)
+        self.assertIn("no basic schema", err.getvalue())
 
 
     def test_create_test_data(self):
         " Test my custom command."
 
+        out = StringIO()
         args = ['--add-core-config']
         opts = {}
-        call_command('populate_database', *args, **opts)
+        call_command('populate_database', stdout=out, *args, **opts)
 
         args = ['--add-test-data']
         opts = {}
-        call_command('populate_database', *args, **opts)
+        call_command('populate_database', stdout=out, *args, **opts)
+        self.assertIn("Complete.", out.getvalue())
