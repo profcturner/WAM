@@ -392,15 +392,16 @@ class Command(BaseCommand):
             user.set_unusable_password()
             user.save()
 
-            # Create the linked staff objects
-            # Let's have mostly Full Time staff, but with some PT staff too
-            Staff.objects.create(
-                user=user,
-                fte=random.choice([100] * 10 + [50] * 2 + [60] + [40]),
-                title=title,
-                staff_number=username,
-                package=package
-            )
+            # Tweak the autocreated corresponding staff objects
+            staff = Staff.objects.get(user=user)
+            staff.fte = random.choice([100] * 10 + [50] * 2 + [60] + [40])
+            staff.title = title
+            staff.staff_number = username
+            staff.package = package
+            staff.is_external = False
+            staff.has_workload = True
+            staff.save()
+
 
             # Add the user to a group as well
             group = random.choice(groups)
@@ -455,16 +456,15 @@ class Command(BaseCommand):
             user.set_unusable_password()
             user.save()
 
-            # Create the linked staff objects
-            # Let's have mostly Full Time staff, but with some PT staff too
-            Staff.objects.create(
-                user=user,
-                title=title,
-                staff_number=username,
-                is_external=True,
-                has_workload=False,
-                package=package
-            )
+            # Tweak the autocreated corresponding staff objects
+            staff = Staff.objects.get(user=user)
+            staff.fte = random.choice([100] * 10 + [50] * 2 + [60] + [40])
+            staff.title = title
+            staff.staff_number = username
+            staff.package = package
+            staff.is_external = True
+            staff.has_workload = False
+            staff.save()
 
             # A different username for the next one
             username_number += 1
