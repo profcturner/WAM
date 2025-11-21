@@ -10,7 +10,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
 
 # And some models
-from loads.models import Category
+from loads.models import Category, ExternalExaminer
 from loads.models import ActivityType
 from loads.models import ModuleSize
 from loads.models import AssessmentResourceType
@@ -63,6 +63,8 @@ class Command(BaseCommand):
 
         self.stdout.write('Complete.')
 
+
+
     @staticmethod
     def database_not_empty():
         """Check if any data is already there"""
@@ -95,7 +97,7 @@ class Command(BaseCommand):
 
         if self.database_not_empty():
             self.stdout.write('ERROR: Database core data not empty, quitting')
-            return
+            return False
 
         if verbosity:
             self.stdout.write('.. Add Categories and ActivityTypes')
@@ -116,6 +118,8 @@ class Command(BaseCommand):
         if verbosity:
             self.stdout.write('.. Add AssessmentStates')
         self.add_assessment_state()
+
+        return True
 
     def add_categories_activities(self):
         """Add some basic Categories and ActivityTypes"""
@@ -262,12 +266,19 @@ class Command(BaseCommand):
     def populate_test_data(self, options):
         """Add users, modules and programmes etc."""
 
+        # Make a very naive check that some initial configuration exists
+        # This can happen if people haven't added basic config yet.
+        if(Campus.objects.count() == 0):
+            self.stderr.write("ERROR: There seems to be no basic schema")
+            self.stderr.write("ERROR: Did you mean to use --add-core-config first?")
+            return False
+
         # Create the WorkPackage first
         package = self.create_work_package(options)
 
         if not package:
             self.stderr.write("ERROR: Unable to continue")
-            return
+            return False
 
         # Then the Staff
         self.create_staff(package, options)
@@ -280,6 +291,8 @@ class Command(BaseCommand):
 
         # The Modules
         self.create_modules(package, options)
+
+        return True
 
     def create_work_package(self, options):
         """Create an test work package"""

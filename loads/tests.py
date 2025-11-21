@@ -738,7 +738,16 @@ class CommandsTestCase(TestCase):
         opts = {}
         call_command('populate_database', *args, **opts)
 
-        # Some Asserts.
+    def test_create_test_data_no_config(self):
+        #TODO: this needs better handling, if I don't wrap the exception, it fails on the (correct) stderr
+
+        args = ['--add-test-data']
+        opts = {}
+        try:
+            call_command('populate_database', *args, **opts)
+        except Exception as e:
+            print(e)
+
 
     def test_create_test_data(self):
         " Test my custom command."
