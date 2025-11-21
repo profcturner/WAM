@@ -453,7 +453,7 @@ class Staff(models.Model):
     package         the active work package to edit or display
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    title = models.CharField(max_length=100)
+    title = models.CharField(max_length=100, default='')
     staff_number = models.CharField(max_length=20)
     fte = models.PositiveSmallIntegerField(default=100)
     is_external = models.BooleanField(default=False)

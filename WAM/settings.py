@@ -26,6 +26,12 @@ SECRET_KEY = 'i(@t%n%skz1v)y-%b4+krov&l1efdc__m+oh!jn59%(!4n1r7+'
 WAM_URL = "http://localhost"
 WAM_AUTO_EMAIL_FROM = "c.turner@ulster.ac.uk"
 
+# These regexs will be used for automatic creation of Staff objects when an authenticaed User is created
+# They can be used to help WAM establish whether this should be a member of Academic Staff and External Examiner
+# If these regexs are set, and an authenticated User is presented, login will be disabled
+WAM_STAFF_REGEX = None
+WAM_EXTERNAL_REGEX = None
+
 # This is the activity type for module staff allocations
 WAM_DEFAULT_ACTIVITY_TYPE = 1
 
