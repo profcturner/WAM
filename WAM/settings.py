@@ -24,7 +24,7 @@ SECRET_KEY = 'i(@t%n%skz1v)y-%b4+krov&l1efdc__m+oh!jn59%(!4n1r7+'
 
 # I can't find a better way to do this in django!
 WAM_URL = "http://localhost"
-WAM_AUTO_EMAIL_FROM = "c.turner@ulster.ac.uk"
+WAM_AUTO_EMAIL_FROM = "noreply@invalid.com"
 
 # These regexs will be used for automatic creation of Staff objects when an authenticaed User is created
 # They can be used to help WAM establish whether this should be a member of Academic Staff and External Examiner
