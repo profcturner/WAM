@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 
 from WAM.settings import WAM_ADFS_AUTH
+
 from loads import views
 
 from loads.views import CreateProgrammeView
@@ -31,14 +32,8 @@ from loads.views import ActivityListView
 from loads.views import CreateActivityView
 from loads.views import UpdateActivityView
 
-if WAM_ADFS_AUTH:
-    urlpatterns = [
-        path('oauth2/', include('django_auth_adfs.urls')),
-    ]
-else:
-    urlpatterns = []
 
-urlpatterns += [
+urlpatterns = [
     re_path(r'^$', views.index, name='index'),
     re_path(r'^accounts/login/$', auth_views.LoginView.as_view(), name='login'),
     re_path(r'^accounts/logout/$', auth_views.LogoutView.as_view(), name='logout'),
@@ -102,3 +97,9 @@ urlpatterns += [
     re_path(r'^cadmin/create_external_examiner', views.create_external_examiner, name='create external examiner'),
 
 ]
+
+
+# Add ADFS login URLS if required
+if WAM_ADFS_AUTH:
+    urlpatterns.append(path('oauth2/', include('django_auth_adfs.urls')))
+
