@@ -1,4 +1,5 @@
 from django.test import TestCase, override_settings
+from django.core.management import call_command
 from django.test import Client
 
 from django.urls import reverse
@@ -729,3 +730,23 @@ class UserCreationTestCase(TestCase):
         # Check the invalid user is disabled
         self.assertFalse(invalid_user.is_active)
 
+class CommandsTestCase(TestCase):
+    def test_create_schema(self):
+        " Test my custom command."
+
+        args = ['--add-core-config']
+        opts = {}
+        call_command('populate_database', *args, **opts)
+
+        # Some Asserts.
+
+    def test_create_test_data(self):
+        " Test my custom command."
+
+        args = ['--add-core-config']
+        opts = {}
+        call_command('populate_database', *args, **opts)
+
+        args = ['--add-test-data']
+        opts = {}
+        call_command('populate_database', *args, **opts)
