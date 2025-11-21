@@ -207,13 +207,13 @@ class StaffCreationForm(forms.Form):
         for group in self.cleaned_data.get('groups'):
             group.user_set.add(user)
 
-        # And now create the linked Staff object
-        Staff.objects.create(
-            user=user,
-            title=self.cleaned_data.get('title'),
-            staff_number=staff_number,
-            package=self.cleaned_data.get('package')
-        )
+        # And now create or tweak the linked Staff object
+        staff, created = Staff.objects.get_or_create(user=user)
+        staff.title = self.cleaned_data.get('title')
+        staff.staff_number = staff_number
+        staff.package = self.cleaned_data.get('package')
+        staff.is_external = False
+        staff.save()
 
         return user
 
@@ -300,14 +300,13 @@ class ExternalExaminerCreationForm(forms.Form):
             user.set_unusable_password()
             user.save()
 
-        # And now create the linked External Examiner object
-        Staff.objects.create(
-            user=user,
-            is_external=True,
-            title=self.cleaned_data.get('title'),
-            staff_number=staff_number,
-            package=self.cleaned_data.get('package')
-        )
+        # And now create or tweak the linked Staff object
+        staff, created = Staff.objects.get_or_create(user=user)
+        staff.title = self.cleaned_data.get('title')
+        staff.staff_number = staff_number
+        staff.package = self.cleaned_data.get('package')
+        staff.is_external = True
+        staff.save()
 
         return user
 

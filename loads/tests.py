@@ -1,4 +1,5 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.core.management import call_command
 from django.test import Client
 
 from django.urls import reverse
@@ -6,6 +7,8 @@ from django.urls import reverse
 # Import Some Django models that we use
 
 from django.contrib.auth.models import User, Group
+
+from io import StringIO
 
 # Import some models
 
@@ -59,17 +62,23 @@ class WorkPackageMigrationTestCase(TestCase):
         user_eC = User.objects.create(username="externalC", password="test")
 
         # Create linked Staff and ExternalExaminers
-        coordinator = Staff.objects.create(user=user_aA)
-        team_member = Staff.objects.create(user=user_aB)
-        resource_owner = Staff.objects.create(user=user_aC)
-        moderator = Staff.objects.create(user=user_aD)
-        other_staff = Staff.objects.create(user=user_aE)
+        coordinator = Staff.objects.get(user=user_aA)
+        team_member = Staff.objects.get(user=user_aB)
+        resource_owner = Staff.objects.get(user=user_aC)
+        moderator = Staff.objects.get(user=user_aD)
+        other_staff = Staff.objects.get(user=user_aE)
 
-        assessment_staff = Staff.objects.create(user=user_aF)
+        assessment_staff = Staff.objects.get(user=user_aF)
 
-        lead_examiner = Staff.objects.create(user=user_eA, is_external=True, has_workload=False)
-        associated_examiner = Staff.objects.create(user=user_eB, is_external=True, has_workload=False)
-        other_examiner = Staff.objects.create(user=user_eC, is_external=True, has_workload=False)
+        lead_examiner = Staff.objects.get(user=user_eA)
+        lead_examiner.is_external = True
+        lead_examiner.save()
+        associated_examiner = Staff.objects.get(user=user_eB)
+        associated_examiner.is_external = True
+        associated_examiner.save()
+        other_examiner = Staff.objects.get(user=user_eC)
+        other_examiner.is_external = True
+        other_examiner.save()
 
         # Add the user to AssessmentStaff
         AssessmentStaff.objects.create(staff=assessment_staff, package=package)
@@ -418,17 +427,23 @@ class AssessmentResourceTestCase(TestCase):
         user_eC = User.objects.create(username="externalC", password="test")
 
         # Create linked Staff and ExternalExaminers
-        coordinator = Staff.objects.create(user=user_aA)
-        team_member = Staff.objects.create(user=user_aB)
-        resource_owner = Staff.objects.create(user=user_aC)
-        moderator = Staff.objects.create(user=user_aD)
-        other_staff = Staff.objects.create(user=user_aE)
+        coordinator = Staff.objects.get(user=user_aA)
+        team_member = Staff.objects.get(user=user_aB)
+        resource_owner = Staff.objects.get(user=user_aC)
+        moderator = Staff.objects.get(user=user_aD)
+        other_staff = Staff.objects.get(user=user_aE)
 
-        assessment_staff = Staff.objects.create(user=user_aF)
+        assessment_staff = Staff.objects.get(user=user_aF)
 
-        lead_examiner = Staff.objects.create(user=user_eA, is_external=True, has_workload=False)
-        associated_examiner = Staff.objects.create(user=user_eB, is_external=True, has_workload=False)
-        other_examiner = Staff.objects.create(user=user_eC, is_external=True, has_workload=False)
+        lead_examiner = Staff.objects.get(user=user_eA)
+        lead_examiner.is_external=True
+        lead_examiner.save()
+        associated_examiner = Staff.objects.get(user=user_eB)
+        associated_examiner.is_external=True
+        associated_examiner.save()
+        other_examiner = Staff.objects.get(user=user_eC)
+        other_examiner.is_external=True
+        other_examiner.save()
 
         # Add the user to AssessmentStaff
         AssessmentStaff.objects.create(staff=assessment_staff, package=package)
@@ -565,3 +580,191 @@ class AssessmentResourceTestCase(TestCase):
         self.assertEqual(resource.is_downloadable_by(other_examiner), False)
         self.assertEqual(resource.is_downloadable_by_staff(other_examiner), False)
         self.assertEqual(resource.is_downloadable_by_external(other_examiner), False)
+
+
+class UserCreationTestCase(TestCase):
+    def setUp(self):
+        # Nothing needed yet
+        pass
+
+    def test_superuser_creates_staff(self):
+        # Create a superuser
+        user = User.objects.create_superuser(username="superuser", password="")
+        # Try to get the matching staff object
+        try:
+            staff = Staff.objects.get(user=user)
+        except:
+            staff = None
+
+        # Check the matching staff object has been created
+        self.assertIsNotNone(staff)
+
+        # That staff member should not be External
+        self.assertFalse(staff.is_external)
+
+        # That staff member should not have Workload
+        self.assertFalse(staff.has_workload)
+
+    @override_settings(WAM_STAFF_REGEX=None)
+    @override_settings(WAM_EXTERNAL_REGEX=None)
+    def test_noregex_staffuser_creates_staff(self):
+        # Try with no regex, the staff object should default to internal "Staff" characteristics
+        user = User.objects.create(username="staffuser", password="")
+        try:
+            staff = Staff.objects.get(user=user)
+        except:
+            staff = None
+
+        # Check the matching staff object has been created
+        self.assertIsNotNone(staff)
+
+        # That staff member should not be External
+        self.assertFalse(staff.is_external)
+
+        # That staff member should not have Workload
+        self.assertTrue(staff.has_workload)
+
+        # Check user can still login
+        self.assertTrue(user.is_active)
+
+
+    @override_settings(WAM_STAFF_REGEX='^e[0-9]+$')
+    @override_settings(WAM_EXTERNAL_REGEX=None)
+    def test_staff_regex_only_user_creates_staff(self):
+        # One user should be created as internal, the other as external
+        internal_user = User.objects.create(username='e1234', password='')
+        external_user = User.objects.create(username="nonstaff", password="")
+
+        try:
+            internal_staff = Staff.objects.get(user=internal_user)
+        except:
+            internal_staff = None
+
+        try:
+            external_staff = Staff.objects.get(user=external_user)
+        except:
+            external_staff = None
+
+        # Check the matching staff objects have been created
+        self.assertIsNotNone(internal_staff)
+        self.assertIsNotNone(external_staff)
+
+        # The internal staff member should not be External and have workload
+        self.assertFalse(internal_staff.is_external)
+        self.assertTrue(internal_staff.has_workload)
+        self.assertTrue(internal_user.is_active)
+
+        # The external staff member should be the other way around
+        self.assertTrue(external_staff.is_external)
+        self.assertFalse(external_staff.has_workload)
+        self.assertTrue(external_user.is_active)
+
+
+    @override_settings(WAM_STAFF_REGEX=None)
+    @override_settings(WAM_EXTERNAL_REGEX='a[0-9]+$')
+    def test_external_regex_only_user_creates_staff(self):
+        # One user should be created as internal, the other as external
+        internal_user = User.objects.create(username='e1234', password='')
+        external_user = User.objects.create(username="a1234", password="")
+
+        try:
+            internal_staff = Staff.objects.get(user=internal_user)
+        except:
+            internal_staff = None
+
+        try:
+            external_staff = Staff.objects.get(user=external_user)
+        except:
+            external_staff = None
+
+            # Check the matching staff objects have been created
+            self.assertIsNotNone(internal_staff)
+            self.assertIsNotNone(external_staff)
+
+            # The internal staff member should not be External and have workload
+            self.assertFalse(internal_staff.is_external)
+            self.assertTrue(internal_staff.has_workload)
+            self.assertTrue(internal_user.is_active)
+
+            # The external staff member should be the other way around
+            self.assertTrue(external_staff.is_external)
+            self.assertFalse(external_staff.has_workload)
+            self.assertTrue(external_user.is_active)
+
+
+    @override_settings(WAM_STAFF_REGEX='e[0-9]+$')
+    @override_settings(WAM_EXTERNAL_REGEX='a[0-9]+$')
+    def test_both_regex_user_creates_staff(self):
+        # One user should be created as internal, the other as external
+        internal_user = User.objects.create(username='e1234', password='')
+        external_user = User.objects.create(username="a1234", password="")
+        invalid_user = User.objects.create(username='b1234', password='')
+
+        try:
+            internal_staff = Staff.objects.get(user=internal_user)
+        except:
+            internal_staff = None
+
+        try:
+            external_staff = Staff.objects.get(user=external_user)
+        except:
+            external_staff = None
+
+        try:
+            invalid_staff = Staff.objects.get(user=invalid_user)
+        except:
+            invalid_staff = None
+
+        # Check the matching staff objects have been created
+        self.assertIsNotNone(internal_staff)
+        self.assertIsNotNone(external_staff)
+
+        # The internal staff member should not be External and have workload
+        self.assertFalse(internal_staff.is_external)
+        self.assertTrue(internal_staff.has_workload)
+        self.assertTrue(internal_user.is_active)
+
+        # The external staff member should be the other way around
+        self.assertTrue(external_staff.is_external)
+        self.assertFalse(external_staff.has_workload)
+        self.assertTrue(external_user.is_active)
+
+        # Check the invalid user is disabled
+        self.assertFalse(invalid_user.is_active)
+
+class CommandsTestCase(TestCase):
+    """Test Populate Database commands, which can fail due to schema changes"""
+    def test_create_schema(self):
+        """ Test creation of scheme through --add-core-config """
+
+        out = StringIO()
+        args = ['--add-core-config']
+        opts = {}
+        call_command('populate_database', stdout=out, *args, **opts)
+        self.assertIn("Complete.", out.getvalue())
+
+
+    def test_create_test_data_no_config(self):
+        """ Test that --add-test-data misfires correctly if we haven't called --add-core-config """
+
+        out = StringIO()
+        err = StringIO()
+        args = ['--add-test-data']
+        opts = {}
+
+        call_command('populate_database', stdout=out, stderr=err, *args, **opts)
+        self.assertIn("no basic schema", err.getvalue())
+
+
+    def test_create_test_data(self):
+        " Test my custom command."
+
+        out = StringIO()
+        args = ['--add-core-config']
+        opts = {}
+        call_command('populate_database', stdout=out, *args, **opts)
+
+        args = ['--add-test-data']
+        opts = {}
+        call_command('populate_database', stdout=out, *args, **opts)
+        self.assertIn("Complete.", out.getvalue())

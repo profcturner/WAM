@@ -26,8 +26,19 @@ SECRET_KEY = 'i(@t%n%skz1v)y-%b4+krov&l1efdc__m+oh!jn59%(!4n1r7+'
 WAM_URL = "http://localhost"
 WAM_AUTO_EMAIL_FROM = "c.turner@ulster.ac.uk"
 
+# These regexs will be used for automatic creation of Staff objects when an authenticaed User is created
+# They can be used to help WAM establish whether this should be a member of Academic Staff and External Examiner
+# If these regexs are set, and an authenticated User is presented, login will be disabled
+WAM_STAFF_REGEX = None
+WAM_EXTERNAL_REGEX = None
+
 # This is the activity type for module staff allocations
 WAM_DEFAULT_ACTIVITY_TYPE = 1
+
+# Whether to have ADFS authentication
+# You will need other configuration changes, please see
+# https://github.com/profcturner/WAM/wiki/ADFS---Azure-Authentication
+WAM_ADFS_AUTH = False
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -37,7 +48,6 @@ ALLOWED_HOSTS = ["127.0.0.1"]
 
 
 # Application definition
-
 INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
@@ -123,8 +133,7 @@ LOGOUT_REDIRECT_URL = 'logged out'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Create a local settings file called local_settings.py to override details
-
 try:
-    from local_settings import *
+    from WAM.local_settings import *
 except ImportError:
     pass
