@@ -1,14 +1,16 @@
+# Standard Imports
+from io import StringIO
+
+# Django specific Imports
 from django.test import TestCase, override_settings
 from django.core.management import call_command
 from django.test import Client
-
 from django.urls import reverse
 
 # Import Some Django models that we use
 
 from django.contrib.auth.models import User, Group
 
-from io import StringIO
 
 # Import some models
 
@@ -768,3 +770,194 @@ class CommandsTestCase(TestCase):
         opts = {}
         call_command('populate_database', stdout=out, *args, **opts)
         self.assertIn("Complete.", out.getvalue())
+
+class UserClientTest(TestCase):
+    def setUp(self):
+        # Every test needs a client.
+        self.client = Client()
+
+        user_staff = User.objects.create_user('user', 'a@b.com', 'password')
+        user_superuser = User.objects.create_superuser('admin', 'a@b.com', 'password')
+        user_external = User.objects.create_user('external', 'a@b.com', 'password')
+
+        staff_staff = Staff.objects.get(user=user_staff)
+        staff_staff.is_external = False
+        staff_superuser = Staff.objects.get(user=user_superuser)
+        staff_superuser.is_external = False
+        staff_external = Staff.objects.get(user=user_external)
+        staff_external.is_external = True
+
+        # Create a workpackage
+        package = WorkPackage.objects.create(name="test", startdate="2017-09-01", enddate="2018-08-31")
+        staff_superuser.package = package
+        staff_superuser.save()
+
+        # Create a campus
+        campus = Campus.objects.create(name="campus")
+
+        # Create a Category and ActivityType
+        category = Category.objects.create(name="Education", abbreviation="education", colour="red")
+        ActivityType.objects.create(name="Lecturing", category=category)
+
+        # Create a Module Size
+        modulesize = ModuleSize.objects.create(text="50", admin_scaling=1.0, assessment_scaling=1.0)
+
+        # Create some Users
+        user_aA = User.objects.create(username="academicA", password="test")
+        user_aB = User.objects.create(username="academicB", password="test")
+        user_aC = User.objects.create(username="academicC", password="test")
+        user_aD = User.objects.create(username="academicD", password="test")
+        user_aE = User.objects.create(username="academicE", password="test")
+
+        user_aF = User.objects.create(username="assessmentstaffA", password="test")
+
+        user_eA = User.objects.create(username="externalA", password="test")
+        user_eB = User.objects.create(username="externalB", password="test")
+        user_eC = User.objects.create(username="externalC", password="test")
+
+        # Create linked Staff and ExternalExaminers
+        coordinator = Staff.objects.get(user=user_aA)
+        team_member = Staff.objects.get(user=user_aB)
+        resource_owner = Staff.objects.get(user=user_aC)
+        moderator = Staff.objects.get(user=user_aD)
+        other_staff = Staff.objects.get(user=user_aE)
+
+        assessment_staff = Staff.objects.get(user=user_aF)
+
+        lead_examiner = Staff.objects.get(user=user_eA)
+        lead_examiner.is_external = True
+        lead_examiner.save()
+        associated_examiner = Staff.objects.get(user=user_eB)
+        associated_examiner.is_external = True
+        associated_examiner.save()
+        other_examiner = Staff.objects.get(user=user_eC)
+        other_examiner.is_external = True
+        other_examiner.save()
+
+        # Add the user to AssessmentStaff
+        AssessmentStaff.objects.create(staff=assessment_staff, package=package)
+
+        # Create some programmes
+        lead_programme = Programme.objects.create(
+            programme_code="123",
+            programme_name="BSc Breaking Things",
+            package=package)
+
+        lead_programme.examiners.add(lead_examiner)
+        lead_programme.save()
+
+        other_programme = Programme.objects.create(
+            programme_code="456",
+            programme_name="MSc Breaking Things",
+            package=package)
+
+        other_programme.examiners.add(associated_examiner)
+        other_programme.save()
+
+        # Create a module with staffA as coordinator and staff
+        module = Module.objects.create(module_code="ABC101",
+                                       module_name="Breaking Things",
+                                       package=package,
+                                       coordinator=coordinator,
+                                       lead_programme=lead_programme,
+                                       campus=campus,
+                                       size=modulesize)
+
+        module.moderators.add(moderator)
+        module.programmes.add(lead_programme)
+        module.programmes.add(other_programme)
+        module.save()
+
+        # and staffB on teaching team
+        ModuleStaff.objects.create(
+            module=module,
+            staff=team_member,
+            contact_proportion=50,
+            admin_proportion=50,
+            assessment_proportion=50,
+            package=package)
+
+        # Create an AssessmentResourceType
+        resource_type = AssessmentResourceType.objects.create(name="exam")
+
+        # Create a resource, with staffC as an owner
+        resource = AssessmentResource.objects.create(
+            name="test",
+            module=module,
+            owner=resource_owner,
+            resource_type=resource_type)
+
+
+
+
+    def test_loads_no_workpackage(self):
+        # A user with no Workpckage should be redirected.
+        # Log the User in
+        user_staff = User.objects.get(username='user')
+        self.client.force_login(user_staff)
+
+        # No Workpackage is set, so it should redirect
+        response = self.client.get("/loads/")
+
+        # Check that the response is 200 OK.
+        self.assertEqual(response.status_code, 302)
+        # Check it's trying to change the Workpackage
+        self.assertEqual(response['location'], '/workpackage/change/')
+
+
+    def test_superuser_loads(self):
+        # A user with no Workpckage should be redirected.
+        # Log the User in
+        admin = User.objects.get(username='admin')
+        admin_staff = Staff.objects.get(user=admin)
+
+        self.client.force_login(admin)
+
+        response = self.client.get("/loads/")
+        # Check that the response is 200 OK.
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/loads/modules/")
+        # Check that the response is 200 OK.
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/loads_charts/")
+        # Check that the response is 200 OK.
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/activities/index/")
+        # Check that the response is 200 OK.
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/external/")
+        # Check that the response is 200 OK.
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/generators/index/")
+        # Check that the response is 200 OK.
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/tasks/index/")
+        # Check that the response is 200 OK.
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/tasks/archived/index/")
+        # Check that the response is 200 OK.
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/modules/index/")
+        # Check that the response is 200 OK.
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/programmes/index/")
+        # Check that the response is 200 OK.
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/projects/index/")
+        # Check that the response is 200 OK.
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/cadmin/")
+        # Check that the response is 200 OK.
+        self.assertEqual(response.status_code, 200)
+
