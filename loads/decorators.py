@@ -9,6 +9,8 @@ def staff_only(function):
     def wrapper(request, *args, **kwargs):
         try:
             staff = Staff.objects.get(user=request.user)
+            if staff.is_external:
+                raise PermissionDenied("""Sorry, but this page is for internal staff only""")
         except Staff.DoesNotExist:
             # Is this a Superuser
             if request.user.is_superuser:

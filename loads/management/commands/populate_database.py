@@ -2,6 +2,7 @@
 # Code to implement a custom command
 
 import random
+import logging
 from datetime import date, timedelta
 
 from django.core.management.base import BaseCommand
@@ -23,6 +24,8 @@ from loads.models import Programme
 from loads.models import Module
 from loads.models import WorkPackage
 
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = 'Initially populate a database with defaults, and optionally, test data'
@@ -50,6 +53,7 @@ class Command(BaseCommand):
         add_core_config = options['add-core-config']
         add_test_data = options['add-test-data']
 
+        logger.info("Populate Database management command invoked.", extra={'optione': options})
         self.stdout.write('Populating data into database')
 
         if add_core_config:
@@ -61,6 +65,7 @@ class Command(BaseCommand):
         if not (add_core_config or add_test_data):
             self.stdout.write('No option selected, use --help for more details')
 
+        logger.info("Populate Database management command completed.")
         self.stdout.write('Complete.')
 
 
@@ -96,25 +101,31 @@ class Command(BaseCommand):
         verbosity = options['verbosity']
 
         if self.database_not_empty():
+            logging.error('ERROR: Database core data not empty, quitting')
             self.stdout.write('ERROR: Database core data not empty, quitting')
             return False
 
+        logging.info('.. Add Categories and ActivityTypes')
         if verbosity:
             self.stdout.write('.. Add Categories and ActivityTypes')
         self.add_categories_activities()
 
+        logging.info('.. Add Module Sizes')
         if verbosity:
             self.stdout.write('.. Add Module Sizes')
         self.add_module_sizes()
 
+        logging.info('.. Add Campuses')
         if verbosity:
             self.stdout.write('.. Add Campuses')
         self.add_campus()
 
+        logging.info('.. Add AssessmentResourceTypes')
         if verbosity:
             self.stdout.write('.. Add AssessmentResourceTypes')
         self.add_assessment_resource_types()
 
+        logging.info('.. Add AssessmentStates')
         if verbosity:
             self.stdout.write('.. Add AssessmentStates')
         self.add_assessment_state()
@@ -269,6 +280,8 @@ class Command(BaseCommand):
         # Make a very naive check that some initial configuration exists
         # This can happen if people haven't added basic config yet.
         if(Campus.objects.count() == 0):
+            logging.error("There seems to be no basic schema")
+            logging.error("Did you mean to use --add-core-config first?")
             self.stderr.write("ERROR: There seems to be no basic schema")
             self.stderr.write("ERROR: Did you mean to use --add-core-config first?")
             return False

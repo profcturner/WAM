@@ -15,9 +15,12 @@ from loads.models import AssessmentStateSignOff
 from django.conf import settings
 
 import datetime
+import logging
 # code to handle timezones
 from django.utils.timezone import utc
 
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = 'Emails assessment sign-off details to relevant staff and examiners'
@@ -53,23 +56,35 @@ class Command(BaseCommand):
         quiet = options['quiet']
         # TODO: quiet needs better handling, really
 
+        logger.info("Email Assessment Updates management command invoked.", extra={'optione': options})
+
         if verbosity and options['test-only']:
             self.stdout.write(self.style.WARNING('TEST MODE, No emails will actually be sent.'))
 
         for signoff in signoffs:
             if signoff.module.package.in_the_past() and not include_past:
+                string1 = 'Skipping sign-off for package in the past:'
+                string2 = '  {} {}'.format(signoff.assessment_state, signoff.created)
+                logger.info(string1)
+                logger.info(string2)
                 if verbosity:
-                    self.stdout.write('Skipping sign-off for package in the past:')
-                    self.stdout.write('  {} {}'.format(signoff.assessment_state, signoff.created))
+                    self.stdout.write(string1)
+                    self.stdout.write(string2)
             else:
                 if self.email_updates_for_signoff(signoff, options):
                     count += 1
 
+        string = str(count) + ' update(s) sent'
+        logger.info(string)
         if (not quiet) or count:
-            self.stdout.write(str(count) + ' update(s) sent')
+            self.stdout.write(string)
 
+        string = 'TEST MODE, No emails will actually be sent.'
+        logger.info(string)
         if verbosity and options['test-only']:
-            self.stdout.write(self.style.WARNING('TEST MODE, No emails will actually be sent.'))
+            self.stdout.write(self.style.WARNING(string))
+
+        logger.info("Email Assessment Updates management command completed.")
 
     def email_updates_for_signoff(self, signoff, options):
         """Email relevant parties for a sign-off, and update notified field"""
