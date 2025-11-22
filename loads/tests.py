@@ -771,6 +771,7 @@ class CommandsTestCase(TestCase):
         call_command('populate_database', stdout=out, *args, **opts)
         self.assertIn("Complete.", out.getvalue())
 
+
 class UserClientTest(TestCase):
     def setUp(self):
         # Every test needs a client.
@@ -789,6 +790,14 @@ class UserClientTest(TestCase):
 
         # Create a workpackage
         package = WorkPackage.objects.create(name="test", startdate="2017-09-01", enddate="2018-08-31")
+        group = Group.objects.create(name="test")
+        package.groups.add(group)
+        package.save()
+        user_staff.groups.add(group)
+        user_staff.save()
+
+        staff_staff.package = package
+        staff_staff.save()
         staff_external.package = package
         staff_external.save()
         staff_superuser.package = package
@@ -890,13 +899,15 @@ class UserClientTest(TestCase):
             resource_type=resource_type)
 
 
-
-
     def test_loads_no_workpackage(self):
         # A user with no Workpckage should be redirected.
         # Log the User in
         user_staff = User.objects.get(username='user')
         self.client.force_login(user_staff)
+
+        staff_staff = Staff.objects.get(user=user_staff)
+        staff_staff.package = None
+        staff_staff.save()
 
         # No Workpackage is set, so it should redirect
         response = self.client.get("/loads/")
@@ -928,7 +939,7 @@ class UserClientTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/external/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
         response = self.client.get("/generators/index/")
         self.assertEqual(response.status_code, 200)
@@ -960,7 +971,7 @@ class UserClientTest(TestCase):
         # force_login bypasses potential custom authentication back ends
         self.client.force_login(external)
 
-        # These views should be reaponse code 200 (OK)
+        # These views should be response code 200 (OK)
         response = self.client.get("/external/")
         self.assertEqual(response.status_code, 200)
 
@@ -990,6 +1001,58 @@ class UserClientTest(TestCase):
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get("/modules/index/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/projects/index/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/cadmin/")
+        self.assertEqual(response.status_code, 403)
+
+
+    def test_staff_index_pages(self):
+        # This checks that a Staff member can access the various index pages, and not others
+
+        # Log the User in
+        user = User.objects.get(username='user')
+        staff = Staff.objects.get(user=user)
+        # force_login bypasses potential custom authentication back ends
+        self.client.force_login(user)
+
+        # Check the packages, we will get redirects if this isn't right
+        self.assertEqual(len(staff.get_all_packages()), 1)
+        self.assertIsNotNone(staff.package)
+
+        # These views should be response code 200 (OK)
+        response = self.client.get("/programmes/index/")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/loads/")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/loads/modules/")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/loads_charts/")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/tasks/index/")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/activities/index/")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/generators/index/")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/tasks/archived/index/")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/modules/index/")
+        self.assertEqual(response.status_code, 200)
+
+        # These views should be response code 403 (Forbidden) for a regular member of staff with no other permissions
+        response = self.client.get("/external/")
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get("/projects/index/")
