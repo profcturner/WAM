@@ -967,6 +967,9 @@ class UserClientTest(TestCase):
         response = self.client.get("/programmes/index/")
         self.assertEqual(response.status_code, 200)
 
+        response = self.client.get("/tasks/index/")
+        self.assertEqual(response.status_code, 200)
+
         # These views should be response code 403 (Forbidden)
         response = self.client.get("/loads/")
         self.assertEqual(response.status_code, 403)
@@ -981,9 +984,6 @@ class UserClientTest(TestCase):
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get("/generators/index/")
-        self.assertEqual(response.status_code, 403)
-
-        response = self.client.get("/tasks/index/")
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get("/tasks/archived/index/")

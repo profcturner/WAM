@@ -614,7 +614,6 @@ def activities(request, staff_id):
 
 
 @login_required
-@staff_only
 def tasks_index(request):
     """Obtains a list of all non archived tasks"""
     # Fetch the tasks assigned against the specific user of the staff member
@@ -1775,7 +1774,6 @@ class UpdateProgrammeView(PermissionRequiredMixin, UpdateView):
         return form
 
 
-@method_decorator(staff_only, name="dispatch")
 class ProgrammeList(LoginRequiredMixin, ListView):
 
     """Generic view for Programme List"""
@@ -1792,7 +1790,7 @@ class ProgrammeList(LoginRequiredMixin, ListView):
         else:
             return Programme.objects.all().filter(package=package)
 
-
+@method_decorator(staff_only, name='dispatch')
 class ActivityListView(LoginRequiredMixin, ListView):
     """Generic view for the Activities List"""
     model = Activity
