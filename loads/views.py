@@ -19,6 +19,7 @@ from django.views import View
 # Permission decorators
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from .decorators import staff_only, external_only, admin_only
+from django.utils.decorators import method_decorator
 
 # Create your views here.
 
@@ -1774,7 +1775,9 @@ class UpdateProgrammeView(PermissionRequiredMixin, UpdateView):
         return form
 
 
+@method_decorator(staff_only, name="dispatch")
 class ProgrammeList(LoginRequiredMixin, ListView):
+
     """Generic view for Programme List"""
     model = Programme
     context_object_name = 'programmes'
