@@ -1,4 +1,6 @@
 """A custom command to send reminder emails for open tasks to staff"""
+import logging
+
 # Code to implement a custom command
 from django.core.management.base import BaseCommand
 
@@ -13,6 +15,8 @@ from loads.models import TaskCompletion
 # We need to access a few settings
 from django.conf import settings
 
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = 'Emails staff if tasks are outstanding'
@@ -37,19 +41,26 @@ class Command(BaseCommand):
         count = 0
         urgent_only = options['urgent-only']
         verbosity = options['verbosity']
+        logger.info("Email Assessment Updates management command invoked.", extra={'optione': options})
 
-        if verbosity and options['test-only']:
-            self.stdout.write('TEST MODE, No emails will actually be sent.')
+        if options['test-only']:
+            logging.info("TEST MODE, No emails will actually be sent.")
+            if verbosity:
+                self.stdout.write('TEST MODE, No emails will actually be sent.')
 
         for staff in all_staff:
             if self.email_tasks_by_staff(staff, options, urgent_only=urgent_only):
                 count += 1
 
+        string = str(count) + ' reminder(s) sent'
+        logger.info(string)
         if verbosity:
-            self.stdout.write(str(count) + ' reminder(s) sent')
+            self.stdout.write(string)
 
         if verbosity and options['test-only']:
             self.stdout.write('TEST MODE, No emails will actually be sent.')
+
+        logger.info("Email Assessment Updates management command completed.")
 
     def email_tasks_by_staff(self, staff, options, urgent_only='false'):
         """docstring for email_tasks_by_staff"""
@@ -126,8 +137,10 @@ class Command(BaseCommand):
         text_content = plaintext.render(context_dict)
         html_content = html.render(context_dict)
 
+        string = 'Email sent to {} <{}>'.format(str(staff), staff.user.email)
+        logger.info(string)
         if verbosity:
-            self.stdout.write('Email sent to {} <{}>'.format(str(staff), staff.user.email))
+            self.stdout.write(string)
 
         email = EmailMultiAlternatives(email_subject, text_content, from_email, [to])
         email.attach_alternative(html_content, "text/html")
