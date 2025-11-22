@@ -789,6 +789,8 @@ class UserClientTest(TestCase):
 
         # Create a workpackage
         package = WorkPackage.objects.create(name="test", startdate="2017-09-01", enddate="2018-08-31")
+        staff_external.package = package
+        staff_external.save()
         staff_superuser.package = package
         staff_superuser.save()
 
@@ -905,59 +907,93 @@ class UserClientTest(TestCase):
         self.assertEqual(response['location'], '/workpackage/change/')
 
 
-    def test_superuser_loads(self):
-        # A user with no Workpckage should be redirected.
+    def test_superuser_index_pages(self):
+        # This checks that a Superuser can access the various index pages (response code 200)
+
         # Log the User in
         admin = User.objects.get(username='admin')
-        admin_staff = Staff.objects.get(user=admin)
-
+        # force_login bypasses potential custom authentication back ends
         self.client.force_login(admin)
 
         response = self.client.get("/loads/")
-        # Check that the response is 200 OK.
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/loads/modules/")
-        # Check that the response is 200 OK.
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/loads_charts/")
-        # Check that the response is 200 OK.
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/activities/index/")
-        # Check that the response is 200 OK.
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/external/")
-        # Check that the response is 200 OK.
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/generators/index/")
-        # Check that the response is 200 OK.
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/tasks/index/")
-        # Check that the response is 200 OK.
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/tasks/archived/index/")
-        # Check that the response is 200 OK.
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/modules/index/")
-        # Check that the response is 200 OK.
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/programmes/index/")
-        # Check that the response is 200 OK.
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/projects/index/")
-        # Check that the response is 200 OK.
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/cadmin/")
-        # Check that the response is 200 OK.
         self.assertEqual(response.status_code, 200)
 
+
+    def test_external_index_pages(self):
+        # This checks that an External Examiner can access the various index pages, and not others
+
+        # Log the User in
+        external = User.objects.get(username='external')
+        # force_login bypasses potential custom authentication back ends
+        self.client.force_login(external)
+
+        # These views should be reaponse code 200 (OK)
+        response = self.client.get("/external/")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/programmes/index/")
+        self.assertEqual(response.status_code, 200)
+
+        # These views should be response code 403 (Forbidden)
+        response = self.client.get("/loads/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/loads/modules/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/loads_charts/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/activities/index/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/generators/index/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/tasks/index/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/tasks/archived/index/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/modules/index/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/projects/index/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/cadmin/")
+        self.assertEqual(response.status_code, 403)
