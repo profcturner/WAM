@@ -1,11 +1,15 @@
 # signals.py
 import re
+import logging
 
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User
 from .models import Staff
+
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=User)
@@ -27,6 +31,7 @@ def create_staff(sender, instance, created, **kwargs):
     if created:
         # A special case is the superuser creation. Make a matching staff account.
         if instance.is_superuser:
+            logger.critical(f"Creating Staff for superuser '{instance.username}'")
             Staff.objects.create(user=instance, staff_number=instance.username, is_external=False,
                                  has_workload=False)
             return

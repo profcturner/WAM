@@ -1,5 +1,6 @@
 import os
 import mimetypes
+import logging
 
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse, reverse_lazy
@@ -60,6 +61,8 @@ from .forms import BaseModuleStaffByStaffFormSet
 
 from operator import itemgetter
 
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 def index(request):
     """Main index page for non admin views"""
@@ -68,6 +71,7 @@ def index(request):
     context = {
         'home_page': True,
     }
+    logger.debug("Visiting home page")
     return HttpResponse(template.render(context, request))
 
 
@@ -268,6 +272,7 @@ def loads(request):
     else:
         average = 0
 
+    logger.debug("%s: Loads by staff viewed", request.user, extra={'package': package})
     template = loader.get_template('loads/loads.html')
     context = {
         'group_data': group_data,
@@ -377,6 +382,7 @@ def loads_by_staff_chart(request):
     else:
         average = 0
 
+    logger.debug("%s: Loads by staff chart viewed", request.user, extra={'package': package})
     template = loader.get_template('loads/loads_charts.html')
     context = {
         'group_data': group_data,
@@ -464,6 +470,7 @@ def loads_modules(request, semesters, staff_details=False):
 
         combined_list.append(module_info)
 
+    logger.debug("%s: Loads by modules viewed", request.user, extra={'package': package})
     template = loader.get_template('loads/loads/modules.html')
     context = {
         'form': form,
@@ -589,6 +596,7 @@ def activities(request, staff_id):
         semester3_total = semester3_total * 100 / package.nominal_hours
         total = 100 * total / package.nominal_hours
 
+    logger.debug("%s: Activities viewed", request.user, extra={'package': package})
     template = loader.get_template('loads/activities.html')
     context = {
         'staff': staff,
@@ -617,6 +625,7 @@ def tasks_index(request):
     for task in tasks:
         augmented_tasks.append([task, task.is_urgent(), task.is_overdue()])
 
+    logger.debug("%s: Tasks viewed", request.user)
     template = loader.get_template('loads/tasks/index.html')
     context = {
         'augmented_tasks': augmented_tasks,
@@ -639,6 +648,7 @@ def archived_tasks_index(request):
     for task in tasks:
         augmented_tasks.append([task, task.is_urgent(), task.is_overdue()])
 
+    logger.debug("%s: Archived Tasks viewed", request.user)
     template = loader.get_template('loads/tasks/index.html')
     context = {
         'augmented_tasks': augmented_tasks,
@@ -669,6 +679,7 @@ def tasks_bystaff(request, staff_id):
             combined_item = [task, completion[0].when]
             combined_list_complete.append(combined_item)
 
+    logger.debug("%s: Tasks for %s viewed", request.user, staff, extra={'package': package})
     template = loader.get_template('loads/tasks/bystaff.html')
     context = {
         'staff': staff,
@@ -706,6 +717,7 @@ def tasks_details(request, task_id):
     else:
         percentage_complete = 0
 
+    logger.debug("%s:Task details viewed %s", request.user, task, extra={'package': package})
     template = loader.get_template('loads/tasks/details.html')
     context = {
         'task': task,
@@ -724,6 +736,7 @@ def tasks_details(request, task_id):
 def custom_admin_index(request):
     """The beginnings of a more integrated admin menu"""
 
+    logger.debug("%s: Custom Admin Menu viewed", request.user)
     template = loader.get_template('loads/admin/index.html')
     return HttpResponse(template.render({}, request))
 
@@ -741,6 +754,7 @@ def create_staff_user(request):
             form.save()
             messages.success(request, 'Account created successfully')
 
+            logger.info("%s: created a staff user", request.user, extra={'form': form})
             url = reverse('custom_admin_index')
             return HttpResponseRedirect(url)
 
@@ -762,6 +776,7 @@ def create_external_examiner(request):
         if form.is_valid():
             form.save()
             messages.success(request, 'Account created successfully')
+            logger.info("%s: created an External Examiner user", request.user, extra={'form': form})
 
             url = reverse('custom_admin_index')
             return HttpResponseRedirect(url)
@@ -802,6 +817,7 @@ def tasks_completion(request, task_id, staff_id):
 
             new_item.save()
             form.save_m2m()
+            logger.info("%s: masked task %s complete for %s", request.user, task, staff, extra={'form': form})
 
             # redirect to the task details
             # TODO: which is a pain if we came from the bystaff view
@@ -844,6 +860,8 @@ def add_assessment_resource(request, module_id):
 
             new_item.save()
             form.save_m2m()
+            logger.info("%s: added as assessment resource for module %s", request.user, module)
+
             url = reverse('modules_details', kwargs={'module_id': module_id})
             return HttpResponseRedirect(url)
 
@@ -904,6 +922,7 @@ def module_staff_allocation(request, module_id, package_id):
                 allocation.package = package
             # Now do a real save
             formset.save(commit=True)
+            logger.info("%s: adjusted the module allocation for module %s", request.user, module, extra={'form': form})
 
             # redirect to the activites page
             # TODO this might just be a different package from this one, note.
@@ -1020,6 +1039,7 @@ def modules_index(request, semesters):
         combined_item = [module, relationship, resource, signoff, action_possible, module.get_lead_examiners()]
         combined_list.append(combined_item)
 
+    logger.debug("%s: visited the Modules Index for package %s", request.user, package, extra={'form': form})
     template = loader.get_template('loads/modules/index.html')
     context = {
         'form': form,
@@ -1136,6 +1156,7 @@ def external_modules_index(request, semesters):
         combined_item = [module, relationship, resource, signoff, action_possible, module.get_lead_examiners()]
         combined_list.append(combined_item)
 
+    logger.debug("%s: visited the External Examiner Modules Index for package %s", request.user, package, extra={'form': form})
     template = loader.get_template('loads/modules/index.html')
     context = {
         'form': form,
@@ -1195,7 +1216,7 @@ def modules_details(request, module_id):
             #there are unsigned items
             unsigned_items = True
 
-
+    logger.debug("%s: examined the Module Details for %s", request.user, module, extra={'form': form})
     template = loader.get_template('loads/modules/details.html')
     context = {
         'module': module,
@@ -1263,6 +1284,8 @@ def add_assessment_sign_off(request, module_id):
             signoff.module = module
 
             signoff.save()
+            logger.info("%s: signed off assessment states for Module %s Index for package %s", request.user, module, package,
+                         extra={'form': form})
 
             url = reverse('modules_details', kwargs={'module_id': module_id})
             return HttpResponseRedirect(url)
@@ -1326,6 +1349,8 @@ def staff_module_allocation(request, staff_id, package_id):
                 allocation.package = package
             # Now do a real save
             formset.save(commit=True)
+            logger.info("%s: edited the module allocation for %s on package %s", request.user, staff, package,
+                         extra={'form': form})
 
             # redirect to the activites page
             # TODO this might just be a different package from this one, note.
@@ -1353,6 +1378,7 @@ def generators_index(request):
 
     generators = ActivityGenerator.objects.all().filter(package=staff.package)
 
+    logger.debug("%s: visited the Generators Index for workpackage %s", request.user, staff.package)
     template = loader.get_template('loads/generators/index.html')
     context = {
         'generators': generators,
@@ -1377,6 +1403,7 @@ def generators_generate_activities(request, generator_id):
 
     generator.generate_activities()
     messages.success(request, 'Activities Regenerated.')
+    logger.info("%s: triggered a Generator %s in Package %s", request.user, generator, generator.package)
     url = reverse('generators_index')
     return HttpResponseRedirect(url)
 
@@ -1390,6 +1417,7 @@ def projects_index(request):
     staff = get_object_or_404(Staff, user=request.user)
     projects = Project.objects.all()
 
+    logger.debug("%s: visited the Projects Index", request.user)
     template = loader.get_template('loads/projects/index.html')
     context = {
         'projects': projects,
@@ -1437,6 +1465,8 @@ def projects_details(request, project_id):
                 allocation.project = project
             # Now do a real save
             formset.save(commit=True)
+            logger.info("%s: edited the details for Project %s", request.user, project,
+                         extra={'form': form})
 
             # redirect to the activites page
             # TODO this might just be a different package from this one, note.
@@ -1492,6 +1522,8 @@ def workpackage_change(request):
         # check whether it's valid:
         if form.is_valid():
             form.save()
+            logger.info("%s: changed workpakage to %s", request.user, staff.package,
+                         extra={'form': form})
 
             # Try to find where we came from
             next = request.POST.get('next', '/')
@@ -1542,6 +1574,8 @@ def workpackage_migrate(request):
 
             destination_package = form.cleaned_data['destination_package']
             source_package = form.cleaned_data['source_package']
+            logger.info("%s: migrated Package %s to %s", request.user, source_package, destination_package,
+                         extra={'form': form})
             changes = destination_package.clone_from(source_package, options)
 
             template = loader.get_template('loads/workpackages/migrate_results.html')
