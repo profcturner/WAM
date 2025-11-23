@@ -65,11 +65,14 @@ class Command(BaseCommand):
             if signoff.module.package.in_the_past() and not include_past:
                 string1 = 'Skipping sign-off for package in the past:'
                 string2 = '  {} {}'.format(signoff.assessment_state, signoff.created)
-                logger.info(string1)
-                logger.info(string2)
+                logger.warning(string1)
+                logger.warning(string2)
                 if verbosity:
                     self.stdout.write(string1)
                     self.stdout.write(string2)
+                # Put set the timestamp to avoid endless repeats from cron jobs
+                signoff.notified = datetime.datetime.replace(tzinfo=utc)
+                signoff.save()
             else:
                 if self.email_updates_for_signoff(signoff, options):
                     count += 1
