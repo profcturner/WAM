@@ -48,6 +48,7 @@ from .models import ProjectStaff
 from .models import WorkPackage
 
 from .forms import AssessmentResourceForm
+from .forms import AssessmentStaffForm
 from .forms import AssessmentStateSignOffForm
 from .forms import LoadsByModulesForm
 from .forms import TaskCompletionForm
@@ -611,6 +612,87 @@ def activities(request, staff_id):
         'show_percentages': show_percentages
     }
     return HttpResponse(template.render(context, request))
+
+
+@login_required
+@staff_only
+@permission_required('loads.view_assessmentstaff')
+@permission_required('loads.add_assessmentstaff')
+def assessmentstaff_index(request):
+    """Allow viewing (and interface to add) AssessmentStaff"""
+    # Fetch the staff user associated with the person requesting
+    staff = get_object_or_404(Staff, user=request.user)
+    # And therefore the package enabled for that user
+    package = staff.package
+
+    # Get all the staff who are currently on the assessment team
+    assessment_staff = AssessmentStaff.objects.filter(package=package).order_by("staff")
+
+    # And all the staff who are in the Package and could be added
+    possible_assessment_staff = package.get_all_staff()
+
+    # Because the view is so simple, we will add the "Create" view within it
+    if request.method == 'POST':
+        form = AssessmentStaffForm(request.POST, user=request.user)
+        if form.is_valid():
+            # Validation should ensure no duplicates and permissions are respected
+            new_staff = form.cleaned_data['staff']
+            new_package = form.cleaned_data['package']
+            messages.success(request, 'Assessment Team member added successfully')
+            logger.warning("%s: added an assessment team member (%s to package %s)", request.user,
+                           new_staff, new_package,
+                           extra={'form': form})
+            form.save()
+            url = reverse('assessmentstaff_index')
+            return HttpResponseRedirect(url)
+
+    else:
+        form = AssessmentStaffForm(user=request.user)
+        # Populate the package as a hidden variable, and restrict the queryset to those in the package
+        form.fields['package'].initial = package
+        form.fields['staff'].queryset = possible_assessment_staff
+
+
+    logger.debug("%s: AsessmentStaff index (Assessment Team) viewed", request.user, extra={'package': package})
+    template = loader.get_template('loads/assessmentstaff_list.html')
+    context = {
+        'staff': staff,
+        'package': package,
+        'possible_assessment_staff': possible_assessment_staff,
+        'assessment_staff': assessment_staff,
+        'form': form,
+    }
+    return HttpResponse(template.render(context, request))
+
+
+@login_required
+@staff_only
+@permission_required('loads.delete_assessmentstaff')
+def assessmentstaff_delete(request, assessmentstaff_id):
+    """Delete an assessment resource, should not be possible for signed resources, except for superuser"""
+    # Get the resource object
+    assessmentstaff = get_object_or_404(AssessmentStaff, pk=assessmentstaff_id)
+
+    # TODO: this is none too elegant, and could be outsourced
+    # Fetch the staff user associated with the person requesting
+    try:
+        staff = Staff.objects.get(user=request.user)
+    except Staff.DoesNotExist:
+        staff = None
+
+    # If neither here, time to boot
+    if not staff:
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    # Is this the current user's business?
+    if assessmentstaff.package not in staff.get_all_packages(include_hidden=True):
+        return HttpResponseRedirect(reverse('forbidden'))
+    else:
+        logger.info("(%s): Removed a member of the Assessment Team (%s)", request.user.username, assessmentstaff.staff)
+        assessmentstaff.delete()
+
+    url = reverse('assessmentstaff_index')
+    return HttpResponseRedirect(url)
 
 
 @login_required
@@ -1522,7 +1604,7 @@ def workpackage_change(request):
         # check whether it's valid:
         if form.is_valid():
             form.save()
-            logger.info("%s: changed workpakage to %s", request.user, staff.package,
+            logger.info("%s: changed workpackage to %s", request.user, staff.package,
                          extra={'form': form})
 
             # Try to find where we came from
@@ -1790,6 +1872,7 @@ class ProgrammeList(LoginRequiredMixin, ListView):
         else:
             return Programme.objects.all().filter(package=package)
 
+
 @method_decorator(staff_only, name='dispatch')
 class ActivityListView(LoginRequiredMixin, ListView):
     """Generic view for the Activities List"""
@@ -1864,4 +1947,3 @@ class UpdateActivityView(PermissionRequiredMixin, UpdateView):
         self.object.package = package
         response = super(UpdateActivityView, self).form_valid(form)
         return response
-

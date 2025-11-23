@@ -1,0 +1,38 @@
+{% extends "loads/base_automatic.html" %} {% block content %}
+
+<p>Selected Work Package : {{package}} <a href="{%url 'workpackage_change' %}">(Change Package)</a></p>
+
+<h2>Assessment Team Staff</h2>
+
+    <p>These colleagues can access all assessment resources for the selected work package. This should obviously
+    be restricted to relatively few staff. Assessment staff are deliberately <strong>not</strong> migrated
+    during package migrations.</p>
+
+    {%  if assessment_staff %}
+    <table border="1">
+      <tr>
+        <th>Staff Name</th><th>Delete</th>
+      </tr>
+      {% for item in assessment_staff %}
+      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+        <td>{{ item.staff }}</td><td><a href="{% url "assessmentstaff_delete" item.pk %}">Delete</a></td>
+      </tr>
+      {%  endfor %}
+    </table>
+    {% else %}
+    <p>There are currently no Assessment Team members for this work package.</p>
+    {% endif %}
+
+<h2>Add Staff</h2>
+
+Click here to add a new member of the Assessment Team.
+
+    <form action="" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Submit" />
+    <input type="hidden" name="next" value="{{ request.META.HTTP_REFERER }}">
+
+</form>
+
+{% endblock content %}

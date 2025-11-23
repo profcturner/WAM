@@ -33,6 +33,7 @@ from loads.views import CreateActivityView
 from loads.views import UpdateActivityView
 
 
+
 urlpatterns = [
     re_path(r'^$', views.index, name='index'),
     re_path(r'^accounts/login/$', auth_views.LoginView.as_view(), name='login'),
@@ -95,6 +96,9 @@ urlpatterns = [
     re_path(r'^cadmin/$', views.custom_admin_index, name='custom_admin_index'),
     re_path(r'^cadmin/create_staff_user', views.create_staff_user, name='create staff user'),
     re_path(r'^cadmin/create_external_examiner', views.create_external_examiner, name='create external examiner'),
+    re_path(r'^cadmin/assessment_staff/index/$', views.assessmentstaff_index, name='assessmentstaff_index'),
+    re_path(r'^cadmin/assessment_staff/delete/(?P<assessmentstaff_id>[0-9]+)$', views.assessmentstaff_delete,
+            name='assessmentstaff_delete'),
 
 ]
 
