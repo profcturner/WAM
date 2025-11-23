@@ -1216,7 +1216,7 @@ def modules_details(request, module_id):
             #there are unsigned items
             unsigned_items = True
 
-    logger.debug("%s: examined the Module Details for %s", request.user, module, extra={'form': form})
+    logger.debug("%s: examined the Module Details for %s", request.user, module)
     template = loader.get_template('loads/modules/details.html')
     context = {
         'module': module,
