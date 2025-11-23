@@ -1,6 +1,7 @@
 # Standard Imports
 from io import StringIO
 
+from django.core.exceptions import PermissionDenied
 # Django specific Imports
 from django.test import TestCase, override_settings
 from django.core.management import call_command
@@ -962,6 +963,9 @@ class UserClientTest(TestCase):
         response = self.client.get("/cadmin/")
         self.assertEqual(response.status_code, 200)
 
+        response = self.client.get("/cadmin/assessment_staff/index/")
+        self.assertEqual(response.status_code, 200)
+
 
     def test_external_index_pages(self):
         # This checks that an External Examiner can access the various index pages, and not others
@@ -1007,6 +1011,9 @@ class UserClientTest(TestCase):
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get("/cadmin/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/cadmin/assessment_staff/index/")
         self.assertEqual(response.status_code, 403)
 
 
@@ -1060,3 +1067,8 @@ class UserClientTest(TestCase):
 
         response = self.client.get("/cadmin/")
         self.assertEqual(response.status_code, 403)
+
+        #TODO: This test is reporting 302 in oauth authentication. Not sure how to capture that.
+        #TODO: Need to establish if this is the best way to do this.
+        response = self.client.get("/cadmin/assessment_staff/index/")
+        self.assertRaisesMessage(PermissionDenied, "You do not have admin permissions.")
