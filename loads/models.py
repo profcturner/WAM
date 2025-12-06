@@ -7,7 +7,9 @@ from django.contrib.auth.models import User, Group
 
 from django.core.validators import validate_comma_separated_integer_list
 
-from WAM.settings import WAM_DEFAULT_ACTIVITY_TYPE
+from WAM.settings import (WAM_DEFAULT_ACTIVITY_TYPE, WAM_AUTO_CREATE_CAMPUS,
+                          WAM_AUTO_CREATE_FACULTY, WAM_AUTO_CREATE_SCHOOL, WAM_AUTO_CREATE_SCHOOL_GROUPS)
+
 
 
 def divide_by_semesters(total_hours, semester_string):
@@ -477,6 +479,7 @@ class Staff(models.Model):
         """Calculate the total allocated hours for a given WorkPackage
 
         If package is zero it attempts to find the value for the logged in user
+        :return: a dict, with keys as categories and values as hours
         """
 
         # Create a dict for all available categories, starting with 0 hours in each
@@ -832,15 +835,147 @@ class ActivityGenerator(models.Model):
 
 
 class Campus(models.Model):
-    """This indicated the campus or site that a module is delivered at"""
+    """This indicated the campus or site that a module is delivered at
+
+    :name:          the human readable name of the campus
+    :system_name:   a name potentially used by internal systems
+
+    """
 
     name = models.CharField(max_length=100)
+    system_name = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
         return self.name
 
+    @staticmethod
+    def get_or_create(system_name):
+        """
+        Normally used to map a system name to an ID, or automatically create a missing faculty
+
+        This is normally called as a result of automatic authentication.
+
+        :param system_name:     a name for the campus used by internal systems
+        :return: A Campus object, if it exists or is created, and None otherwise
+        """
+
+        # If it exists, just return it.
+        campus = Campus.objects.get(system_name=system_name)
+        if campus:
+            return campus
+        else:
+            # Auto create if previously unseen, and WAM_AUTO_CREATE_CAMPUS setting is enabled
+            if WAM_AUTO_CREATE_CAMPUS:
+                campus = Campus.objects.create(system_name=system_name, name=system_name)
+                return campus
+
+        # Last resort
+        return None
+
     class Meta:
         verbose_name_plural = "campuses"
+        ordering = ['name']
+
+
+class Faculty(models.Model):
+    """This indicated the faculty a member of staff may be associated with
+
+    :name:          the human readable name of the campus
+    :system_name:   a name potentially used by internal systems
+
+    """
+
+    name = models.CharField(max_length=100)
+    system_name = models.CharField(max_length=100, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    @staticmethod
+    def get_or_create(system_name):
+        """
+        Normally used to map a system name to an ID, or automatically create a missing faculty
+
+        This is normally called as a result of automatic authentication.
+
+        :param system_name:     a name for the Faculty used by internal systems
+        :return: A Faculty object, if it exists or is created, and None otherwise
+        """
+
+        # If it exists, just return it.
+        faculty = Faculty.objects.get(system_name=system_name)
+        if faculty:
+            return faculty
+        else:
+            # Auto create if previously unseen, and WAM_AUTO_CREATE_FACULTY setting is enabled
+            if WAM_AUTO_CREATE_FACULTY:
+                faculty = Faculty.objects.create(system_name=system_name, name=system_name)
+                return faculty
+
+        # Last resort
+        return None
+
+    class Meta:
+        verbose_name_plural = "faculties"
+        ordering = ['name']
+
+
+class School(models.Model):
+    """This indicated the school for a member of staff
+
+    :name:          the human readable name of the campus
+    :system_name:   a name potentially used by internal systems
+
+    """
+
+    name = models.CharField(max_length=100)
+    system_name = models.CharField(max_length=100, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    @staticmethod
+    def get_or_create(system_name):
+        """
+        Normally used to map a system name to an ID, or automatically create a missing faculty
+
+        This is normally called as a result of automatic authentication.
+
+        :param system_name:     a name for the School used by internal systems
+        :return: A School object, if it exists or is created, and None otherwise
+        """
+
+        # If it exists, just return it.
+        school = School.objects.get(system_name=system_name)
+        if school:
+            return school
+        else:
+            # Auto create if previously unseen, and WAM_AUTO_CREATE_SCHOOL setting is enabled
+            if WAM_AUTO_CREATE_SCHOOL:
+                school = School.objects.create(system_name=system_name, name=system_name)
+                return school
+
+        # Last resort
+        return None
+
+    def create_groups(self):
+        """
+        This creates Django user groups, if configured, and if they don't already exist.
+
+        :return:
+        """
+        if not WAM_AUTO_CREATE_SCHOOL_GROUPS:
+            return False
+
+        Group.objects.get_or_create(name=f"{self.name} Staff")
+        Group.objects.get_or_create(name=f"{self.name} Academic Staff")
+        Group.objects.get_or_create(name=f"{self.name} Admin Staff")
+        Group.objects.get_or_create(name=f"{self.name} External Examiners")
+
+        return True
+
+    class Meta:
+        verbose_name_plural = "schools"
         ordering = ['name']
 
 
