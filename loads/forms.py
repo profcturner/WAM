@@ -1,3 +1,5 @@
+import re
+
 from django import forms
 from django.forms import ModelForm
 from django.forms import BaseModelFormSet
@@ -16,6 +18,8 @@ from .models import TaskCompletion
 from .models import Programme
 from .models import Project
 from .models import WorkPackage
+
+from WAM.settings import WAM_STAFF_REGEX, WAM_EXTERNAL_REGEX
 
 # Forms that are custom forms not based on a Model
 
@@ -180,6 +184,10 @@ class StaffCreationForm(forms.Form):
         username = self.cleaned_data['username'].lower()
         if User.objects.filter(username=username).count():
             raise ValidationError("Username already exists")
+
+        if WAM_STAFF_REGEX and not re.match(WAM_STAFF_REGEX, username):
+            raise ValidationError("Invalid username for staff member")
+
         return username
 
     def clean_staff_number(self):
@@ -277,6 +285,10 @@ class ExternalExaminerCreationForm(forms.Form):
         username = self.cleaned_data['username'].lower()
         if User.objects.filter(username=username).count():
             raise ValidationError("Username already exists")
+
+        if WAM_STAFF_REGEX and not re.match(WAM_EXTERNAL_REGEX, username):
+            raise ValidationError("Invalid username for External Examiner")
+
         return username
 
     def clean_staff_number(self):
