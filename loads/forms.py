@@ -9,7 +9,6 @@ from django.db import transaction
 from django.core.exceptions import ValidationError
 
 from .models import AssessmentResource
-from .models import AssessmentStaff
 from .models import AssessmentStateSignOff
 from .models import Staff
 from .models import TaskCompletion
@@ -17,7 +16,6 @@ from .models import Programme
 from .models import Project
 from .models import WorkPackage
 
-# Forms that are custom forms not based on a Model
 
 class MigrateWorkPackageForm(forms.Form):
     """This form allows for material in one Work Package to another"""
@@ -69,46 +67,6 @@ class ModulesIndexForm(forms.Form):
     programme = forms.ModelChoiceField(queryset=Programme.objects.all(), required=False)
     lead_programme = forms.BooleanField(required=False, initial=False)
     show_people = forms.BooleanField(required=False, initial=False)
-
-
-# Forms based on Models
-
-class AssessmentStaffForm(ModelForm):
-    """Used for adding AssessmentStaff to a work package"""
-
-    class Meta:
-        model = AssessmentStaff
-        # A number of fields are automatically handled
-        fields = ['staff', 'package']
-        widgets = {'package': forms.HiddenInput()}
-
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
-        super(AssessmentStaffForm, self).__init__(*args, **kwargs)
-
-    def clean(self):
-        """Check the user can invoke this state"""
-        staff = Staff.objects.get(user=self.user)
-
-        new_package = self.cleaned_data['package']
-        new_staff = self.cleaned_data['staff']
-
-        # Get current Team and check for duplicates
-        duplicates = False
-        assessmentteam = AssessmentStaff.objects.filter(package=new_package)
-        for item in assessmentteam:
-            if item.staff == new_staff:
-                duplicates = True
-                break
-
-        if duplicates:
-            raise ValidationError('This staff member is already assigned to this team')
-
-        if (new_package not in staff.get_all_packages(include_hidden=True)):
-            raise ValidationError("You don't have permission to add team members to this package")
-
-        return super().clean()
-
 
 
 class AssessmentResourceForm(ModelForm):
@@ -249,13 +207,13 @@ class StaffCreationForm(forms.Form):
         for group in self.cleaned_data.get('groups'):
             group.user_set.add(user)
 
-        # And now create or tweak the linked Staff object
-        staff, created = Staff.objects.get_or_create(user=user)
-        staff.title = self.cleaned_data.get('title')
-        staff.staff_number = staff_number
-        staff.package = self.cleaned_data.get('package')
-        staff.is_external = False
-        staff.save()
+        # And now create the linked Staff object
+        Staff.objects.create(
+            user=user,
+            title=self.cleaned_data.get('title'),
+            staff_number=staff_number,
+            package=self.cleaned_data.get('package')
+        )
 
         return user
 
@@ -342,13 +300,14 @@ class ExternalExaminerCreationForm(forms.Form):
             user.set_unusable_password()
             user.save()
 
-        # And now create or tweak the linked Staff object
-        staff, created = Staff.objects.get_or_create(user=user)
-        staff.title = self.cleaned_data.get('title')
-        staff.staff_number = staff_number
-        staff.package = self.cleaned_data.get('package')
-        staff.is_external = True
-        staff.save()
+        # And now create the linked External Examiner object
+        Staff.objects.create(
+            user=user,
+            is_external=True,
+            title=self.cleaned_data.get('title'),
+            staff_number=staff_number,
+            package=self.cleaned_data.get('package')
+        )
 
         return user
 
@@ -366,7 +325,7 @@ class BaseModuleStaffByStaffFormSet(BaseModelFormSet):
         duplicates = False
 
         for form in self.forms:
-            # If the form is deleted, don't validate, its data is about to be nuked
+            # If the form is deleted, don't validate, it's data is about to be nuked
             if form in self.deleted_forms:
                 continue
 
@@ -422,7 +381,7 @@ class BaseModuleStaffByModuleFormSet(BaseModelFormSet):
         duplicates = False
 
         for form in self.forms:
-            # If the form is deleted, don't validate, its data is about to be nuked
+            # If the form is deleted, don't validate, it's data is about to be nuked
             if form in self.deleted_forms:
                 continue
 

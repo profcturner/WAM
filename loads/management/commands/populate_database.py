@@ -2,7 +2,6 @@
 # Code to implement a custom command
 
 import random
-import logging
 from datetime import date, timedelta
 
 from django.core.management.base import BaseCommand
@@ -11,7 +10,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
 
 # And some models
-from loads.models import Category, ExternalExaminer
+from loads.models import Category
 from loads.models import ActivityType
 from loads.models import ModuleSize
 from loads.models import AssessmentResourceType
@@ -24,8 +23,6 @@ from loads.models import Programme
 from loads.models import Module
 from loads.models import WorkPackage
 
-# Get an instance of a logger
-logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = 'Initially populate a database with defaults, and optionally, test data'
@@ -53,7 +50,6 @@ class Command(BaseCommand):
         add_core_config = options['add-core-config']
         add_test_data = options['add-test-data']
 
-        logger.info("Populate Database management command invoked.", extra={'optione': options})
         self.stdout.write('Populating data into database')
 
         if add_core_config:
@@ -65,10 +61,7 @@ class Command(BaseCommand):
         if not (add_core_config or add_test_data):
             self.stdout.write('No option selected, use --help for more details')
 
-        logger.info("Populate Database management command completed.")
         self.stdout.write('Complete.')
-
-
 
     @staticmethod
     def database_not_empty():
@@ -101,36 +94,28 @@ class Command(BaseCommand):
         verbosity = options['verbosity']
 
         if self.database_not_empty():
-            logging.error('ERROR: Database core data not empty, quitting')
             self.stdout.write('ERROR: Database core data not empty, quitting')
-            return False
+            return
 
-        logging.info('.. Add Categories and ActivityTypes')
         if verbosity:
             self.stdout.write('.. Add Categories and ActivityTypes')
         self.add_categories_activities()
 
-        logging.info('.. Add Module Sizes')
         if verbosity:
             self.stdout.write('.. Add Module Sizes')
         self.add_module_sizes()
 
-        logging.info('.. Add Campuses')
         if verbosity:
             self.stdout.write('.. Add Campuses')
         self.add_campus()
 
-        logging.info('.. Add AssessmentResourceTypes')
         if verbosity:
             self.stdout.write('.. Add AssessmentResourceTypes')
         self.add_assessment_resource_types()
 
-        logging.info('.. Add AssessmentStates')
         if verbosity:
             self.stdout.write('.. Add AssessmentStates')
         self.add_assessment_state()
-
-        return True
 
     def add_categories_activities(self):
         """Add some basic Categories and ActivityTypes"""
@@ -277,21 +262,12 @@ class Command(BaseCommand):
     def populate_test_data(self, options):
         """Add users, modules and programmes etc."""
 
-        # Make a very naive check that some initial configuration exists
-        # This can happen if people haven't added basic config yet.
-        if(Campus.objects.count() == 0):
-            logging.error("There seems to be no basic schema")
-            logging.error("Did you mean to use --add-core-config first?")
-            self.stderr.write("ERROR: There seems to be no basic schema")
-            self.stderr.write("ERROR: Did you mean to use --add-core-config first?")
-            return False
-
         # Create the WorkPackage first
         package = self.create_work_package(options)
 
         if not package:
             self.stderr.write("ERROR: Unable to continue")
-            return False
+            return
 
         # Then the Staff
         self.create_staff(package, options)
@@ -304,8 +280,6 @@ class Command(BaseCommand):
 
         # The Modules
         self.create_modules(package, options)
-
-        return True
 
     def create_work_package(self, options):
         """Create an test work package"""
@@ -418,16 +392,15 @@ class Command(BaseCommand):
             user.set_unusable_password()
             user.save()
 
-            # Tweak the autocreated corresponding staff objects
-            staff = Staff.objects.get(user=user)
-            staff.fte = random.choice([100] * 10 + [50] * 2 + [60] + [40])
-            staff.title = title
-            staff.staff_number = username
-            staff.package = package
-            staff.is_external = False
-            staff.has_workload = True
-            staff.save()
-
+            # Create the linked staff objects
+            # Let's have mostly Full Time staff, but with some PT staff too
+            Staff.objects.create(
+                user=user,
+                fte=random.choice([100] * 10 + [50] * 2 + [60] + [40]),
+                title=title,
+                staff_number=username,
+                package=package
+            )
 
             # Add the user to a group as well
             group = random.choice(groups)
@@ -482,15 +455,16 @@ class Command(BaseCommand):
             user.set_unusable_password()
             user.save()
 
-            # Tweak the autocreated corresponding staff objects
-            staff = Staff.objects.get(user=user)
-            staff.fte = random.choice([100] * 10 + [50] * 2 + [60] + [40])
-            staff.title = title
-            staff.staff_number = username
-            staff.package = package
-            staff.is_external = True
-            staff.has_workload = False
-            staff.save()
+            # Create the linked staff objects
+            # Let's have mostly Full Time staff, but with some PT staff too
+            Staff.objects.create(
+                user=user,
+                title=title,
+                staff_number=username,
+                is_external=True,
+                has_workload=False,
+                package=package
+            )
 
             # A different username for the next one
             username_number += 1

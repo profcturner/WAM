@@ -19,7 +19,6 @@ from django.views import View
 # Permission decorators
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from .decorators import staff_only, external_only, admin_only
-from django.utils.decorators import method_decorator
 
 # Create your views here.
 
@@ -48,7 +47,6 @@ from .models import ProjectStaff
 from .models import WorkPackage
 
 from .forms import AssessmentResourceForm
-from .forms import AssessmentStaffForm
 from .forms import AssessmentStateSignOffForm
 from .forms import LoadsByModulesForm
 from .forms import TaskCompletionForm
@@ -73,10 +71,9 @@ def index(request):
     context = {
         'home_page': True,
     }
-    logger.debug("Visiting home page")
     return HttpResponse(template.render(context, request))
 
-@external_only
+
 def external_index(request):
     """The main home page for External Examiners"""
 
@@ -274,7 +271,6 @@ def loads(request):
     else:
         average = 0
 
-    logger.debug("%s: Loads by staff viewed", request.user, extra={'package': package})
     template = loader.get_template('loads/loads.html')
     context = {
         'group_data': group_data,
@@ -291,25 +287,10 @@ def loads(request):
 @staff_only
 def loads_by_staff_chart(request):
     """Show a graph of the loads for all members of staff in a group"""
-    # We might want to use this example.
-    # https://crinkles.dev/writing/css-only-stacked-bar-chart/
-
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
     package = staff.package
-
-    # We will likely want this to be configurable
-    sort_lists = True
-
-    # If either the workpackage for the member of staff is undefined
-    # or it's set to a package they are not "in" send them to the chooser
-    #if not package or package not in staff.get_all_packages():
-    #    url = reverse('workpackage_change')
-    #    return HttpResponseRedirect(url)
-
-    # This controls whether hours or percentages are shown
-    #show_percentages = package.show_percentages
 
     # If the staff member is a superuser just check the workpackage exists
     if staff.user.is_superuser:
@@ -323,6 +304,11 @@ def loads_by_staff_chart(request):
             url = reverse('workpackage_change')
             return HttpResponseRedirect(url)
 
+    # We will likely want this to be configurable
+    sort_lists = True
+    #TODO: This isn't enabled yet, need to enable scaling for those staff not at 100 FTE
+    scale_fte = True
+
     # This controls whether hours or percentages are shown
     show_percentages = package.show_percentages
     show_percentages = True
@@ -333,6 +319,7 @@ def loads_by_staff_chart(request):
 
     # Go through each group in turn
     for group in package.groups.all():
+        # We are going to have some summary statistics for each group
         group_list = []
         group_size = 0
         group_total = 0.0
@@ -344,14 +331,15 @@ def loads_by_staff_chart(request):
         # And the associated staff objects
         staff_list = Staff.objects.all().filter(user__in=users).order_by('user__last_name')
         for staff in staff_list:
-            staff_load_by_category = staff.hours_by_type(package=package)
+            staff_hours_by_category = staff.hours_by_type(package=package)
 
             # Note below: the reason for checking any load as will as conditions is to allow
             # colleagues to appear in other workpackages in times they had an allocated load, even
             # if they are now inactive or flagged as having no workload
 
-            hours = sum(staff_load_by_category.values())
-            #hours = 10
+            # Total hours
+            hours = sum(staff_hours_by_category.values())
+
             # Check any staff member with no load is active, if not, skip them
             if not staff.is_active() and hours == 0:
                 continue
@@ -359,7 +347,32 @@ def loads_by_staff_chart(request):
             if not staff.has_workload and hours ==0:
                 continue
 
-            combined_item = [staff, staff_load_by_category, hours]
+            # For each member of staff, we want a list which includes, for each category
+            # The category, the number of hours in that category, and the percentage for the category
+            # as calculated against the nominal hours for the package
+            staff_loads_by_category = list()
+            for key, value in staff_hours_by_category.items():
+                if scale_fte:
+                    staff_loads_by_category.append(
+                        [key, value, 100 * value / (package.nominal_hours * staff.fte / 100)])
+                else:
+                    staff_loads_by_category.append(
+                        [key, value, 100 * value / package.nominal_hours])
+
+
+            # For each staff member, the bar width is keyed to be 80% for 100% load, up to 100% for 125% load
+            # This allows us to show some moderately overloaded staff clearly.
+            if scale_fte:
+                bar_width = 0.8 * 100 * (100 / staff.fte) * hours / package.nominal_hours
+            else:
+                bar_width = 0.8 * 100 * hours / package.nominal_hours
+            if bar_width < 80:
+                bar_width = 80
+            if bar_width > 100:
+                bar_width = 100
+
+            # Now add all this data for each member of staff
+            combined_item = [staff, staff_loads_by_category, hours, bar_width, hours * (100/staff.fte)]
             group_list.append(combined_item)
             group_total += hours
             group_size += 1
@@ -371,8 +384,9 @@ def loads_by_staff_chart(request):
         if group_allocated_staff:
             group_allocated_average = group_total / group_allocated_staff
 
+        # We want to sort with the most loaded staff at the top, using scaled hours to compensate for FTE
         if sort_lists:
-            group_list = sorted(group_list, key=lambda item : item[2], reverse=True)
+            group_list = sorted(group_list, key=lambda item : item[4], reverse=True)
 
         group_data.append(
             [group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average])
@@ -472,7 +486,6 @@ def loads_modules(request, semesters, staff_details=False):
 
         combined_list.append(module_info)
 
-    logger.debug("%s: Loads by modules viewed", request.user, extra={'package': package})
     template = loader.get_template('loads/loads/modules.html')
     context = {
         'form': form,
@@ -598,7 +611,6 @@ def activities(request, staff_id):
         semester3_total = semester3_total * 100 / package.nominal_hours
         total = 100 * total / package.nominal_hours
 
-    logger.debug("%s: Activities viewed", request.user, extra={'package': package})
     template = loader.get_template('loads/activities.html')
     context = {
         'staff': staff,
@@ -616,86 +628,6 @@ def activities(request, staff_id):
 
 @login_required
 @staff_only
-@permission_required('loads.view_assessmentstaff')
-@permission_required('loads.add_assessmentstaff')
-def assessmentstaff_index(request):
-    """Allow viewing (and interface to add) AssessmentStaff"""
-    # Fetch the staff user associated with the person requesting
-    staff = get_object_or_404(Staff, user=request.user)
-    # And therefore the package enabled for that user
-    package = staff.package
-
-    # Get all the staff who are currently on the assessment team
-    assessment_staff = AssessmentStaff.objects.filter(package=package).order_by("staff")
-
-    # And all the staff who are in the Package and could be added
-    possible_assessment_staff = package.get_all_staff()
-
-    # Because the view is so simple, we will add the "Create" view within it
-    if request.method == 'POST':
-        form = AssessmentStaffForm(request.POST, user=request.user)
-        if form.is_valid():
-            # Validation should ensure no duplicates and permissions are respected
-            new_staff = form.cleaned_data['staff']
-            new_package = form.cleaned_data['package']
-            messages.success(request, 'Assessment Team member added successfully')
-            logger.warning("%s: added an assessment team member (%s to package %s)", request.user,
-                           new_staff, new_package,
-                           extra={'form': form})
-            form.save()
-            url = reverse('assessmentstaff_index')
-            return HttpResponseRedirect(url)
-
-    else:
-        form = AssessmentStaffForm(user=request.user)
-        # Populate the package as a hidden variable, and restrict the queryset to those in the package
-        form.fields['package'].initial = package
-        form.fields['staff'].queryset = possible_assessment_staff
-
-
-    logger.debug("%s: AsessmentStaff index (Assessment Team) viewed", request.user, extra={'package': package})
-    template = loader.get_template('loads/assessmentstaff_list.html')
-    context = {
-        'staff': staff,
-        'package': package,
-        'possible_assessment_staff': possible_assessment_staff,
-        'assessment_staff': assessment_staff,
-        'form': form,
-    }
-    return HttpResponse(template.render(context, request))
-
-
-@login_required
-@staff_only
-@permission_required('loads.delete_assessmentstaff')
-def assessmentstaff_delete(request, assessmentstaff_id):
-    """Delete an assessment resource, should not be possible for signed resources, except for superuser"""
-    # Get the resource object
-    assessmentstaff = get_object_or_404(AssessmentStaff, pk=assessmentstaff_id)
-
-    # TODO: this is none too elegant, and could be outsourced
-    # Fetch the staff user associated with the person requesting
-    try:
-        staff = Staff.objects.get(user=request.user)
-    except Staff.DoesNotExist:
-        staff = None
-
-    # If neither here, time to boot
-    if not staff:
-        return HttpResponseRedirect(reverse('forbidden'))
-
-    # Is this the current user's business?
-    if assessmentstaff.package not in staff.get_all_packages(include_hidden=True):
-        return HttpResponseRedirect(reverse('forbidden'))
-    else:
-        logger.info("(%s): Removed a member of the Assessment Team (%s)", request.user.username, assessmentstaff.staff)
-        assessmentstaff.delete()
-
-    url = reverse('assessmentstaff_index')
-    return HttpResponseRedirect(url)
-
-
-@login_required
 def tasks_index(request):
     """Obtains a list of all non archived tasks"""
     # Fetch the tasks assigned against the specific user of the staff member
@@ -707,7 +639,6 @@ def tasks_index(request):
     for task in tasks:
         augmented_tasks.append([task, task.is_urgent(), task.is_overdue()])
 
-    logger.debug("%s: Tasks viewed", request.user)
     template = loader.get_template('loads/tasks/index.html')
     context = {
         'augmented_tasks': augmented_tasks,
@@ -730,7 +661,6 @@ def archived_tasks_index(request):
     for task in tasks:
         augmented_tasks.append([task, task.is_urgent(), task.is_overdue()])
 
-    logger.debug("%s: Archived Tasks viewed", request.user)
     template = loader.get_template('loads/tasks/index.html')
     context = {
         'augmented_tasks': augmented_tasks,
@@ -761,7 +691,6 @@ def tasks_bystaff(request, staff_id):
             combined_item = [task, completion[0].when]
             combined_list_complete.append(combined_item)
 
-    logger.debug("%s: Tasks for %s viewed", request.user, staff, extra={'package': package})
     template = loader.get_template('loads/tasks/bystaff.html')
     context = {
         'staff': staff,
@@ -799,7 +728,6 @@ def tasks_details(request, task_id):
     else:
         percentage_complete = 0
 
-    logger.debug("%s:Task details viewed %s", request.user, task, extra={'package': package})
     template = loader.get_template('loads/tasks/details.html')
     context = {
         'task': task,
@@ -818,7 +746,6 @@ def tasks_details(request, task_id):
 def custom_admin_index(request):
     """The beginnings of a more integrated admin menu"""
 
-    logger.debug("%s: Custom Admin Menu viewed", request.user)
     template = loader.get_template('loads/admin/index.html')
     return HttpResponse(template.render({}, request))
 
@@ -836,7 +763,6 @@ def create_staff_user(request):
             form.save()
             messages.success(request, 'Account created successfully')
 
-            logger.info("%s: created a staff user", request.user, extra={'form': form})
             url = reverse('custom_admin_index')
             return HttpResponseRedirect(url)
 
@@ -858,7 +784,6 @@ def create_external_examiner(request):
         if form.is_valid():
             form.save()
             messages.success(request, 'Account created successfully')
-            logger.info("%s: created an External Examiner user", request.user, extra={'form': form})
 
             url = reverse('custom_admin_index')
             return HttpResponseRedirect(url)
@@ -899,7 +824,6 @@ def tasks_completion(request, task_id, staff_id):
 
             new_item.save()
             form.save_m2m()
-            logger.info("%s: masked task %s complete for %s", request.user, task, staff, extra={'form': form})
 
             # redirect to the task details
             # TODO: which is a pain if we came from the bystaff view
@@ -942,8 +866,6 @@ def add_assessment_resource(request, module_id):
 
             new_item.save()
             form.save_m2m()
-            logger.info("%s: added as assessment resource for module %s", request.user, module)
-
             url = reverse('modules_details', kwargs={'module_id': module_id})
             return HttpResponseRedirect(url)
 
@@ -1004,7 +926,6 @@ def module_staff_allocation(request, module_id, package_id):
                 allocation.package = package
             # Now do a real save
             formset.save(commit=True)
-            logger.info("%s: adjusted the module allocation for module %s", request.user, module, extra={'form': form})
 
             # redirect to the activites page
             # TODO this might just be a different package from this one, note.
@@ -1121,7 +1042,6 @@ def modules_index(request, semesters):
         combined_item = [module, relationship, resource, signoff, action_possible, module.get_lead_examiners()]
         combined_list.append(combined_item)
 
-    logger.debug("%s: visited the Modules Index for package %s", request.user, package, extra={'form': form})
     template = loader.get_template('loads/modules/index.html')
     context = {
         'form': form,
@@ -1238,7 +1158,6 @@ def external_modules_index(request, semesters):
         combined_item = [module, relationship, resource, signoff, action_possible, module.get_lead_examiners()]
         combined_list.append(combined_item)
 
-    logger.debug("%s: visited the External Examiner Modules Index for package %s", request.user, package, extra={'form': form})
     template = loader.get_template('loads/modules/index.html')
     context = {
         'form': form,
@@ -1298,7 +1217,7 @@ def modules_details(request, module_id):
             #there are unsigned items
             unsigned_items = True
 
-    logger.debug("%s: examined the Module Details for %s", request.user, module)
+
     template = loader.get_template('loads/modules/details.html')
     context = {
         'module': module,
@@ -1366,8 +1285,6 @@ def add_assessment_sign_off(request, module_id):
             signoff.module = module
 
             signoff.save()
-            logger.info("%s: signed off assessment states for Module %s Index for package %s", request.user, module, package,
-                         extra={'form': form})
 
             url = reverse('modules_details', kwargs={'module_id': module_id})
             return HttpResponseRedirect(url)
@@ -1431,8 +1348,6 @@ def staff_module_allocation(request, staff_id, package_id):
                 allocation.package = package
             # Now do a real save
             formset.save(commit=True)
-            logger.info("%s: edited the module allocation for %s on package %s", request.user, staff, package,
-                         extra={'form': form})
 
             # redirect to the activites page
             # TODO this might just be a different package from this one, note.
@@ -1460,7 +1375,6 @@ def generators_index(request):
 
     generators = ActivityGenerator.objects.all().filter(package=staff.package)
 
-    logger.debug("%s: visited the Generators Index for workpackage %s", request.user, staff.package)
     template = loader.get_template('loads/generators/index.html')
     context = {
         'generators': generators,
@@ -1485,7 +1399,6 @@ def generators_generate_activities(request, generator_id):
 
     generator.generate_activities()
     messages.success(request, 'Activities Regenerated.')
-    logger.info("%s: triggered a Generator %s in Package %s", request.user, generator, generator.package)
     url = reverse('generators_index')
     return HttpResponseRedirect(url)
 
@@ -1499,7 +1412,6 @@ def projects_index(request):
     staff = get_object_or_404(Staff, user=request.user)
     projects = Project.objects.all()
 
-    logger.debug("%s: visited the Projects Index", request.user)
     template = loader.get_template('loads/projects/index.html')
     context = {
         'projects': projects,
@@ -1547,8 +1459,6 @@ def projects_details(request, project_id):
                 allocation.project = project
             # Now do a real save
             formset.save(commit=True)
-            logger.info("%s: edited the details for Project %s", request.user, project,
-                         extra={'form': form})
 
             # redirect to the activites page
             # TODO this might just be a different package from this one, note.
@@ -1604,8 +1514,6 @@ def workpackage_change(request):
         # check whether it's valid:
         if form.is_valid():
             form.save()
-            logger.info("%s: changed workpackage to %s", request.user, staff.package,
-                         extra={'form': form})
 
             # Try to find where we came from
             next = request.POST.get('next', '/')
@@ -1656,8 +1564,6 @@ def workpackage_migrate(request):
 
             destination_package = form.cleaned_data['destination_package']
             source_package = form.cleaned_data['source_package']
-            logger.info("%s: migrated Package %s to %s", request.user, source_package, destination_package,
-                         extra={'form': form})
             changes = destination_package.clone_from(source_package, options)
 
             template = loader.get_template('loads/workpackages/migrate_results.html')
@@ -1857,7 +1763,6 @@ class UpdateProgrammeView(PermissionRequiredMixin, UpdateView):
 
 
 class ProgrammeList(LoginRequiredMixin, ListView):
-
     """Generic view for Programme List"""
     model = Programme
     context_object_name = 'programmes'
@@ -1873,7 +1778,6 @@ class ProgrammeList(LoginRequiredMixin, ListView):
             return Programme.objects.all().filter(package=package)
 
 
-@method_decorator(staff_only, name='dispatch')
 class ActivityListView(LoginRequiredMixin, ListView):
     """Generic view for the Activities List"""
     model = Activity
@@ -1947,3 +1851,4 @@ class UpdateActivityView(PermissionRequiredMixin, UpdateView):
         self.object.package = package
         response = super(UpdateActivityView, self).form_valid(form)
         return response
+

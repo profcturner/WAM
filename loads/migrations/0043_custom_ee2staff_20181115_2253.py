@@ -17,16 +17,16 @@ def migrate_externals(apps, schema_editor):
     examiner_staff_mapping = dict()
 
     for examiner in ExternalExaminer.objects.all():
-        # Create or tweak a "matching" Staff user
-        staff, created = Staff.objects.get_or_create(user=examiner.user)
-        
-        staff.title=examiner.title,
-        staff.staff_number=examiner.staff_number,
-        staff.fte=1,
-        staff.is_external=True,
-        staff.has_workload=False,
-        staff.package=examiner.package
-        staff.save()
+        # Create a "matching" Staff user
+        staff = Staff.objects.create(
+            user=examiner.user,
+            title=examiner.title,
+            staff_number=examiner.staff_number,
+            fte=1,
+            is_external=True,
+            has_workload=False,
+            package=examiner.package
+        )
 
         # Keep a record of the mapping
         examiner_staff_mapping.update({examiner: staff})

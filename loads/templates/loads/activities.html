@@ -1,68 +1,129 @@
-{% extends "loads/base_automatic.html" %} {% block content %}
+{% extends "loads/base_automatic.html" %}
 
-<h1>Activity breakdown for {{staff}} <a href="{% url 'staff_module_allocation' package.id staff.id %}">(Edit)</a></h1>  
+{% block content %}
 
-<p>Selected Work Package : {{package}}</p>
+<h4>Activity breakdown for {{staff}}<small> (<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'staff_module_allocation' package.id staff.id %}">Edit</a>)</small></h4>
+<p class="my-3">
+    Selected Work Package:<br/>
+    <span class="font-monospace fw-bold me-2">{{package}}</span>
+</p>
 
-{% if package.draft %}
-<h1>This is a DRAFT allocation and may be incomplete.</h1>
-{% endif %}  
+{% if package.draft or package.in_the_future or package.in_the_past %}
+<div class="border border-2 border-danger p-3 rounded-3 mb-4">
+    <h6 class="fw-bold">!! Please note these exceptions <i class="fw-normal small">(hover for more information)</i></h6>
+    <div class="d-flex">
+        {% if package.draft %}
+        <div class="badge text-bg-danger me-2"
+             title="This is a DRAFT allocation and may be incomplete.">Draft allocation</div>
+        {% endif %}
+        {% if package.in_the_past %}
+        <div class="badge text-bg-danger me-2"
+             title="The currently selected Work Package is in the Past! You probably want to change the year above.">Past work package</div>
+        {% endif %}
+        {% if package.in_the_future %}
+        <div class="badge text-bg-danger me-2"
+             title="The currently selected Work Package is in the Future">Future work package</div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
 
-<h2>Custom Activities</h2>
+
+<h5>
+    Custom activities
+</h5>
 {% if combined_list %}
-    <table border="1">
-      <tr>
-        <th width="50%">Activity Name</th><th width="10%">First Semester</th><th width="10%">Second Semester</th><th width="10%">Third Semester</th><th width="10%">Total</th>
-      </tr>
-      {% for activity, total, first, second, third in combined_list %}
-      <tr class="{% cycle 'row1' 'row2' %}">
-        <th>{{ activity }}</th>
-        <td>{{ first|stringformat:".2f" }}  {% if show_percentages %}%{% endif %}</td>
-        <td>{{ second|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</td>
-        <td>{{ third|stringformat:".2f" }}  {% if show_percentages %}%{% endif %}</td>
-        <td>{{ total }}  {% if show_percentages %}%{% endif %}</td>
-      </tr>      
-      {% endfor %}
+<div class="table-responsive small">
+    <table class="table table-sm table-striped table-hover">
+        <thead>
+            <tr>
+                <th class="col-8">Activity name</th>
+                <th class="col-1">First semester</th>
+                <th class="col-1">Second semester</th>
+                <th class="col-1">Third semester</th>
+                <th class="col-1">Total</th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            {% for activity, total, first, second, third in combined_list %}
+            <tr>
+                <td>{{ activity }}</td>
+                <td class="font-monospace" style="white-space: pre;">{{ first|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
+                <td class="font-monospace" style="white-space: pre;">{{ second|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
+                <td class="font-monospace" style="white-space: pre;">{{ third|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
+                <td class="font-monospace" style="white-space: pre;">{{ total|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
-    
-
+</div>
 {% else %}
-    <p>No activities are available for {{ staff }}.</p>
+<p class="mb-4">
+    No activities are available for {{ staff }}
+</p>
 {% endif %}
 
-<h2>Activities Automatically Added From Modules</h2>
+
+<h5 class="mt-3">
+    Activities automatically added from modules
+</h5>
 {% if combined_list_modules %}
-    <table border="1">
-      <tr>
-        <th width="50%">Activity Name</th><th width="10%">First Semester</th><th width="10%">Second Semester</th><th width="10%">Third Semester</th><th width="10%">Total</th>
-      </tr>
-      {% for activity, year, first, second, third in combined_list_modules %}
-      <tr class="{% cycle 'row1' 'row2' %}">
-        <th>{{ activity }}</th>
-        <td>{{ first|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</td>
-        <td>{{ second|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</td>
-        <td>{{ third|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</td>
-        <td>{{ year|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</td>
-      </tr>      
-      {% endfor %}
+<div class="table-responsive small">
+    <table class="table table-sm table-striped table-hover">
+        <thead>
+            <tr>
+                <th class="col-8">Activity name</th>
+                <th class="col-1">First semester</th>
+                <th class="col-1">Second semester</th>
+                <th class="col-1">Third semester</th>
+                <th class="col-1">Total</th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            {% for activity, year, first, second, third in combined_list_modules %}
+            <tr>
+                <td class="col-8">{{ activity }}</td>
+                <td class="font-monospace col-1" style="white-space: pre;">{{ first|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
+                <td class="font-monospace col-1" style="white-space: pre;">{{ second|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
+                <td class="font-monospace col-1" style="white-space: pre;">{{ third|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
+                <td class="font-monospace col-1" style="white-space: pre;">{{ year|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
+</div>
 {% else %}
-    <p>No module activities are available for {{ staff }}.</p>
+<p class="mb-4">
+    No module activities are available for {{ staff }}
+</p>
 {% endif %}
 
-<h2>Totals</h2>
-    <table border="1">
-      <tr>
-        <th width="50%"></th><th width="10%">First Semester</th><th width="10%">Second Semester</th><th width="10%">Third Semester</th><th width="10%">Total</th>
-      </tr>
-      <tr class='row1'>
-        <th>Totals</th>
-        <th>{{ semester1_total|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</th>
-        <th>{{ semester2_total|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</th>
-        <th>{{ semester3_total|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</th>
-        <th>{{ total|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</th>
-      </tr>
+{% if combined_list_modules or combined_list %}
+<h5 class="mt-3">
+    Totals
+</h5>
+<div class="table-responsive small">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th class="col-8"></th>
+                <th class="col-1">First semester</th>
+                <th class="col-1">Second semester</th>
+                <th class="col-1">Third semester</th>
+                <th class="col-1">Total</th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            <tr>
+                <td class="col-8"></td>
+                <td class="font-monospace col-1" style="white-space: pre;">{{ semester1_total|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
+                <td class="font-monospace col-1" style="white-space: pre;">{{ semester2_total|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
+                <td class="font-monospace col-1" style="white-space: pre;">{{ semester3_total|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
+                <td class="font-monospace col-1" style="white-space: pre;">{{ total|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
+            </tr>
+        </tbody>
     </table>
-
+</div>
+{% endif %}
 
 {% endblock content %}

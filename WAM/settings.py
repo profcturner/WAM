@@ -20,34 +20,24 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'i(@t%n%skz1v)y-%b4+krov&l1efdc__m+oh!jn59%(!4n1r7+'
+SECRET_KEY = '.$s-!79XDuM.AW9.NG-5MT14RGrcEzv@@75Et!Q.T5y$#Mi#eq'
 
 # I can't find a better way to do this in django!
 WAM_URL = "http://localhost"
-WAM_AUTO_EMAIL_FROM = "noreply@invalid.com"
-
-# These regexs will be used for automatic creation of Staff objects when an authenticaed User is created
-# They can be used to help WAM establish whether this should be a member of Academic Staff and External Examiner
-# If these regexs are set, and an authenticated User is presented, login will be disabled
-WAM_STAFF_REGEX = None
-WAM_EXTERNAL_REGEX = None
+WAM_AUTO_EMAIL_FROM = "me@fhc.d.defsol.com"
 
 # This is the activity type for module staff allocations
 WAM_DEFAULT_ACTIVITY_TYPE = 1
 
-# Whether to have ADFS authentication
-# You will need other configuration changes, please see
-# https://github.com/profcturner/WAM/wiki/ADFS---Azure-Authentication
-WAM_ADFS_AUTH = False
-
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 ALLOWED_HOSTS = ["127.0.0.1"]
 
 #ALLOWED_HOSTS = []
 
 
 # Application definition
+
 INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
@@ -109,7 +99,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Stockholm'
 
 USE_I18N = True
 
@@ -133,7 +123,8 @@ LOGOUT_REDIRECT_URL = 'logged out'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Create a local settings file called local_settings.py to override details
+
 try:
-    from WAM.local_settings import *
+    from local_settings import *
 except ImportError:
     pass

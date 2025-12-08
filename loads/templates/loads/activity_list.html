@@ -1,34 +1,49 @@
-{% extends "loads/base_automatic.html" %} {% block content %}
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
 
 {# <p>Selected Work Package : {{package}} <a href="{%url 'workpackage_change' %}">(Change Package)</a></p> #}
 
-<h2>Activities</h2>
+<div class="mt-1">
+    <h3>Activities</h3>
 
-{% if activities %}
+    {% if activities %}
+    <div class="table-responsive small mt-4">
+        <table class="table table-sm table-striped table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Staff</th>
+                    <th scope="col" class="text-center">Details</th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+                {% for activity in activities %}
+                <tr>
+                    <td>{{ activity.name }}</td>
+                    <td>{{ activity.activity_type }}</td>
+                    <td>{{ activity.staff }}</td>
+                    <td class="text-center"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update activity' activity.pk %}">Edit</a></td>
+                {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>
+        There are currently no activities.
+    </p>
+    {% endif %}
+</div>
 
-    <table border="1">
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-          <th>Staff</th>
-        <th>Details</th>
-      </tr>
-      {% for activity in activities %}
-      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <td>{{ activity.name }}</td>
-        <td>{{ activity.activity_type }}</td>
-          <td>{{ activity.staff }}</td>
-          <td><a href="{% url 'update activity' activity.pk %}">Edit</a></td>
-          {% endfor %}
-      </tr>
-    </table>
-
-{% else %}
-<p>There are currently no activities.</p>
-{% endif %}
-
-<h2>Add Activity</h2>
-
-<a href="{% url 'create activity' %}">Click here to create a new Activity.</a>
+<div class="mt-4">
+    <h4>
+        Add Activity
+    </h4>
+    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'create activity' %}">
+        Click here to create a new Activity
+    </a>
+</div>
 
 {% endblock content %}

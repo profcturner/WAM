@@ -13,11 +13,10 @@ Including another URLconf
     1. Add an import:  from blog import urls as blog_urls
     2. Add a URL to urlpatterns:  re_path(r'^blog/', include(blog_urls))
 """
-from django.urls import include, path, re_path
+from django.urls import include, re_path
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 
-from WAM.settings import WAM_ADFS_AUTH
 
 from loads import views
 
@@ -31,8 +30,6 @@ from loads.views import UpdateTaskView
 from loads.views import ActivityListView
 from loads.views import CreateActivityView
 from loads.views import UpdateActivityView
-
-
 
 urlpatterns = [
     re_path(r'^$', views.index, name='index'),
@@ -96,14 +93,5 @@ urlpatterns = [
     re_path(r'^cadmin/$', views.custom_admin_index, name='custom_admin_index'),
     re_path(r'^cadmin/create_staff_user', views.create_staff_user, name='create staff user'),
     re_path(r'^cadmin/create_external_examiner', views.create_external_examiner, name='create external examiner'),
-    re_path(r'^cadmin/assessment_staff/index/$', views.assessmentstaff_index, name='assessmentstaff_index'),
-    re_path(r'^cadmin/assessment_staff/delete/(?P<assessmentstaff_id>[0-9]+)$', views.assessmentstaff_delete,
-            name='assessmentstaff_delete'),
 
 ]
-
-
-# Add ADFS login URLS if required
-if WAM_ADFS_AUTH:
-    urlpatterns.append(path('oauth2/', include('django_auth_adfs.urls')))
-

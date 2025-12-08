@@ -1,12 +1,63 @@
-{% include 'loads/header.html' %}
+{# TODO: Is it possible to pass variables to other templates?             #}
+{# In that case, it'd be nice to make the <title></title> contain "Login" #}
+
+{% include 'loads/page_header.html' %}
+{% include 'loads/page_header_bare.html' %}
 
 {% block content %}
-  <h2>Login</h2>
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Login</button>
-  </form>
+<main>
+    <div class="container-fluid my-5 py-2 px-3 text-center h-100"
+         style="margin-top:100px !important;max-width:980px !important;">
+        <div class="mx-auto my-5 p-5 d-inline-block xbg-body-tertiary xborder xborder-body-subtle xrounded xrounded-3">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="pt-2">Login</h4>
+                </div>
+                <form method="post">
+                {% csrf_token %}
+                <div class="card-body">
+                    <div class="card-text text-start">
+                        {# Process hidden fields, we don't need to style them #}
+                        {% for hidden in form.hidden_fields %}
+                            {{ hidden }}
+                        {% endfor %}
+                        {# old variant #}
+                        {# {{ form.as_p }} #}
+                        {# new variant #}
+                        {% for field in form.visible_fields %}
+                        <div class="mt-4">
+                            <label for="{{ field.id_for_label }}"
+                                   class="form-label">{{ field.label }}</label>
+                            <input type="{{ field.field.widget.input_type }}"
+                                   class="form-control"
+                                   id="{{ field.id_for_label }}"
+                                   {% if not field.field.max_length is None %}
+                                   maxlength="{{ field.field.max_length }}"
+                                   {% endif %}
+                                   name="{{ field.name }}" value="" />
+                            {# Show field errors as a list, one per line #}
+                            {% if field.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in field.errors %}
+                                    <p>{{ error|escape }}</p>
+                                     {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        <div class="mt-4 text-center">
+                            <button class="btn btn-primary" type="submit">Login</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer small">
+                    We could show whom to contact here for support
+                </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
 {% endblock %}
 
-{% include 'loads/footer.html' %}
+{% include 'loads/page_footer.html' %}
