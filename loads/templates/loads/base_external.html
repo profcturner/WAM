@@ -9,14 +9,13 @@
 {% url 'tasks_index' as tasks_index %}
 {% url 'programmes_index' as programmes_index %}
 
-
 <div id="menu">
   <ul>
     <li class="menutop home">
-      <a title="click to access section: Home" class="{%if home_page %}active{% endif %}first" href="{% url 'external_index' %}">Home</a>
+      <a title="click to access section: Home" class="{%if home_page %}active{% endif %}first" href="{% url 'external_index' %}">XHome</a>
     </li>
     <li class="menutop">
-      <a title="click to access section: Tasks" class="{% active request tasks_index %}" href="{% url 'tasks_index' %}">Tasks</a>
+      <a title="click to access section: Tasks" class="{% active request tasks_index %}" href="{% url 'tasks_index' %}">XTasks</a>
     </li>
     <li class="menutop">
       <a title="click to access section: Modules" class="{% active request external_modules_index %}" href="{% url 'external_modules_index' semesters="" %}">Modules</a>
@@ -40,5 +39,6 @@
   </ul>
 </div>
 
+asd
 
 {% endblock %}

@@ -2,65 +2,172 @@
 
 {% block content %}
 
-{% if package.in_the_past %}
-<h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
-<p><span style="color:red">You should not be signing off resources unless this is a correction.</span></p>
+<h3>Sign-off resources</h3>
+<p class="font-monospace">{{ module }}</p>
+
+{% if package.in_the_future or package.in_the_past %}
+<div class="border border-2 border-danger p-3 rounded-3 mt-4">
+    <h6 class="fw-bold">!! Please note these exceptions <i class="fw-normal small">(hover for more information)</i></h6>
+    <div class="d-flex">
+        {% if package.in_the_past %}
+        <div class="badge text-bg-danger me-2"
+             title="The currently selected Work Package is in the Past! You should not be signing off resources unless this is a correction.">Past work package</div>
+        {% endif %}
+        {% if package.in_the_future %}
+        <div class="badge text-bg-danger me-2"
+             title="The currently selected Work Package is in the Future">Future work package</div>
+        {% endif %}
+    </div>
+</div>
 {% endif %}
 
-{% if package.in_the_future %}
-<h1><span style="color:red">Warning: The currently selected Work Package is in the Future.</span></h1>
-{% endif %}
-
-<h2>Sign-off resources for {{ module }}</h2>
-
-<p>Here you can sign off resources or comment on previous signoffs. Note that once you create a sign-off the resources
+<p class="mt-4">Here you can sign off resources or comment on previous signoffs. Note that once you create a sign-off the resources
 already added can no longer be deleted.</p>
 
 {% if assessment_signoffs.0.assessment_state.next_states_guidance %}
-<p class="important">{{ assessment_signoffs.0.assessment_state.next_states_guidance|safe }}</p>
+<p class="text-info mt-4">
+    {{ assessment_signoffs.0.assessment_state.next_states_guidance|safe }}
+</p>
 {% endif %}
 
 {% if next_states %}
-<form action="" method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-  <table border="0" cellpadding="0" cellspacing="0">
-  {{ form.as_table }}
-  </table>
-    <input type="submit" value="Submit" />
-</form>
+<div class="border border-secondary-subtle rounded-3 p-3 mb-3 mt-4">
+    <form action="" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {# Process hidden fields, we don't need to style them #}
+        {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+        {% endfor %}
+        {% for field in form.visible_fields %}
+        <div class="row mb-3">
+            <label for="{{ field.id_for_label }}"
+                   class="col-12 col-md-3 form-label">{{ field.label }}</label>
+            {% if "rows" in field.field.widget.attrs and "cols" in field.field.widget.attrs %}
+                <div class="col-12 col-md-9">
+                    <textarea class="form-control" id="{{ field.id_for_label }}"
+                           {% for name, value in field.field.widget.attrs.items %}
+                           {% if value is not False %} {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                           {% endfor %}
+                           name="{{ field.html_name }}"{% if field.field.required %} required{% endif %}>{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}</textarea>
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% elif field.field.widget.input_type == "text" or field.field.widget.input_type == "number" %}
+                <div class="col-12 col-md-9">
+                    <input type="{{ field.field.widget.input_type }}" class="form-control" id="{{ field.id_for_label }}"
+                           {% for name, value in field.field.widget.attrs.items %}
+                           {% if value is not False %} {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                           {% endfor %}
+                           name="{{ field.html_name }}"
+                           value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"{% if field.field.required %} required{% endif %} />
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% elif field.field.widget.input_type == "file" %}
+                <div class="col-12 col-md-9">
+                    <input type="{{ field.field.widget.input_type }}" class="form-control" id="{{ field.id_for_label }}"
+                           {% for name, value in field.field.widget.attrs.items %}
+                           {% if value is not False %} {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                           {% endfor %}
+                           name="{{ field.html_name }}"
+                           value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"{% if field.field.required %} required{% endif %} />
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% elif field.field.widget.input_type == "select" %}
+                <div class="col-12 col-md-9">
+                    <select class="form-select" id="{{ field.id_for_label }}"
+                        {% for name, value in field.field.widget.attrs.items %}
+                        {% if value is not False %}{{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                        {% endfor %}
+                        name="{{ field.name }}"
+                        value="{% if field.value != None %}{{ field.value }}{% else %}{% endif %}"
+                        {% if field.field.widget.allow_multiple_selected %} MULTIPLE {% endif %}>
+                        {% for option in field.field.choices %}
+                        <option value="{{ option.0|escape }}"{% if option.0 in field.value or option.0 == field.value %} selected{% endif %}>
+                            {{ option.1|escape }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="col-12 col-md-8 form-text font-monospace">
+                Unknown field type: {{ field.field.widget.input_type }}
+                </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <div class="row mt-4 mb-3">
+            <div class="col-12">
+                <input class="btn btn-primary" type="submit" value="Submit" />
+            </div>
+        </div>
+    </form>
+</div>
 {% else %}
-    <p class="error_message">
+    <p class="text-bg-warning rounded-3 p-3">
         Unfortunately no new states can be signed from the current one, or you do not have permission to do so.<br />
         This probably means that someone else in the process needs to perform a signoff rather than you.
     </p>
 {% endif %}
 
-<h3>History</h3>
+<div class="mt-4">
+    <h4>
+        History
+    </h4>
+    {% if assessment_signoffs %}
+        <p>
+            For your convenience, here is the previous sign-off history, with notes, for this module.
+        </p>
+        <table border="1" width="800">
+          <tr>
+            <th>Type</th><th>Owner</th><th>Created</th>
+          </tr>
+        {% for signoff in assessment_signoffs %}
+          <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+            <th>{{ signoff.assessment_state }}</th>
+            <th>{{ signoff.signed_by.first_name }} {{ signoff.signed_by.last_name }}</th>
+            <th>{{ signoff.created }}</th>
+          </tr>
+            <tr  class="{% cycle 'row1' 'row2' as rowcolours %}">
+            <td colspan="3">
+                {{ signoff.notes }}
+            </td>
 
-<p>For your convenience, here is the previous sign-off history, with notes, for this module.</p>
-
-{% if assessment_signoffs %}
-    <table border="1" width="800">
-      <tr>
-        <th>Type</th><th>Owner</th><th>Created</th>
-      </tr>
-    {% for signoff in assessment_signoffs %}
-      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <th>{{ signoff.assessment_state }}</th>
-        <th>{{ signoff.signed_by.first_name }} {{ signoff.signed_by.last_name }}</th>
-        <th>{{ signoff.created }}</th>
-      </tr>
-        <tr  class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <td colspan="3">
-            {{ signoff.notes }}
-        </td>
-
-        </tr>
-    {% endfor %}
-    </table>
-
-{% else %}
-    <p>No assessment sign-offs recorded for this module.</p>
-{% endif %}
+            </tr>
+        {% endfor %}
+        </table>
+    {% else %}
+        <div class="text-primary-emphasis">
+            No assessment sign-offs recorded for this module.
+        </div>
+    {% endif %}
+</div>
 
 {% endblock content %}

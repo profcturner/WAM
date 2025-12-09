@@ -1,0 +1,68 @@
+{# This is the base header for all files. It sets up Bootstrap, and #}
+{# light/dark, as well as style sheets and javascript includes. We  #}
+{# want this to be as free from external resources as possible.     #}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+{% load static %}
+<head>
+    {# This isn't really best practice, but due to web browsers having some  #}
+    {# sort of standard setting when it comes to light/dark mode, we do this #}
+    {# here to keep screen flickering to a minimum. This short snippet won't #}
+    {# block DOM processing/rendering in any significant way.                #}
+    <script>
+        (() => {
+        'use strict';
+            const colorMode = window.matchMedia("(prefers-color-scheme: dark)").matches ?
+                "dark" :
+                "light";
+            document.querySelector("html").setAttribute("data-bs-theme", colorMode);
+        })();
+    </script>
+    {# On with the show ... #}
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset='utf-8'>
+    {# <link rel="stylesheet" type="text/css" href="http://cdn.ulster.ac.uk/home/ulster-frontend/css/microsites-branding-shared.css" /> #}
+    {# <link rel="stylesheet" type="text/css" href="http://cdn.ulster.ac.uk/home/ulster-frontend/css/microsites-footer-shared.css" />  #}
+    {# <link rel="stylesheet" type="text/css" href="{% static 'loads/microsites-footer-shared.css' %}" />  #}
+    {# <link rel="stylesheet" type="text/css" href="{% static 'loads/default.css' %}" />  #}
+    <link rel="stylesheet" type="text/css" href="{% static 'bs5/css/bootstrap.min.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'wam/wam.css' %}" />
+    <title>{% block title %}Workload Modelling{% endblock %}</title>
+</head>
+
+<body class="container-fluid p-0 mt-5 h-100 pb-5 opacity-100">
+
+<script>
+    (() => {
+        'use strict';
+
+        function updateBootstrapTheme() {
+            const colorMode = window.matchMedia("(prefers-color-scheme: dark)").matches ?
+                "dark" :
+                "light";
+            document.querySelector("html").setAttribute("data-bs-theme", colorMode);
+        }
+        function documentSetup() {
+            updateBootstrapTheme();
+            // Set scrolling preferences
+            let navScrollMode = 'smooth';
+            const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+            if (motionQuery.matches) {
+                navScrollMode = 'instant';
+            }
+            // Update theme when the preferred scheme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateBootstrapTheme);
+            // Some more Bootstrap initialization
+            const popoverTriggerList = document.querySelectorAll('[data-bs-toggle=\"popover\"]');
+            const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl));
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+        }
+        if (document.readyState === 'complete' ||
+            (document.readyState !== 'loading' && !document.documentElement.doScroll)) {
+            documentSetup();
+        } else {
+            document.addEventListener('DOMContentLoaded', documentSetup);
+        }
+    })();
+</script>

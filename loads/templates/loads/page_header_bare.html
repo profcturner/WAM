@@ -1,0 +1,26 @@
+{# This is the "empty" header for things like login forms, fatal errors, #}
+{# and so on. It basically just makes sure we have a fixed size header   #}
+{# that makes the content following it nice and tidy looking.            #}
+{#                                                                       #}
+{# This should NOT be used when the navigation menu is displayed!        #}
+
+<div class="container-fluid fixed-top text-body bg-body-secondary p-2 d-flex align-items-center justify-content-start"
+     data-bs-theme="light"
+     style="height:80px">
+    <div>
+        <a href="{% url 'index' %}">
+            {# We need to make this logo, and link, customizable #}
+            {# The max-height should, however, remain as to not disrupt the layout, etc #}
+            <img src="//cdn.ulster.ac.uk/home/ulster-frontend/img/microsites/ulster-university-logo.png"
+                 style="max-height: 48px"
+                 title="Ulster University Workload Modelling" alt=""
+                 class="me-2" />
+        </a>
+    </div>
+    <div>
+        <a class="link-dark link-opacity-50-hover link-offset-3 text-decoration-none" href="{% url 'index' %}">
+            {# We need to make this text, and link, customizable #}
+            Workload Modelling
+        </a>
+    </div>
+</div>

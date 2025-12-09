@@ -1,0 +1,58 @@
+/* Some custom CSS for WAM. Also used to override certain aspects of Bootstrap */
+
+/* Disable Bootstrap animations site-wide. They are just annoying :) */
+
+*,
+::before,
+::after {
+    transition: none !important;
+    animation: none !important;
+}
+.fade,
+.collapsing,
+.modal,
+.offcanvas,
+.dropdown-menu,
+.toast {
+    transition: none !important;
+    animation: none !important;
+    opacity: 1 !important;
+}
+/* Restore proper visibility for Bootstrap backdrops */
+:root {
+    --bs-backdrop-opacity: 0.60;
+}
+.offcanvas-backdrop,
+.modal-backdrop {
+    transition: none !important;
+    background: var(--bs-backdrop-bg, #000);
+}
+.offcanvas-backdrop.show,
+.modal-backdrop.show {
+    opacity: var(--bs-backdrop-opacity) !important;
+}
+.offcanvas-backdrop:not(.show),
+.modal-backdrop:not(.show) {
+    opacity: 0 !important;
+}
+/* Bootstrap nav-link overrides */
+.nav-link:hover, .nav-link:focus {
+  text-decoration: underline !important;
+  text-underline-offset: 0.375em !important;
+}
+/* Somewhat less bloated bullets for "menu lists" */
+ul.wam-menu-list {
+    list-style-position: outside;
+    list-style: none;
+}
+ul.wam-menu-list li {
+    margin-top: 0.6em;
+}
+ul.wam-menu-list li::before {
+    content: "› ";
+    display: inline-block;
+    width: 1em;
+    margin-left: -1.4em;
+    font-weight: bold;
+    font-size: 1.2em;
+}

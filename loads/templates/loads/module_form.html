@@ -1,25 +1,83 @@
 {% extends "loads/base_automatic.html" %} {% block content %}
 
 {% if form.instance.pk %}
-<h2>Update Module</h2>
+<h3 class="my-3">
+    Update Module
+</h3>
 {% else %}
-<h2>Create Module</h2>
-
-<p>This form allows the creation of new Modules.</p>
+<h3 class="my-3">
+    Create Module
+</h3>
+<p>
+    This form allows the creation of new Modules.
+</p>
 {% endif %}
 
-
-<form action="" method="post">
-    <table>
+<div class="border border-secondary-subtle rounded-3 p-3 mb-3 mt-3">
+    <form action="" method="post">
         {% csrf_token %}
-        {{ form.as_table }}
-        <tr>
-            <td>
-                <input type="submit" value="Submit" />
-            </td>
-        </tr>
-
-    </table>
-</form>
+        {# Process hidden fields, we don't need to style them #}
+        {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+        {% endfor %}
+        {% for field in form.visible_fields %}
+            <div class="row mb-3">
+                <label for="{{ field.id_for_label }}"
+                       class="col-12 col-md-3 form-label">{{ field.label }}</label>
+            {% if field.field.widget.input_type == "text" or field.field.widget.input_type == "number" %}
+                <div class="col-12 col-md-9">
+                    <input type="{{ field.field.widget.input_type }}" class="form-control" id="{{ field.id_for_label }}"
+                           {% for name, value in field.field.widget.attrs.items %}
+                           {% if value is not False %} {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                           {% endfor %}
+                           name="{{ field.html_name }}"
+                           value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"{% if field.field.required %} required{% endif %} />
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% elif field.field.widget.input_type == "select" %}
+                <div class="col-12 col-md-9">
+                    <select class="form-select" id="{{ field.id_for_label }}"
+                        {% for name, value in field.field.widget.attrs.items %}
+                        {% if value is not False %}{{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                        {% endfor %}
+                        name="{{ field.name }}"
+                        value="{% if field.value != None %}{{ field.value }}{% else %}{% endif %}"
+                        {% if field.field.widget.allow_multiple_selected %} MULTIPLE {% endif %}>
+                        {% for option in field.field.choices %}
+                        <option value="{{ option.0|escape }}"{% if option.0 in field.value or option.0 == field.value %} selected{% endif %}>
+                            {{ option.1|escape }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="col-12 col-md-8 form-text font-monospace">
+                Unknown field type: {{ field.field.widget.input_type }}
+                </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <div class="row mt-4 mb-3">
+            <div class="col-12">
+                <input class="btn btn-primary" type="submit" value="Submit" />
+            </div>
+        </div>
+    </form>
+</div>
 
 {% endblock content %}

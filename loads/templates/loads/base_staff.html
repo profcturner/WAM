@@ -1,10 +1,7 @@
 {% extends 'loads/base.html' %}
 
-{% block menu %}
-
 {% load tags %}
 {% load tz %}
-
 
 {% url 'index' as index %}
 {% url 'loads' as loads %}
@@ -16,60 +13,104 @@
 {% url 'generators_index' as generators_index %}
 {% url 'custom_admin_index' as custom_admin_index %}
 
+{% block menu %}
 
-
-<div id="menu">
-  <ul>
-    <li class="menutop home">
-      <a title="click to access section: Home" class="{%if home_page %}active{% endif %}first" href="{% url 'index' %}">Home</a>
-    </li>
-	<li class="menutop">
-      <a title="click to access section: Loads" class="{% active request loads %}" href="{% url 'loads' %}">Loads</a>
-    </li>
-	<li class="menutop">
-      <a title="click to access section: Tasks" class="{% active request tasks_index %}" href="{% url 'tasks_index' %}">Tasks</a>
-    </li>
-    <li class="menutop">
-      <a title="click to access section: Activities" class="{% active request activities_index %}" href="{% url 'activities_index' %}">Activities</a>
-    </li>
-    <li class="menutop">
-      <a title="click to access section: Modules" class="{% active request modules_index %}" href="{% url 'modules_index' semesters="" %}">Modules</a>
-    </li>
-    <li class="menutop">
-      <a title="click to access section: Programmes" class="{% active request programmes_index %}" href="{% url 'programmes_index' %}">Programmes</a>
-    </li>
-	<li class="menutop">
-      <a title="click to access section: Projects" class="{% active request projects_index %}" href="{% url 'projects_index' %}">Projects</a>
-    </li>
-	<li class="menutop">
-      <a title="click to access section: Generators" class="{% active request generators_index %}" href="{% url 'generators_index' %}">Generators</a>
-    </li>
-	<li class="menutop">
-      <a title="click to access section: Help" href="https://github.com/profcturner/WAM/wiki" target="_blank" >Help</a>
-    </li>
-  	<li class="menutop">
-      <a title="click to access section: Admin" class="{% active request custom_admin_index %}" href="{% url 'custom_admin_index' %}">Admin</a>
-    </li>
-    {% if not request.meta.remote_user %}
-    <li class="menutop">
-      <a title="click to access section: Help" href="{% url 'logout' %}">Logout</a>
-    </li>
-    {% endif %}
-	</ul>
-</div>
-
-<div id="submenu">
-  <ul>
-    {% if loads_menu %}
-    <li><a href="{% url 'loads' %}">Loads By Staff</a></li>
-    <li><a href="{% url 'loads_modules' semesters='' %}">Loads By Modules</a></li>
-    <li><a href="{% url 'loads_charts' %}">Load Charts</a></li>
-    {% endif %}
-    {% if tasks_menu %}
-    <li><a href="{% url 'tasks_index' %}">Active Tasks</a></li>
-    <li><a href="{% url 'archived_tasks_index' %}">Archived Tasks</a></li>
-    {% endif %}
-	</ul>
-</div>
+{# Create top-level menus, and possibly some dropdowns #}
+<nav class="navbar navbar-expand-lg fixed-top text-body bg-body-secondary" data-bs-theme="light" style="height:80px">
+    <div class="container-fluid p-1">
+        <button class="navbar-toggler bg-dark ms-2"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarWAM"
+                aria-controls="navbarWAM" aria-expanded="false"
+                aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <a class="navbar-brand float-start" href="{% url 'index' %}">
+            {# TODO: We need to make this logo, and link, customizable #}
+            {# The max-height should, however, remain as to not disrupt the layout, etc #}
+            <img src="//cdn.ulster.ac.uk/home/ulster-frontend/img/microsites/ulster-university-logo.png"
+                 style="max-height: 48px" title="Ulster University Workload Modelling" alt="WAM" />
+        </a>
+        <div class="collapse navbar-collapse" id="navbarWAM">
+            {# I'm guessing these can be dynamically generated based on which modules are active, etc #}
+            {# TODO: We should add 'aria-current="page"' on the active menu choice                    #}
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 small">
+                <li class="nav-item">
+                    <a class="nav-link{%if home_page %} active{% endif %}"
+                       {%if home_page %}aria-current="page"{% endif %} href="{% url 'index' %}"
+                       title="click to access section: Home">Home</a>
+                </li>
+                {% if loads_menu %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link active dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Loads
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li class="dropdown-item"><a class="nav-link" href="{% url 'loads' %}">Loads By Staff</a></li>
+                        <li class="dropdown-item"><a class="nav-link" href="{% url 'loads_modules' semesters='' %}">Loads By Modules</a></li>
+                        <li class="dropdown-item"><a class="nav-link" href="{% url 'loads_charts' %}">Load Charts</a></li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link {% active request loads %}" href="{% url 'loads' %}"
+                       title="click to access section: Loads">Loads</a>
+                </li>
+                {% endif %}
+                {% if tasks_menu %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link active dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Tasks
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li class="dropdown-item"><a class="nav-link" href="{% url 'tasks_index' %}">Active Tasks</a></li>
+                        <li class="dropdown-item"><a class="nav-link" href="{% url 'archived_tasks_index' %}">Archived Tasks</a></li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link {% active request tasks_index %}" href="{% url 'tasks_index' %}"
+                       title="click to access section: Tasks">Tasks</a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <a class="nav-link text-decoration-none {% active request activities_index %}" href="{% url 'activities_index' %}"
+                       title="click to access section: Activities">Activities</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-decoration-none {% active request modules_index %}" href="{% url 'modules_index' semesters="" %}"
+                       title="click to access section: Modules">Modules</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-decoration-none {% active request programmes_index %}" href="{% url 'programmes_index' %}"
+                       title="click to access section: Programmes">Programmes</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-decoration-none {% active request projects_index %}" href="{% url 'projects_index' %}"
+                       title="click to access section: Projects">Projects</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-decoration-none {% active request generators_index %}" href="{% url 'generators_index' %}"
+                       title="click to access section: Generators">Generators</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-decoration-none {% active request generators_index %}" href="https://github.com/profcturner/WAM/wiki"
+                       target="_blank" title="click to access section: Help">Help</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-decoration-none {% active request custom_admin_index %}" href="{% url 'custom_admin_index' %}"
+                       target="_blank" title="click to access section: Admin">Admin</a>
+                </li>
+            {% if not request.meta.remote_user %}
+                <li class="nav-item">
+                    <a class="nav-link text-decoration-none" href="{% url 'logout' %}"
+                       target="_blank" title="click to log out">Logout</a>
+                </li>
+            {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
 
 {% endblock %}

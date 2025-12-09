@@ -2,183 +2,205 @@
 
 {% block content %}
 
-<h2>Details for Module {{ module.name }} <a href="{% url 'update module' module.pk %}">(Edit)</a></h2>
+<h4>Details for Module {{ module.name }}<small> (<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-1" href="{% url 'update module' module.pk %}">Edit</a>)</small></h4>
 
-<table border="0">
-  <tr>
-    <th>
-      Module Code
-    </th>
-    <td>
-      {{ module.module_code }}
-    </td>
-  </tr>
-  <tr>
-    <th>
-      Module Name
-    </th>
-    <td>
-      {{ module.module_name }}
-    </td>
-  </tr>
-  <tr>
-    <th>
-      Module Credits
-    </th>
-    <td>
-      {{ module.credits }}
-    </td>
-  </tr>
-  <tr>
-    <th>
-      Module Size
-    </th>
-    <td>
-      {{ module.size }}
-    </td>
-  </tr>
-  <tr>
-    <th>
-      Module Name
-    </th>
-    <td>
-      {{ module.module_name }}
-    </td>
-  </tr>
-  <tr>
-    <th>
-      Semester
-    </th>
-    <td>
-      {{ module.semester }}
-    </td>
-  </tr>
-  <tr>
-    <th>
-      Hours
-    </th>
-    <td>
-      Total Hours: {{ total_hours|stringformat:".2f" }}; Contact Hours: {{ contact_hours|stringformat:".2f" }}; Admin Hours {{ admin_hours|stringformat:".2f" }}; Assessment Hours {{ assessment_hours|stringformat:".2f" }}
-    </td>
-  </tr>
-  {% if module.details %}
-  <tr>
-    <th>
-      Other Details
-    </th>
-    <td>
-      {{ module.details|urlize|linebreaksbr }}
-    </td>
-  </tr>
-  {% endif %}
-  {% if module.coordinator %}
-  <tr>
-    <th>
-      Module Coordinator
-    </th>
-    <td>
-      {{ module.coordinator }}
-    </td>
-  </tr>  
-  {% endif %}
-  {% if moderators %}
-  <tr>
-    <th>
-      Moderators
-    </th>
-    <td>
-      {% for moderator in moderators %}{{ moderator }}{% endfor %}
-    </td>
-  </tr>  
-  {% endif %}
-  
-</table>
+<div class="mt-4">
+    <div class="row mb-2">
+        <div class="col-12 col-md-3 fw-bold">
+          Module code
+        </div>
+        <div class="col-9 font-monospace">
+            {{ module.module_code }}
+        </div>
+    </div>
+    <div class="row mb-2">
+        <div class="col-12 col-md-3 fw-bold">
+            Module name
+        </div>
+        <div class="col-9 font-monospace">
+            {{ module.module_name }}
+        </div>
+    </div>
+    <div class="row mb-2">
+        <div class="col-12 col-md-3 fw-bold">
+            Module credits
+        </div>
+        <div class="col-9 font-monospace">
+            {{ module.credits }}
+        </div>
+    </div>
+    <div class="row mb-2">
+        <div class="col-12 col-md-3 fw-bold">
+            Module size
+        </div>
+        <div class="col-9 font-monospace">
+            {{ module.size }}
+        </div>
+    </div>
+    <div class="row mb-2">
+        <div class="col-12 col-md-3 fw-bold">
+            Semester
+        </div>
+        <div class="col-9 font-monospace">
+            {{ module.semester }}
+        </div>
+    </div>
+    <div class="row mb-2">
+        <div class="col-12 col-md-3 fw-bold">
+            Hours
+        </div>
+        <div class="col-9 font-monospace text-nowrap">
+            Total hours: {{ total_hours|stringformat:".2f" }}; Contact hours: {{ contact_hours|stringformat:".2f" }};
+            <br/>
+            Admin hours {{ admin_hours|stringformat:".2f" }}; Assessment hours {{ assessment_hours|stringformat:".2f" }}
+        </div>
+    </div>
+    {% if module.details %}
+    <div class="row mb-2">
+        <div class="col-12 col-md-3 fw-bold">
+            Other Details
+        </div>
+        <div class="col-9 font-monospace">
+            {{ module.details|urlize|linebreaksbr }}
+        </div>
+    </div>
+    {% endif %}
+    {% if module.coordinator %}
+    <div class="row mb-2">
+        <div class="col-12 col-md-3 fw-bold">
+            Module coordinator
+        </div>
+        <div class="col-9 font-monospace">
+            {{ module.coordinator }}
+        </div>
+    </div>
+    {% endif %}
+    {% if moderators %}
+    <div class="row mb-2">
+        <div class="col-12 col-md-3 fw-bold">
+            Moderators
+        </div>
+        <div class="col-9 font-monospace">
+            {% for moderator in moderators %}{{ moderator }}{% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
 
-<h2>Related Activity Information</h2>
+<div class="mt-5">
+    <h5>Related Activity Information</h5>
+    <p class="mb-3">
+        Selected year:<br/>
+        <span class="font-monospace fw-bold me-2">{{package}}</span>
+    </p>
+    {% if package.draft or package.in_the_future or package.in_the_past %}
+    <div class="border border-2 border-danger p-3 rounded-3 mb-5">
+        <h6 class="fw-bold">!! Please note these exceptions <i class="fw-normal small">(hover for more information)</i></h6>
+        <div class="d-flex">
+            {% if package.draft %}
+            <div class="badge text-bg-danger me-2"
+                 title="This is a DRAFT allocation and may be incomplete.">Draft allocation</div>
+            {% endif %}
+            {% if package.in_the_past %}
+            <div class="badge text-bg-danger me-2"
+                 title="The currently selected Work Package is in the Past! You probably want to change the year above.">Past work package</div>
+            {% endif %}
+            {% if package.in_the_future %}
+            <div class="badge text-bg-danger me-2"
+                 title="The currently selected Work Package is in the Future">Future work package</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
 
-<p>Selected Year : {{package}}</p>
+<div class="mt-5">
+    <h5>Module Staff Allocations</h5>
+    {% if modulestaff %}
+    <div class="table-responsive small mt-2 mb-2">
+        <table class="table table-striped table-hover w-100">
+            <thead class="sticky-top">
+                <tr>
+                    <th class="col-7" scope="col">Staff Member</th>
+                    <th scope="col">Contact proportion</th>
+                    <th scope="col">Admin proportion</th>
+                    <th scope="col">Assessment proportion</th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+                {% for allocation in modulestaff %}
+                <tr>
+                    <th class="col-7">{{ allocation.staff }}</th>
+                    <td class="font-monospace" style="white-space: pre;">{{ allocation.contact_proportion|stringformat:"6.f" }}%</td>
+                    <td class="font-monospace" style="white-space: pre;">{{ allocation.admin_proportion|stringformat:"6.f" }}%</td>
+                    <td class="font-monospace" style="white-space: pre;">{{ allocation.assessment_proportion|stringformat:"6.f" }}%</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <th class="col-7">Total</th>
+                    <th style="white-space: pre;" class="font-monospace{% if total_contact_proportion != 100 %} text-bg-danger{% endif %}" {% if total_contact_proportion != 100 %}title="Less than 100%"{% endif %}>{{ total_contact_proportion|stringformat:"6.f" }}%</th>
+                    <th style="white-space: pre;" class="font-monospace{% if total_admin_proportion != 100 %} text-bg-danger{% endif %}" {% if total_admin_proportion != 100 %}title="Less than 100%"{% endif %}>{{ total_admin_proportion|stringformat:"6.f" }}%</th>
+                    <th style="white-space: pre;" class="font-monospace{% if total_assessment_proportion != 100 %} text-bg-danger{% endif %}" {% if total_assessment_proportion != 100 %}title="Less than 100%"{% endif %}>{{ total_assessment_proportion|stringformat:"6.f" }}%</th>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <p>
+        <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'module_staff_allocation' package.id module.id %}">Edit Allocations</a>
+    </p>
+    {% else %}
+      <p>
+          No allocations of staff recorded for this module
+          (<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'module_staff_allocation' package.id module.id %}">Edit</a>)</p>
+    {% endif %}
+</div>
 
-{% if package.draft %}
-<h1>This is a DRAFT allocation and may be incomplete.</h1>
-{% endif %}
+<div class="mt-5">
+    <h5 class="my-3">Custom Activities</h5>
+    {% if activities %}
+        <div class="table-responsive small mt-2 mb-2">
+            <table class="table table-striped table-hover w-100">
+                <tr>
+                    <th scope="col">Activity Name</th>
+                    <th scope="col">Staff Member</th>
+                    <th scope="col">Comment</th>
+                </tr>
+                {% for activity in activities %}
+                <tr>
+                    <th>{{ activity.name }}</th>
+                    <td>{{ activity.staff }}</td>
+                    <td>{{ activity.comment }}</td>
+                </tr>
+                {% endfor %}
+        </table>
+        </div>
+    {% else %}
+        <div class="text-primary-emphasis">No custom activities recorded for this module.</div>
+    {% endif %}
+</div>
 
-{% if package.in_the_past %}
-<h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
-    <h2><span style="color:red">You probably want to change the year.</span></h2>
-{% endif %}
+<div class="mt-5">
+    <h5>Assessment Resources</h5>
+    {% if assessment_signoffs.0.assessment_state.next_states_guidance %}
+    <p class="text-info">
+        {{ assessment_signoffs.0.assessment_state.next_states_guidance|safe }}
+    </p>
+    {%  else %}
+    <p class="fst-italic">
+        Please upload assessment items below, and sign them off when satisfied.
+    </p>
+    {% endif %}
 
-{% if package.in_the_future %}
-<h1><span style="color:red">Warning: The currently selected Work Package is in the Future.</span></h1>
-{% endif %}  
-
-<h2>Module Staff Allocations</h2>
-{% if modulestaff %}
-    <table border="1">
-      <tr>
-        <th>Staff Member</th>
-        <th>Contact<br />Proportion</th>
-        <th>Admin<br />Proportion</th>
-        <th>Assessment<br />Proportion</th>
-      </tr>
-      {% for allocation in modulestaff %}
-      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <th>{{ allocation.staff }}</th>
-        <td>{{ allocation.contact_proportion }}%</td>
-        <td>{{ allocation.admin_proportion }}%</td>
-        <td>{{ allocation.assessment_proportion }}%</td>
-      </tr>
-      {% endfor %}    
-      <tr>
-        <th>Total</th>
-        <th><span {% if total_contact_proportion != 100 %}style="color:red"{% endif %}>{{ total_contact_proportion }}%</span></th>
-        <th><span {% if total_admin_proportion != 100 %}style="color:red"{% endif %}>{{ total_admin_proportion }}%</span></th>  
-        <th><span {% if total_assessment_proportion != 100 %}style="color:red"{% endif %}>{{ total_assessment_proportion }}%</span></th> 
-      </tr>  
-    </table>
-    
-    <p><a href="{% url 'module_staff_allocation' package.id module.id %}">Edit Allocations</a></p>
-{% else %}
-  <p>No allocations of staff recorded for this module. <a href="{% url 'module_staff_allocation' package.id module.id %}">(Edit)</a></p>  
-{% endif %}
-
-<h2>Custom Activities</h2>
-{% if activities %}
-    <table border="1">
-      <tr>
-        <th>Activity Name</th><th>Staff Member</th><th>Comment</th>
-      </tr>
-      {% for activity in activities %}
-      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <th>{{ activity.name }}</th>
-        <td>{{ activity.staff }}</td>
-        <td>{{ activity.comment }}</td>
-      </tr>
-      {% endfor %}      
-    </table>
-    
-{% else %}
-    <p>No custom activities recorded for this module.</p>
-{% endif %}
-
-<h2>Assessment Resources</h2>
-
-{% if assessment_signoffs.0.assessment_state.next_states_guidance %}
-<p class="important">{{ assessment_signoffs.0.assessment_state.next_states_guidance|safe }}</p>
-{%  else %}
-<p class="important">Please upload assessment items below, and sign them off when satisfied.</p>
-{% endif %}
-
-{% if unsigned_items %}
-    <p class="important">These are some items that are not yet "signed-off". They can be deleted, or added to until they are signed off. <br/>
-        Please note that these items are not considered final, but rather as in draft until they are signed off.</p>
-{% endif %}
-
-
-
-<p>
-<a href="{% url 'add_assessment_resource' module.id %}">add assessment resource</a> |
-    <a href="{% url 'add_assessment_sign_off' module.id %}">sign off resources</a>
-</p>
+    {% if unsigned_items %}
+    <p class="p-2 rounded-3 text-bg-info">
+        These are some items that are not yet "signed-off". They can be deleted, or added to until they are signed off.<br/>
+        Please note that these items are not considered final, but rather as in draft until they are signed off.
+    </p>
+    {% endif %}
+    <p>
+        <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'add_assessment_resource' module.id %}">add assessment resource</a> |
+        <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'add_assessment_sign_off' module.id %}">sign off resources</a>
+    </p>
 
 {% if assessment_history %}
     {% for signoff, resources in assessment_history %}
@@ -189,28 +211,38 @@
     {% endif %}
 
     {% if resources %}
-        <table border="1" width="800">
-            <tr>
-                <th>Resource Type</th><th>Name</th><th>Owner</th><th>Created</th><th>View</th><th>Delete</th>
-            </tr>
-        {% for resource in resources %}
-            <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-                <td>{{ resource.resource_type }}</td>
-                <td>{{ resource.name }}</td>
-                <td>{{ resource.owner }}</td>
-                <td>{{ resource.created }}</td>
-                <td><a href="{% url 'download_assessment_resource' resource.id %}">View</a></td>
-                <td><a href="{% url 'delete_assessment_resource' resource.id %}">Delete</a></td>
-            </tr>
-        {% endfor %}
-        </table>
+        <div class="table-responsive small mt-2 mb-2">
+            <table class="table table-striped table-hover w-100">
+                <tr>
+                    <th>Resource Type</th>
+                    <th>Name</th>
+                    <th>Owner</th>
+                    <th>Created</th>
+                    <th>View</th>
+                    <th>Delete</th>
+                </tr>
+            {% for resource in resources %}
+                <tr>
+                    <td>{{ resource.resource_type }}</td>
+                    <td>{{ resource.name }}</td>
+                    <td>{{ resource.owner }}</td>
+                    <td>{{ resource.created }}</td>
+                    <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'download_assessment_resource' resource.id %}">View</a></td>
+                    <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'delete_assessment_resource' resource.id %}">Delete</a></td>
+                </tr>
+            {% endfor %}
+            </table>
+        </div>
     {% endif %}
 
     {% endfor %}
 
 {% else %}
-    <p>No assessment resources recorded for this module.</p>
+    <div class="text-primary-emphasis">
+        No assessment resources recorded for this module.
+    </div>
 
 {% endif %}
+</div>
 
 {% endblock content %}
