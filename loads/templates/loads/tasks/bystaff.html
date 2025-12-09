@@ -1,54 +1,88 @@
-{% extends "loads/base_automatic.html" %} {% block content %}
-  
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
+
+<h3 class="my-3">Tasks still outstanding</h3>
 
 {% if combined_list_incomplete %}
-
-<h2>Tasks still outstanding</h2>
-
-    <table border="1">
-      <tr>
-        <th>Task Name</th><th>Deadline</th><th>Time left</th><th>Status</th><th>Complete</th>
-      </tr>
-      {% for task, urgent, overdue in combined_list_incomplete %}
-      <tr class="{% cycle 'row1' 'row2' %}">
-        <th>{{ task.name }}</th>
-        <td>{{ task.deadline }}</td>
-        <td>{{ task.deadline|timeuntil }}</td>
-        {% if overdue %}
-        <td class="urgent">Overdue<br />{{ task.deadline|timesince }}</td>
-        {% elif urgent %}
-        <td class="urgent">Urgent</td>
-        {% else %}
-        <td>Pending</td>
-        {% endif %}
-        <td><a href="{% url 'tasks_completion' task_id=task.id staff_id=staff.id %}">Complete</a></td>  
-      </tr>      
-      {% endfor %}
+<div class="table-responsive small">
+    <table class="table table-sm table-striped table-hover">
+        <thead>
+            <tr>
+                <th class="col-6">Task name</th>
+                <th>Deadline</th>
+                <th>Time left</th>
+                <th>Status</th>
+                <th>Complete</th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            {% for task, urgent, overdue in combined_list_incomplete %}
+            <tr>
+                <td class="col-6">{{ task.name }}</td>
+                <td>{{ task.deadline }}&nbsp;</td>
+                <td>{{ task.deadline|timeuntil }}</td>
+                <td>
+                    {% if overdue %}
+                    {{ task.deadline|timesince }} <span class="badge text-bg-danger">Overdue</span>
+                    {% elif not urgent %}
+                    <span class="badge text-bg-warning">Urgent</span>
+                    {% else %}
+                    Pending
+                    {% endif %}
+                </td>
+                <td>
+                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'tasks_completion' task_id=task.id staff_id=staff.id %}">
+                        Complete
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
-      
+</div>
+<p>
+    {{ staff }} has {{ combined_list_incomplete|length}} outstanding task{{combined_list_incomplete|length|pluralize}}.
+</p>
+{% else %}
+<p class="mb-4">
+    No activities are available for {{ staff }}
+</p>
 {% endif %}
+
+
 {% if combined_list_complete %}
-
-<h2>Tasks completed</h2>
-    <table border="1">
-      <tr>
-        <th>Task Name</th><th>Deadline</th><th>Time left</th><th>Completed</th>
-      </tr>
-      {% for task, when in combined_list_complete %}
-      <tr class="{% cycle 'row1' 'row2' %}">
-        <th>{{ task.name }}</th>
-        <td>{{ task.deadline }}</td>
-        <td>{{ task.deadline|timeuntil }}</td>
-        <td>{{ when }}</th>
-      </tr>      
-      {% endfor %}
+<h3 class="mt-4">Tasks completed</h3>
+<div class="table-responsive small">
+    <table class="table table-sm table-striped table-hover">
+        <thead>
+            <tr>
+                <th class="col-6">Task name</th>
+                <th>Deadline</th>
+                <th>Time left</th>
+                <th>Completed</th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            {% for task, when in combined_list_complete %}
+            <tr>
+                <td class="col-6">{{ task.name }}</td>
+                <td>{{ task.deadline }}&nbsp;</td>
+                <td>{{ task.deadline|timeuntil }}</td>
+                <td>{{ task.when }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
+</div>
 {% endif %}
-    
-<p>{{ staff }} has {{ combined_list_incomplete|length}} outstanding task{{combined_list_incomplete|length|pluralize}}.</p>
-    
+
+
 {% if not combined_list_complete and not combined_list_incomplete %}
-    <p>No activities are available for {{ staff }}.</p>
+<p class="h4 my-3">
+    No activities are available for {{ staff }}
+</p>
 {% endif %}
+
 
 {% endblock content %}

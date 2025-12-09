@@ -1,10 +1,22 @@
-{% extends 'loads/base.html' %}
+{# This needs to be done for 403 and 500 error pages as well #}
+{% include 'loads/page_header.html' %}
+{% include 'loads/page_header_bare.html' %}
 
 {% block content %}
-
-<h1>Page Not Found</h1>
-
-    <p>Unfortunately the item you requested just can't be found.
-        Please do contact the system administrator if you think is incorrect.</p>
-
+<main>
+    <div class="container-fluid my-5 py-2 px-3 text-center h-100"
+         style="margin-top:100px !important;max-width:980px !important;">
+        <div>
+            <h1 class="h2 my-5 p-2 d-inline-block font-monospace text-danger">
+                404 | Page Not Found
+            </h1>
+            <div class="text-left">
+                <p>Unfortunately the item you requested just can't be found.</p>
+                <p>Please do contact the system administrator if you think is incorrect.</p>
+            </div>
+        </div>
+    </div>
+</main>
 {% endblock %}
+
+{% include 'loads/page_footer.html' %}

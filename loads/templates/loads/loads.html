@@ -1,70 +1,95 @@
-{% extends "loads/base_automatic.html" %} {% block content %}
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
 
 {% load static %}
-<!-- Include formset plugin - including jQuery dependency -->
-<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-<script src="{% static 'loads/persist-headers.js' %}"></script>
 
-<p>Selected Year : {{package}} <a href="{%url 'workpackage_change' %}">(Change Year)</a></p>
+{# <!-- Include formset plugin - including jQuery dependency -->                                #}
+{# <!-- <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script> -->  #}
+{# <!-- <script src="{% static 'loads/persist-headers.js' %}"></script> -->                     #}
 
-{% if package.draft %}
-<h1>This is a DRAFT allocation and may be incomplete.</h1>
-{% endif %}  
+<p class="mb-5">
+    Selected year:<br/>
+    <span class="font-monospace fw-bold me-2">{{package}}</span> <a class="btn btn-secondary btn-sm" href="{%url 'workpackage_change' %}">Change year</a>
+</p>
 
-{% if package.in_the_past %}
-<h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
-    <h2><span style="color:red">You probably want to change the year above.</span></h2>
+{% if package.draft or package.in_the_future or package.in_the_past %}
+<div class="border border-2 border-danger p-3 rounded-3 mb-5">
+    <h6 class="fw-bold">!! Please note these exceptions <i class="fw-normal small">(hover for more information)</i></h6>
+    <div class="d-flex">
+        {% if package.draft %}
+        <div class="badge text-bg-danger me-2"
+             title="This is a DRAFT allocation and may be incomplete.">Draft allocation</div>
+        {% endif %}
+        {% if package.in_the_past %}
+        <div class="badge text-bg-danger me-2"
+             title="The currently selected Work Package is in the Past! You probably want to change the year above.">Past work package</div>
+        {% endif %}
+        {% if package.in_the_future %}
+        <div class="badge text-bg-danger me-2"
+             title="The currently selected Work Package is in the Future">Future work package</div>
+        {% endif %}
+    </div>
+</div>
 {% endif %}
 
-{% if package.in_the_future %}
-<h1><span style="color:red">Warning: The currently selected Work Package is in the Future.</span></h1>
-{% endif %}  
-
+<div>
 {% if group_data %}
   {% for group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average in group_data %}
-  <h2>{{group}}</h2>
+  <h4 class="mt-4 mb-3">{{group}}</h4>
     {% if group_list %}
-    <table border="1" width="90%" style="max-width: 900px;" class="persist-area">
-      <thead>
-        <tr class="persist-header">
-          <th  width="30%">Staff Name</th><th  width="8%">First Semester</th><th  width="8%">Second Semester</th><th  width="8%">Third Semester</th><th  width="8%">Total</th><th  width="8%">Scaled</th><th width="8%">Activities</th><th width="8%">Tasks</th>
-        </tr>
-      </thead>
-    <tbody>
-      {% for staff, total, first, second, third, scaled in group_list %}
-      <tr class="{{forloop.counter|divisibleby:2|yesno:"row2,row1"}}">
-        <th>{{ staff }}</th>
-        <td>{{ first|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</td>
-        <td>{{ second|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</td>
-        <td>{{ third|stringformat:".2f" }} {% if show_percentages %}%{% endif %}</td>
-        <td>{{ total|stringformat:".0f" }} {% if show_percentages %}%{% endif %}</td>
-          <td>{{ scaled|stringformat:".0f" }} {% if show_percentages %}%{% endif %}</td>
-        <td><a href="{% url 'activities' staff.id %}">Activities</a></td>
-        <td><a href="{% url 'tasks_bystaff' staff.id %}">Tasks</a></td>
-      </tr>      
-      {% endfor %}
-    </tbody>
-    </table>
-    <p>
-      Total hours for all activities in this group is {{ group_total }}, with 
-      average hours per staff member is 
-      {{ group_average|stringformat:".0f" }}, for allocated staff only the average hours per staff member is 
-      {{ group_allocated_average|stringformat:".0f" }}.
-    </p>
+    <div class="table-responsive small">
+        {# add class "table-sm" after "table" if we want less spacing/padding #}
+        <table class="table table-sm table-striped table-hover">
+            <thead class="sticky-top">
+                <tr>
+                    <th scope="col">Staff name</th>
+                    <th scope="col">First semester</th>
+                    <th scope="col">Second semester</th>
+                    <th scope="col">Third semester</th>
+                    <th scope="col">Total</th>
+                    <th scope="col">Scaled</th>
+                    <th scope="col">Activities</th>
+                    <th scope="col">Tasks</th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+                {% for staff, total, first, second, third, scaled in group_list %}
+                <tr>
+                    <td>{{ staff }}</td>
+                    <td class="font-monospace" style="white-space: pre;">{{ first|stringformat:"6.2f" }}{% if show_percentages %}%{% endif %}</td>
+                    <td class="font-monospace" style="white-space: pre;">{{ second|stringformat:"6.2f" }}{% if show_percentages %}%{% endif %}</td>
+                    <td class="font-monospace" style="white-space: pre;">{{ third|stringformat:"6.2f" }}{% if show_percentages %}%{% endif %}</td>
+                    <td class="font-monospace" style="white-space: pre;">{{ total|stringformat:"5.0f" }}{% if show_percentages %}%{% endif %} </td>
+                    <td class="font-monospace" style="white-space: pre;">{{ scaled|stringformat:"5.0f" }}{% if show_percentages %}%{% endif %} </td>
+                    <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'activities' staff.id %}">Activities</a></td>
+                    <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'tasks_bystaff' staff.id %}">Tasks</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p class="text-info-emphasis">
+          Total hours for all activities in this group is {{ group_total }}, with
+          average hours per staff member is
+          {{ group_average|stringformat:".0f" }}, for allocated staff only the average hours per staff member is
+          {{ group_allocated_average|stringformat:".0f" }}.
+        </p>
+    </div>
     {% else %}
     <p>No allocations for this group at this time.</p>
     {% endif %}
   {% endfor %}
-  <h2>Overall Totals</h2>
+</div>
+
+<div class="mt-4">
+  <h4>Overall Totals</h4>
   <p>
   Total hours for all activities is {{ total }}, average hours by staff member {{ average|stringformat:".0f" }}.
   </p>
+</div>
   
 {% else %}
   <p>No data for this work package at this time.</p>
 {% endif %}
-
-<p><a href="{% url 'loads_modules' semesters='' %}">Loads by Modules</a>.</p>
-
 
 {% endblock content %}

@@ -1,81 +1,146 @@
-{% extends "loads/base_automatic.html" %} {% block content %}
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
 
 {% load static %}
 <!-- Include formset plugin - including jQuery dependency -->
-<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-<script src="{% static 'loads/persist-headers.js' %}"></script>
-<p>Selected Year : {{package}} <a href="{%url 'workpackage_change' %}">(Change Year)</a></p>
-
-{% if package.draft %}
-<h1>This is a DRAFT allocation and may be incomplete.</h1>
-{% endif %}
+<!-- <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script> -->
+<!-- <script src="{% static 'loads/persist-headers.js' %}"></script> -->
 
 
-{% if package.in_the_past %}
-<h1><span style="color:red">Warning: The currently selected Work Package is in the Past.</span></h1>
-    <h2><span style="color:red">You probably want to change the year above.</span></h2>
-{% endif %}
+<p class="mb-4">
+    Selected year:<br/>
+    <span class="font-monospace fw-bold me-2">{{package}}</span> <a class="btn btn-secondary btn-sm" href="{%url 'workpackage_change' %}">Change year</a>
+</p>
 
-{% if package.in_the_future %}
-<h1><span style="color:red">Warning: The currently selected Work Package is in the Future.</span></h1>
-{% endif %}  
-
-<form action="" method="post">
-    {% csrf_token %}
-    {{ form }}
-    <input type="submit" value="Submit" />
-</form>    
-
-<h2>Loads By Modules {% if valid_semesters %}(Restricted to those in Semester{{valid_semesters_length_plaralise}} {% for semester in valid_semesters %}{% if forloop.first %}{% else %}{% if forloop.last %} and {% else %}, {% endif %}{% endif %}{{semester}}{% endfor %}) {% endif %}</h2>
-{% if combined_list %}
-    <table border="1" class="persist-area">
-      <thead>
-      <tr class="persist-header">
-        <th>Module Code</th>
-        <th>Module Name</th>
-        <th>Contact<br />Hours</th>
-        <th>Contact<br />Proportion</th>
-        <th>Admin<br />Hours</th>
-        <th>Admin<br />Proportion</th>
-        <th>Assessment<br />Hours</th>
-        <th>Assessment<br />Proportion</th>
-        <th>Extra Hours</th>
-        <th>Details</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for module, contact_hours, contact_proportion, admin_hours, admin_proportion, assessment_hours, assessment_proportion, extra_hours, module_staff in combined_list %}
-      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <th>{{ module.module_code }}</th>
-        <td>{{ module.module_name }}</td>
-        <td>{{ contact_hours|stringformat:".2f" }}</td>
-        <td><span {% if contact_proportion != 100 %}style="color:red"{% endif %}>{{ contact_proportion }}%</span></td>
-        <td>{{ admin_hours|stringformat:".2f" }}
-        <td><span {% if admin_proportion != 100 %}style="color:red"{% endif %}>{{ admin_proportion }}%</td>
-        <td>{{ assessment_hours|stringformat:".2f" }}
-        <td><span {% if assessment_proportion != 100 %}style="color:red"{% endif %}>{{ assessment_proportion }}%</td>
-        <td>{{ extra_hours|stringformat:".2f" }}</td>
-        {% if brief_details %}
-        <td>
-        {% for allocation in module_staff %}
-          <strong>{{ allocation.staff }}</strong><br />Contact {{ allocation.contact_proportion }}%; Admin {{ allocation.admin_proportion }}%; Assessment {{ allocation.assessment_proportion }}% <br/>
-        {% endfor %}
-        </td>
-        {% else %}
-        <td><a href="{% url 'modules_details' module.id %}">Details</a></td>
+{% if package.draft or package.in_the_future or package.in_the_past %}
+<div class="border border-2 border-danger p-3 rounded-3 mb-4">
+    <h6 class="fw-bold">!! Please note these exceptions <i class="fw-normal small">(hover for more information)</i></h6>
+    <div class="d-flex">
+        {% if package.draft %}
+        <div class="badge text-bg-danger me-2"
+             title="This is a DRAFT allocation and may be incomplete.">Draft allocation</div>
         {% endif %}
-      </tr>      
-      {% endfor %}
-    </tbody>
-    </table>
-    
-  <p>Total of {{ combined_list|length}} module{{combined_list|length|pluralize}}.
-  </p>
-    
-{% else %}
-    <p>No modules currently exist for this package.</p>
+        {% if package.in_the_past %}
+        <div class="badge text-bg-danger me-2"
+             title="The currently selected Work Package is in the Past! You probably want to change the year above.">Past work package</div>
+        {% endif %}
+        {% if package.in_the_future %}
+        <div class="badge text-bg-danger me-2"
+             title="The currently selected Work Package is in the Future">Future work package</div>
+        {% endif %}
+    </div>
+</div>
 {% endif %}
 
-<p><a href="{% url 'loads' %}">Loads by Staff</a>.</p>
+<a class="btn btn-info" data-bs-toggle="collapse" href="#filterForm" role="button" aria-controls="filterForm">
+    Filter
+</a>
+
+<div class="border border-secondary-subtle rounded-3 p-3 mb-3 mt-4 collapse{% if request.POST.semesters or request.POST.brief_details %} show{% endif %}"
+     id="filterForm">
+    <form action="" method="post">
+        {% csrf_token %}
+        {# Process hidden fields, we don't need to style them #}
+        {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+        {% endfor %}
+        {% for field in form.visible_fields %}
+        <div class="row mb-3">
+            <label for="{{ field.id_for_label }}"
+                   class="col-12 col-md-2 form-label">{{ field.label }}</label>
+            {% if field.field.widget.input_type == "text" or field.field.widget.input_type == "number" %}
+            <div class="col-12 col-md-10">
+                <input type="{{ field.field.widget.input_type }}" class="form-control" id="{{ field.id_for_label }}"
+                       {% for name, value in field.field.widget.attrs.items %}
+                       {% if value is not False %} {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                       {% endfor %}
+                       name="{{ field.html_name }}"
+                       value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"{% if field.field.required %} required{% endif %} />
+                {# Show field errors as a list, one per line #}
+                {% if field.errors %}
+                    <div class="text-danger small mt-1">
+                        {% for error in field.errors %}
+                        <p>{{ error|escape }}</p>
+                         {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            {% elif field.field.widget.input_type == "checkbox" %}
+                <div class="col">
+                    <input type="{{ field.field.widget.input_type }}"
+                           class="form-check-input" id="{{ field.id_for_label }}"
+                           name="{{ field.name }}" value="1"{% if field.value is True %} checked{% endif %} />
+                </div>
+            {% else %}
+                <div class="col-12 col-md-8 form-text font-monospace">
+                Unknown field type: {{ field.field.widget.input_type }}
+                </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <div class="row mt-4 mb-2">
+            <div class="col-12">
+                <input class="btn btn-primary" type="submit" value="Submit" />
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="mt-5">
+    <h4>Loads by Modules {% if valid_semesters %}<span class="small">(restricted to those in Semester{{valid_semesters_length_plaralise}} {% for semester in valid_semesters %}{% if forloop.first %}{% else %}{% if forloop.last %} and {% else %}, {% endif %}{% endif %}{{semester}}{% endfor %})</span>{% endif %}</h4>
+
+    {% if combined_list %}
+    <div class="table-responsive small">
+        <table class="table table-sm table-striped table-hover">
+            <thead class="sticky-top">
+                <tr>
+                    <th scope="col">Module code</th>
+                    <th scope="col">Module name</th>
+                    <th scope="col">Contact<br />hours</th>
+                    <th scope="col">Contact<br />proportion</th>
+                    <th scope="col">Admin<br />hours</th>
+                    <th scope="col">Admin<br />proportion</th>
+                    <th scope="col">Assessment<br />hours</th>
+                    <th scope="col">Assessment<br />proportion</th>
+                    <th scope="col">Extra hours</th>
+                    <th scope="col">Details</th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+                {% for module, contact_hours, contact_proportion, admin_hours, admin_proportion, assessment_hours, assessment_proportion, extra_hours, module_staff in combined_list %}
+                <tr>
+                    <th class="font-monospace">{{ module.module_code }}</th>
+                    <td>{{ module.module_name }}</td>
+                    <td class="font-monospace" style="white-space: pre;">{{ contact_hours|stringformat:"6.2f" }}</td>
+                    <td class="font-monospace{% if contact_proportion != 100 %} text-danger{% endif %}" style="white-space: pre;">{{ contact_proportion|stringformat:"6.2f" }}%</td>
+                    <td class="font-monospace" style="white-space: pre;">{{ admin_hours|stringformat:"6.2f" }}</td>
+                    <td class="font-monospace{% if admin_proportion != 100 %} text-danger{% endif %}" style="white-space: pre;">{{ admin_proportion|stringformat:"6.2f" }}%</td>
+                    <td class="font-monospace" style="white-space: pre;">{{ assessment_hours|stringformat:"6.2f" }} </td>
+                    <td class="font-monospace{% if assessment_proportion != 100 %} text-danger{% endif %}" style="white-space: pre;">{{ assessment_proportion|stringformat:"6.2f" }}%</td>
+                    <td class="font-monospace" style="white-space: pre;">{{ extra_hours|stringformat:"5.2f" }}</td>
+                    {% if brief_details %}
+                    <td class="small">
+                    {% for allocation in module_staff %}
+                    <strong>{{ allocation.staff }}</strong><br />Contact {{ allocation.contact_proportion }}%; Admin {{ allocation.admin_proportion }}%; Assessment {{ allocation.assessment_proportion }}% <br/>
+                    {% endfor %}
+                    </td>
+                    {% else %}
+                    <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'modules_details' module.id %}">Details</a></td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-info-emphasis">
+        Total of {{ combined_list|length}} module{{combined_list|length|pluralize}}.
+    </p>
+
+    {% else %}
+    <p>No modules currently exist for this package.</p>
+    {% endif %}
+</div>
 
 {% endblock content %}

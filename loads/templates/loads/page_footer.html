@@ -1,0 +1,22 @@
+{% load static %}
+<footer>
+    <div id="footer" class="container-fluid fixed-bottom m-0 px-0 text-bg-secondary small"
+         style="height:50px !important;">
+        <div class="d-flex justify-content-between align-items-center px-2"
+             style="xmax-width:980px !important; height:50px !important;">
+            <div id="footer-copyright" class="text-bg-secondary">
+                {# We should probably allow for a custom text and link here #}
+                &copy; Copyright <a class="link-light link-opacity-50-hover link-underline-opacity-50 link-offset-3" href="http://www.ulster.ac.uk">Ulster University</a>
+            </div>
+            <div id="footer-adminlink" class="text-bg-secondary">
+                <a class="link-light link-opacity-50-hover link-underline-opacity-50 link-offset-3" href="{% url 'admin:index' %}">Advanced Administration</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+{# We put this down here to avoid blocking DOM processing/rendering #}
+<script src="{% static 'bs5/js/bootstrap.bundle.min.js' %}" id="wam-bs5-js"></script>
+
+</body>
+</html>

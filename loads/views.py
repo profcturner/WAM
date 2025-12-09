@@ -291,25 +291,10 @@ def loads(request):
 @staff_only
 def loads_by_staff_chart(request):
     """Show a graph of the loads for all members of staff in a group"""
-    # We might want to use this example.
-    # https://crinkles.dev/writing/css-only-stacked-bar-chart/
-
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
     package = staff.package
-
-    # We will likely want this to be configurable
-    sort_lists = True
-
-    # If either the workpackage for the member of staff is undefined
-    # or it's set to a package they are not "in" send them to the chooser
-    #if not package or package not in staff.get_all_packages():
-    #    url = reverse('workpackage_change')
-    #    return HttpResponseRedirect(url)
-
-    # This controls whether hours or percentages are shown
-    #show_percentages = package.show_percentages
 
     # If the staff member is a superuser just check the workpackage exists
     if staff.user.is_superuser:
@@ -323,6 +308,11 @@ def loads_by_staff_chart(request):
             url = reverse('workpackage_change')
             return HttpResponseRedirect(url)
 
+    # We will likely want this to be configurable
+    sort_lists = True
+    #TODO: This isn't enabled yet, need to enable scaling for those staff not at 100 FTE
+    scale_fte = True
+
     # This controls whether hours or percentages are shown
     show_percentages = package.show_percentages
     show_percentages = True
@@ -333,6 +323,7 @@ def loads_by_staff_chart(request):
 
     # Go through each group in turn
     for group in package.groups.all():
+        # We are going to have some summary statistics for each group
         group_list = []
         group_size = 0
         group_total = 0.0
@@ -344,14 +335,15 @@ def loads_by_staff_chart(request):
         # And the associated staff objects
         staff_list = Staff.objects.all().filter(user__in=users).order_by('user__last_name')
         for staff in staff_list:
-            staff_load_by_category = staff.hours_by_type(package=package)
+            staff_hours_by_category = staff.hours_by_type(package=package)
 
             # Note below: the reason for checking any load as will as conditions is to allow
             # colleagues to appear in other workpackages in times they had an allocated load, even
             # if they are now inactive or flagged as having no workload
 
-            hours = sum(staff_load_by_category.values())
-            #hours = 10
+            # Total hours
+            hours = sum(staff_hours_by_category.values())
+
             # Check any staff member with no load is active, if not, skip them
             if not staff.is_active() and hours == 0:
                 continue
@@ -359,7 +351,32 @@ def loads_by_staff_chart(request):
             if not staff.has_workload and hours ==0:
                 continue
 
-            combined_item = [staff, staff_load_by_category, hours]
+            # For each member of staff, we want a list which includes, for each category
+            # The category, the number of hours in that category, and the percentage for the category
+            # as calculated against the nominal hours for the package
+            staff_loads_by_category = list()
+            for key, value in staff_hours_by_category.items():
+                if scale_fte:
+                    staff_loads_by_category.append(
+                        [key, value, 100 * value / (package.nominal_hours * staff.fte / 100)])
+                else:
+                    staff_loads_by_category.append(
+                        [key, value, 100 * value / package.nominal_hours])
+
+
+            # For each staff member, the bar width is keyed to be 80% for 100% load, up to 100% for 125% load
+            # This allows us to show some moderately overloaded staff clearly.
+            if scale_fte:
+                bar_width = 0.8 * 100 * (100 / staff.fte) * hours / package.nominal_hours
+            else:
+                bar_width = 0.8 * 100 * hours / package.nominal_hours
+            if bar_width < 80:
+                bar_width = 80
+            if bar_width > 100:
+                bar_width = 100
+
+            # Now add all this data for each member of staff
+            combined_item = [staff, staff_loads_by_category, hours, bar_width, hours * (100/staff.fte)]
             group_list.append(combined_item)
             group_total += hours
             group_size += 1
@@ -371,8 +388,9 @@ def loads_by_staff_chart(request):
         if group_allocated_staff:
             group_allocated_average = group_total / group_allocated_staff
 
+        # We want to sort with the most loaded staff at the top, using scaled hours to compensate for FTE
         if sort_lists:
-            group_list = sorted(group_list, key=lambda item : item[2], reverse=True)
+            group_list = sorted(group_list, key=lambda item : item[4], reverse=True)
 
         group_data.append(
             [group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average])

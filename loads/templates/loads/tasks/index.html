@@ -1,9 +1,11 @@
-{% extends "loads/base_automatic.html" %} {% block content %}
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
 
 {% if archived %}
-<h2>Archived Tasks</h2>
+<h3 class="my-3">Archived Tasks</h3>
 {% else %}
-<h2>Active Tasks</h2>
+<h3 class="my-3">Active Tasks</h3>
 {% endif %}
 
 {% if augmented_tasks %}
@@ -38,8 +40,15 @@
     {% endif %}
 {% endif %}
 
-<h2>Create a new Task</h2>
-
-<p><a href="{% url 'create task' %}">Click here to add a new Task</a></p>
+<div class="mt-4">
+    <h4>
+        Create a new Task
+    </h4>
+    <p>
+        <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'create task' %}">
+            Click here to add a new Task
+        </a>
+    </p>
+</div>
 
 {% endblock content %}
