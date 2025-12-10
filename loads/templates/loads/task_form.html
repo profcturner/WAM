@@ -1,11 +1,16 @@
 {% extends "loads/base_automatic.html" %} {% block content %}
 
 {% if form.instance.pk %}
-<h3>Update Task</h3>
+<h3>
+    Update Task
+</h3>
 {% else %}
-<h3>Create Task</h3>
-
-<p>This form allows the creation of new Tasks.</p>
+<h3>
+    Create Task
+</h3>
+<p class="mt-3 mb-4">
+    This form allows the creation of new Tasks.
+</p>
 {% endif %}
 
 <div class="border border-secondary-subtle rounded-3 p-3 mb-3 mt-3">
