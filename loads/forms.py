@@ -165,14 +165,14 @@ class AssessmentStateSignOffForm(ModelForm):
 class StaffCreationForm(forms.Form):
     """Allows for the creation of a Staff and linked User"""
 
-    username = forms.CharField(label='Enter Username', min_length=4, max_length=150)
-    email = forms.EmailField(label='Enter Email')
-    title = forms.CharField(label='Enter Title (Dr/Prof/etc)')
+    username = forms.CharField(label='Username', min_length=4, max_length=150)
+    email = forms.EmailField(label='E-mail')
+    title = forms.CharField(label='Title (Dr/Prof/etc)')
     first_name = forms.CharField()
     last_name = forms.CharField()
-    password1 = forms.CharField(required=False, label='Enter password', widget=forms.PasswordInput)
-    password2 = forms.CharField(required=False, label='Confirm password', widget=forms.PasswordInput)
-    staff_number = forms.CharField(required=False, label='Staff Number if different from username')
+    password1 = forms.CharField(required=False, label='Password', widget=forms.PasswordInput)
+    password2 = forms.CharField(required=False, label='Password (again)', widget=forms.PasswordInput)
+    staff_number = forms.CharField(required=False, label='Staff number (if different from username)')
     groups = forms.ModelMultipleChoiceField(required=False, queryset=Group.objects.all())
     package = forms.ModelChoiceField(required=False, queryset=WorkPackage.objects.all())
 
@@ -199,7 +199,7 @@ class StaffCreationForm(forms.Form):
         email = self.cleaned_data['email'].lower()
         r = User.objects.filter(email=email)
         if r.count():
-            raise ValidationError("Email already exists")
+            raise ValidationError("E-mail already exists")
         return email
 
     def clean_password2(self):
