@@ -1,24 +1,94 @@
-{% extends "loads/base_automatic.html" %} {% block content %}
+{% extends "loads/base_automatic.html" %}
+{% block content %}
 
-<h2>Create Staff User</h2>
+<h3>Create staff user</h3>
 
-<p>This form allows the creation of new Staff members. You should leave the password fields blank if your system
-allows login of remote users. Ask your site admin if you are unsure. If you do not add the Staff member to groups
-or a package then they will initially not be able to access any items.
-<strong>Note that the username will usually be a staff number</strong>
+<p class="mt-3">
+    This form allows the creation of new Staff members. You should leave the password fields blank if your system
+    allows login of remote users. Ask your site admin if you are unsure. If you do not add the Staff member to groups
+    or a package then they will initially not be able to access any items.
 </p>
 
-<form action="" method="post">
-    <table>
-        {% csrf_token %}
-        {{ form.as_table }}
-        <tr>
-            <td>
-                <input type="submit" value="Submit" />
-            </td>
-        </tr>
+<p class="alert alert-info my-4">
+    Note that the username will usually be a <strong>staff number</strong>
+</p>
 
-    </table>
-</form>
+<div class="border border-secondary-subtle rounded-3 p-3 mt-4">
+    <form action="" method="post">
+        {% csrf_token %}
+        {# Process hidden fields, we don't need to style them #}
+        {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+        {% endfor %}
+        {% for field in form.visible_fields %}
+        <div class="row mb-4">
+            <label for="{{ field.id_for_label }}"
+                   class="col-12 col-md-3 form-label">{{ field.label }}</label>
+            {% if field.field.widget.input_type == "text" or field.field.widget.input_type == "number" or field.field.widget.input_type == "email" or field.field.widget.input_type == "password" %}
+                <div class="col-12 col-md-9">
+                    <input type="{{ field.field.widget.input_type }}" class="form-control" id="{{ field.id_for_label }}"
+                           {% for name, value in field.field.widget.attrs.items %}
+                           {% if value is not False %} {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                           {% endfor %}
+                           name="{{ field.html_name }}"
+                           value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"{% if field.field.required %} required{% endif %} />
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% elif field.field.widget.input_type == "select" %}
+                <div class="col-12 col-md-9">
+                    <select class="form-select" id="{{ field.id_for_label }}"
+                        {% for name, value in field.field.widget.attrs.items %}
+                        {% if value is not False %}{{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                        {% endfor %}
+                        name="{{ field.name }}"
+                        value="{% if field.value != None %}{{ field.value }}{% else %}{% endif %}"
+                        {% if field.field.widget.allow_multiple_selected %} MULTIPLE {% endif %}>
+                        {% for option in field.field.choices %}
+                        <option value="{{ option.0|escape }}"{% if option.0 in field.value or option.0 == field.value %} selected{% endif %}>
+                            {{ option.1|escape }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if field.field.widget.allow_multiple_selected %}
+                    <div class="form-text mt-2">
+                        Hold down <kbd>CTRL</kbd> or <kbd>CMD</kbd> to select multiple options
+                    </div>
+                    {% endif %}
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% elif field.field.widget.input_type == "checkbox" %}
+                <div class="col">
+                    <input type="{{ field.field.widget.input_type }}"
+                           class="form-check-input" id="{{ field.id_for_label }}"
+                           name="{{ field.name }}" value="1"{% if field.value is True %} checked{% endif %} />
+                </div>
+            {% else %}
+                <div class="col-12 col-md-8 form-text font-monospace">
+                Unknown field type: {{ field.field.widget.input_type }}
+                </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <div class="row mt-4 mb-3">
+            <div class="col-12">
+                <input class="btn btn-primary" type="submit" value="Submit" />
+            </div>
+        </div>
+    </form>
+</div>
 
 {% endblock content %}
