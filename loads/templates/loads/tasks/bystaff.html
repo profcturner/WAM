@@ -25,7 +25,7 @@
                 <td>
                     {% if overdue %}
                     {{ task.deadline|timesince }} <span class="badge text-bg-danger">Overdue</span>
-                    {% elif not urgent %}
+                    {% elif urgent %}
                     <span class="badge text-bg-warning">Urgent</span>
                     {% else %}
                     Pending
