@@ -1,59 +1,102 @@
-{% extends "loads/base_automatic.html" %} {% block content %}
+{% extends "loads/base_automatic.html" %}
+{% block content %}
 
-<h2>{{ task.name }}</h2>
+<h3 class="my-3">{{ task.name }}</h3>
 
-<table border="0">
-  <tr>
-    <th>
-      Details
-    </th>
-    <td>
-      {{ task.details|urlize|linebreaksbr }}
-    </td>
-  </tr>
-  <tr>
-    <th>
-      Deadline
-    </th>
-    <td>
-      {{ task.deadline }} ({{ task.deadline|timeuntil }})
-      {% if overdue %}
-      <span class="urgent">Overdue: {{ task.deadline|timesince }}</span>
-      {% elif urgent %}
-      <span class="urgent">Urgent</span>
-      {% endif %}
-      
-    </td>
-  </tr>
-  {% if task.url %}
-  <tr>
-    <th>
-      URL
-    </th>
-    <td>
-      <a href="{{task.url}}">{{ task.url }}</a>
-    </td>
-  </tr>
-  {% endif %}
-  <tr>
-    <th>
-      Category
-    </th>
-    <td>
-      {{ task.category}}
-    </td>
-  </tr>
+<pre>{{ task.urgent }}</pre>
+<div class="table-responsive my-4">
+    <table class="table table-striped table-hover">
+        <tr>
+            <th>
+                Details
+            </th>
+            <td>
+                {{ task.details|urlize|linebreaksbr }}
+            </td>
+        </tr>
+        <tr>
+            <th>
+                Deadline
+            </th>
+            <td>
+                <span class="font-monospace">{{ task.deadline }}</span><span class="small"> ({{ task.deadline|timeuntil }})</span>
+                {% if overdue %}
+                <span class="badge text-bg-danger">Overdue</span> {{ task.deadline|timesince }}
+                {% elif urgent %}
+                <span class="badge text-bg-warning">Urgent</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% if task.url %}
+        <tr>
+            <th>
+                URL
+            </th>
+            <td>
+                <a href="{{task.url}}">{{ task.url }}</a>
+            </td>
+        </tr>
+        {% endif %}
+        <tr>
+            <th>
+                Category
+            </th>
+            <td>
+                {{ task.category}}
+            </td>
+        </tr>
+    </table>
+</div>
 
-</table>
-
-<p>
-Please confirm completion of this task by {{ staff }}. The date and time you record this action is already noted and any other comment is optional. 
+<p class="alert alert-info my-3">
+    Please confirm completion of this task by <strong>{{ staff }}</strong>
+</p>
+<p class="mt-4">
+    The date and time you record this action is already noted and any other
+    comment is optional.
 </p>
 
-<form action="" method="post">
-    {% csrf_token %}
-    {{ form }}
-    <input type="submit" value="Submit" />
-</form>  
+<div class="border border-secondary-subtle rounded-3 p-3 mt-4">
+    <form action="" method="post">
+        {% csrf_token %}
+        {# Process hidden fields, we don't need to style them #}
+        {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+        {% endfor %}
+        {% for field in form.visible_fields %}
+        <div class="row mb-4">
+            <label for="{{ field.id_for_label }}"
+                   class="col-12 col-md-3 form-label">{{ field.label }}</label>
+            {% if field.field.widget.input_type == "text" or field.field.widget.input_type == "number" or field.field.widget.input_type == "email" or field.field.widget.input_type == "password" %}
+                <div class="col-12 col-md-9">
+                    <input type="{{ field.field.widget.input_type }}" class="form-control" id="{{ field.id_for_label }}"
+                           {% for name, value in field.field.widget.attrs.items %}
+                           {% if value is not False %} {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                           {% endfor %}
+                           name="{{ field.html_name }}"
+                           value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"{% if field.field.required %} required{% endif %} />
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="col-12 col-md-8 form-text font-monospace">
+                Unknown field type: {{ field.field.widget.input_type }}
+                </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <div class="row mt-4 mb-3">
+            <div class="col-12">
+                <input class="btn btn-primary" type="submit" value="Submit" />
+            </div>
+        </div>
+    </form>
+</div>
 
 {% endblock content %}
