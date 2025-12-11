@@ -1,94 +1,136 @@
 {% extends "loads/base_automatic.html" %} {% block content %}
 
-<h2>Details for task {{ task.name }}</h2>
+<h3 class="my-3">Details for task</h3>
 
-<table border="0">
-  <tr>
-    <th>
-      Details
-    </th>
-    <td>
-      {{ task.details|urlize|linebreaksbr }}
-    </td>
-  </tr>
-  <tr>
-    <th>
-      Deadline
-    </th>
-    <td>
-      {{ task.deadline }} ({{ task.deadline|timeuntil }})
-      {% if overdue %}
-      <span class="urgent">Overdue: {{ task.deadline|timesince }}</span>
-      {% elif urgent %}
-      <span class="urgent">Urgent</span>
-      {% endif %}
-      
-    </td>
-  </tr>
-  {% if task.url %}
-  <tr>
-    <th>
-      URL
-    </th>
-    <td>
-      <a href="{{task.url}}">{{ task.url }}</a>
-    </td>
-  </tr>
-  {% endif %}
-  <tr>
-    <th>
-      Category
-    </th>
-    <td>
-      {{ task.category}}
-    </td>
-  </tr>
+<div class="border border-secondary-subtle rounded-3 p-3 mt-4">
+    <h4 class="text-body-emphasis mb-4">{{ task.name }}</h4>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <tr>
+                <th>
+                    Details
+                </th>
+                <td>
+                    {{ task.details|urlize|linebreaksbr }}
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    Deadline
+                </th>
+                <td>
+                    <span class="font-monospace">{{ task.deadline }}</span><span class="small"> ({{ task.deadline|timeuntil }})</span>
+                    {% if overdue %}
+                    <span class="badge text-bg-danger">Overdue</span> {{ task.deadline|timesince }}
+                    {% elif urgent %}
+                    <span class="badge text-bg-warning">Urgent</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% if task.url %}
+            <tr>
+                <th>
+                    URL
+                </th>
+                <td>
+                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{{task.url}}">{{ task.url }}</a>
+                </td>
+            </tr>
+            {% endif %}
+            <tr>
+                <th>
+                    Category
+                </th>
+                <td>
+                    {{ task.category}}
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
 
-</table>
-
-<h2>Task Completion Information</h2>
+<h4 class="my-4">Task completion information</h4>
 
 {% if combined_list_incomplete %}
-<h3>Completions Still Required</h3>
-
-    <table border="1">
-      <tr>
-        <th>Staff Name</th><th>Complete</th>
-      </tr>
-      {% for target, dummy in combined_list_incomplete %}
-      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <th>{{ target }}</th>
-        <td><a href="{% url 'tasks_completion' task_id=task.id staff_id=target.id %}">Complete</a></td>
-      </tr>      
-      {% endfor %}
+<h5 class="mb-3">
+    Completions still required
+</h5>
+<div class="table-responsive small">
+    <table class="table table-striped table-hover table-sm">
+        <thead>
+            <tr>
+                <th scope="col" class="col-11">
+                    Staff name
+                </th>
+                <th>
+                    Complete
+                </th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            {% for target, dummy in combined_list_incomplete %}
+            <tr>
+                <td class="col-11">
+                    {{ target }}
+                </td>
+                <td>
+                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'tasks_completion' task_id=task.id staff_id=target.id %}">
+                        Complete
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
-
+</div>
 {% endif %}
   
 {% if combined_list_complete %}
-<h3>Task Completion Registered</h3>
-
-    <table border="1">
-      <tr>
-        <th>Staff Name</th><th>Completed</th><th>Comment</th>
-      </tr>
-      {% for target, completion in combined_list_complete %}
-      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <th>{{ target }}</th>
-        <td>{{ completion.when }}</td>
-        <td>{{ completion.comment }}</td>
-      </tr>      
-      {% endfor %}
+<h5 class="my-3">
+    Task completion registered
+</h5>
+<div class="table-responsive small">
+    <table class="table table-striped table-hover table-sm">
+        <thead>
+            <tr>
+                <th scope="col" class="col-5">
+                    Staff name
+                </th>
+                <th scope="col" class="col-3">
+                    Completed
+                </th>
+                <th scope="col" class="col-4">
+                    Comment
+                </th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            {% for target, completion in combined_list_complete %}
+            <tr>
+                <td class="col-5">
+                    {{ target }}
+                </td>
+                <td class="col-3 font-monospace">
+                    {{ completion.when }}
+                </td>
+                <td class="col-4">
+                    {{ completion.comment }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
-    
+</div>
 {% endif %}
 
-<h3>Completion Status</h3>
-
-<strong>{{ percentage_complete|stringformat:".2f"}}% complete.</strong><br />   
-<p>Completions: {{ combined_list_complete|length}}. <br />
-Non completions: {{combined_list_incomplete|length}}.<br />
+<h5 class="my-3">
+    Completion Status
+</h5>
+<p class="fw-bold">
+    <span class="font-monospace">{{ percentage_complete|stringformat:".2f"}}%</span> complete.
 </p>
-    
+<p>
+    Completions: <span class="font-monospace">{{ combined_list_complete|length}}</span>. Non completions: <span class="font-monospace">{{combined_list_incomplete|length}}</span>.
+</p>
 
 {% endblock content %}
