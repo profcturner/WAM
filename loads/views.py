@@ -61,6 +61,7 @@ from .forms import ExternalExaminerCreationForm
 from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
 
+from WAM.settings import WAM_ADMIN_CONTACT_EMAIL, WAM_ADMIN_CONTACT_NAME
 from operator import itemgetter
 
 # Get an instance of a logger
@@ -72,6 +73,7 @@ def index(request):
     template = loader.get_template('loads/index.html')
     context = {
         'home_page': True,
+        'admin_name': WAM_ADMIN_CONTACT_NAME,
     }
     logger.debug("Visiting home page")
     return HttpResponse(template.render(context, request))
