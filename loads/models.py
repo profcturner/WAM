@@ -474,13 +474,14 @@ class Staff(models.Model):
         return self.user.last_name
 
     def hours_by_type(self, package=0):
-        """Calculate the total allocated hours for a given WorkPackage
+        """
+        Calculates the total allocated hours for a given WorkPackage for each category
 
-        If package is zero it attempts to find the value for the logged in user
+        :param: package     the workpackage to calculate hours for
+        :return:            a dict, keyed by category, values the hours against that category
         """
 
         # Create a dict for all available categories, starting with 0 hours in each
-
         hours_by_category = dict()
         categories = Category.objects.all()
         for category in categories:
