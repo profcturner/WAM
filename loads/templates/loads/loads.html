@@ -73,7 +73,8 @@
         <p class="text-info-emphasis">
             Total for all activities in this group is {{ group_total|stringformat:".0f"|intcomma }} person hours. <br/>
             Average per staff member is {{ group_average|stringformat:".0f"|intcomma }} hours (including unallocated staff). <br />
-            Average per staff member is {{ group_allocated_average|stringformat:".0f"|intcomma }} hours (excluding unallocated staff).
+            Average per staff member is {{ group_allocated_average|stringformat:".0f"|intcomma }} hours (excluding unallocated staff). <br />
+            There are {{ group_allocated_staff|apnumber }} staff in this group with allocations out of {{ group_list|length|apnumber }}.
 
         </p>
     </div>
@@ -86,9 +87,9 @@
 <div class="mt-4">
   <h4>Overall Totals</h4>
     <p>
-        {{ total_staff }} unique staff members have allocated workload. <br />
+        {{ total_staff }} unique staff members are included in this data. <br />
         Total hours for all activities is {{ total|stringformat:".0f"|intcomma }} person hours.<br />
-        Average hours by staff member, not including unallocated staff, is {{ average|stringformat:".0f"|intcomma }} hours.
+        Average hours by staff member, including unallocated staff, is {{ average|stringformat:".0f"|intcomma }} hours.
     </p>
 </div>
   
