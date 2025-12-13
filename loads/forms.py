@@ -90,8 +90,15 @@ class AssessmentStaffForm(ModelForm):
         """Check the user can invoke this state"""
         staff = Staff.objects.get(user=self.user)
 
-        new_package = self.cleaned_data['package']
-        new_staff = self.cleaned_data['staff']
+        try:
+            new_package = self.cleaned_data['package']
+        except KeyError:
+            raise forms.ValidationError('Must be a valid package')
+
+        try:
+            new_staff = self.cleaned_data['staff']
+        except KeyError:
+            raise forms.ValidationError('Must be a valid staff member')
 
         # Get current Team and check for duplicates
         duplicates = False
@@ -108,7 +115,6 @@ class AssessmentStaffForm(ModelForm):
             raise ValidationError("You don't have permission to add team members to this package")
 
         return super().clean()
-
 
 
 class AssessmentResourceForm(ModelForm):
@@ -155,11 +161,10 @@ class AssessmentStateSignOffForm(ModelForm):
         assessment_state = self.cleaned_data['assessment_state']
         module = self.cleaned_data['module']
         signed_by = self.cleaned_data['signed_by']
-        # staff = Staff.objects.get(user=signed_by)
+        staff = Staff.objects.get(user=signed_by)
 
-        # if not assessment_state.can_be_set_by(staff, module):
-        #    raise ValidationError("You don't have permission to select that state.")
-        return assessment_state
+        if not assessment_state.can_be_set_by(staff, module):
+            raise ValidationError("You don't have permission to select that state.")
 
 
 class StaffCreationForm(forms.Form):

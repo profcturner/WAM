@@ -184,7 +184,15 @@ class Command(BaseCommand):
             actors="coordinator",
             notify="coordinator,moderator",
             initial_state=True,
-            priority=10
+            priority=10,
+            next_states_guidance="""
+            As the materials have been signed off as submitted, the module moderator
+            should now review the materials, and if their school policy requires it,
+            upload their moderation form.<br /><br />
+
+            If they are content that all submitted materials pass internal quality
+            checks they should sign them off as accepted. Otherwise they should sign
+            off that changes have been requested."""
         )
 
         moderated_ok_state = AssessmentState.objects.create(
@@ -193,7 +201,19 @@ class Command(BaseCommand):
             actors="moderator",
             notify="coordinator,moderator,external",
             initial_state=False,
-            priority=20
+            priority=20,
+            next_states_guidance="""
+            The assessment materials have now been successfully moderated. Normally an External
+            Examiner should now review these in accordance with the School policy. The External
+            Examiner can upload comments if so wished.<br /><br />
+
+            If the External Examiner is content with the assessment items they can sign off their
+            acceptance. Alternatively they can sign off that they would like to request some changes
+            that they have detailed.<br /><br />
+
+            <strong>Warning</strong>: while Module Coordinators can perform a final sign off they
+            <strong>should not</strong> do so unless the module is not externally examined, or to
+            indicate that they have received external examiner approval outside the system."""
         )
 
         moderated_not_ok_state = AssessmentState.objects.create(
@@ -202,7 +222,14 @@ class Command(BaseCommand):
             actors="moderator",
             notify="coordinator,moderator",
             initial_state=False,
-            priority=30
+            priority=30,
+            next_states_guidance="""
+            The moderator has indicated that they wish the module team to consider some changes to
+            the assessment. Accordingly the module team can upload revised assessments and information
+            if required.<br /><br />
+
+            The module coordinator should then sign off that the changes have been made or to provide
+            an explanation for why changes may not need to be made."""
         )
 
         resubmission_moderation_state = AssessmentState.objects.create(
@@ -211,7 +238,14 @@ class Command(BaseCommand):
             actors="coordinator",
             notify="coordinator,moderator",
             initial_state=False,
-            priority=40
+            priority=40,
+            next_states_guidance="""
+            The module has been resubmitted for moderation, the module moderator should now review the
+            changes made, or any explanation for why changes may not be required.<br /><br />
+
+            If they are content that all submitted materials pass internal quality checks they should
+            sign them off as accepted. Otherwise they should sign off that changes have again been requested.
+            """
         )
 
         external_ok_state = AssessmentState.objects.create(
@@ -220,7 +254,13 @@ class Command(BaseCommand):
             actors="external",
             notify="coordinator,moderator,external,assessment_team",
             initial_state=False,
-            priority=50
+            priority=50,
+            next_states_guidance="""
+            The external examiner has accepted that the module materials are appropriate and have been
+            accepted.<br /><br />
+
+            The final responsibility for signing off all materials rests with the module coordinator.
+            """
         )
 
         external_not_ok_state = AssessmentState.objects.create(
@@ -229,7 +269,15 @@ class Command(BaseCommand):
             actors="external",
             notify="coordinator,moderator,external",
             initial_state=False,
-            priority=60
+            priority=60,
+            next_states_guidance="""
+            The external examiner has indicated that they wish the module team to consider some changes
+            to the assessment. Accordingly the module team can upload revised assessments and information
+            if required.<br /><br />
+
+            The module coordinator should then sign off that the changes have been made or to provide
+            an explanation for why changes may not need to be made.
+            """
         )
 
         resubmission_external_state = AssessmentState.objects.create(
@@ -238,7 +286,14 @@ class Command(BaseCommand):
             actors="coordinator",
             notify="coordinator,external",
             initial_state=False,
-            priority=70
+            priority=70,
+            next_states_guidance="""
+            The module has been resubmitted for external examination, the external examiner should now
+            review the changes made, or any explanation for why changes may not be required.<br /><br />
+
+            If they are content that all submitted materials pass internal quality checks they should
+            sign them off as accepted. Otherwise they should sign off that changes have again been requested.
+            """
         )
 
         coordinator_final_state = AssessmentState.objects.create(
@@ -247,7 +302,11 @@ class Command(BaseCommand):
             actors="coordinator",
             notify="coordinator,assessment_staff",
             initial_state=False,
-            priority=80
+            priority=80,
+            next_states_guidance="""
+            The materials for the module have been finally signed off. It is still possible to upload
+            new materials and restart the process if required.
+            """
         )
 
         # Now make links
