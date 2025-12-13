@@ -17,7 +17,10 @@ from django.urls import include, path, re_path
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 
-from WAM.settings import WAM_ADFS_AUTH
+from WAM.settings import WAM_ADFS_AUTH, DEBUG_TOOLBAR
+
+if DEBUG_TOOLBAR:
+    from debug_toolbar.toolbar import debug_toolbar_urls
 
 from loads import views
 
@@ -106,4 +109,8 @@ urlpatterns = [
 # Add ADFS login URLS if required
 if WAM_ADFS_AUTH:
     urlpatterns.append(path('oauth2/', include('django_auth_adfs.urls')))
+
+# Add Debug Toolbar
+if DEBUG_TOOLBAR:
+    urlpatterns += debug_toolbar_urls()
 
