@@ -2,6 +2,8 @@
 
 {% block content %}
 
+{% load humanize %}
+
 {% load static %}
 
 {# <!-- Include formset plugin - including jQuery dependency -->                                #}
@@ -69,10 +71,10 @@
             </tbody>
         </table>
         <p class="text-info-emphasis">
-          Total hours for all activities in this group is {{ group_total }}, with
-          average hours per staff member is
-          {{ group_average|stringformat:".0f" }}, for allocated staff only the average hours per staff member is
-          {{ group_allocated_average|stringformat:".0f" }}.
+            Total for all activities in this group is {{ group_total|stringformat:".0f"|intcomma }} person hours. <br/>
+            Average per staff member is {{ group_average|stringformat:".0f"|intcomma }} hours (including unallocated staff). <br />
+            Average per staff member is {{ group_allocated_average|stringformat:".0f"|intcomma }} hours (excluding unallocated staff).
+
         </p>
     </div>
     {% else %}
@@ -83,9 +85,11 @@
 
 <div class="mt-4">
   <h4>Overall Totals</h4>
-  <p>
-  Total hours for all activities is {{ total }}, average hours by staff member {{ average|stringformat:".0f" }}.
-  </p>
+    <p>
+        {{ total_staff }} unique staff members have allocated workload. <br />
+        Total hours for all activities is {{ total|stringformat:".0f"|intcomma }} person hours.<br />
+        Average hours by staff member, not including unallocated staff, is {{ average|stringformat:".0f"|intcomma }} hours.
+    </p>
 </div>
   
 {% else %}

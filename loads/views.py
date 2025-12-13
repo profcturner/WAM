@@ -215,8 +215,11 @@ def loads(request):
     # This controls whether hours or percentages are shown
     show_percentages = package.show_percentages
 
+    # We shall want to consider totals for averages, but as some users can be in multiple
+    # groups, we will keep a list to make sure we don't double count.
     total = 0.0
     total_staff = 0
+    counted_staff = list()
     group_data = []
 
     # Go through each group in turn
@@ -244,6 +247,12 @@ def loads(request):
             if not staff.has_workload and load_info[0] ==0:
                 continue
 
+            # Check if we have seen this person already, but if not add them to the grand total
+            if not staff in counted_staff:
+                counted_staff.append(staff)
+                total += load_info[0]
+                total_staff += 1
+
             # Ok, we should include this colleague
             if show_percentages:
                 combined_item = [staff, 100 * load_info[0] / package.nominal_hours,
@@ -266,8 +275,6 @@ def loads(request):
             group_allocated_average = group_total / group_allocated_staff
         group_data.append(
             [group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average])
-        total += group_total
-        total_staff += len(staff_list)
 
     if total_staff:
         average = total / total_staff
@@ -279,6 +286,7 @@ def loads(request):
     context = {
         'group_data': group_data,
         'total': total,
+        'total_staff': total_staff,
         'average': average,
         'package': package,
         'show_percentages': show_percentages,
@@ -313,17 +321,19 @@ def loads_by_staff_chart(request):
     #TODO: This isn't enabled yet, need to enable scaling for those staff not at 100 FTE
     scale_fte = True
 
-    # This controls whether hours or percentages are shown
-    show_percentages = package.show_percentages
+    # I'm not sure it makes sense not to have percentages, but in case we change our minds
     show_percentages = True
 
+    # We shall want to consider totals for averages, but as some users can be in multiple
+    # groups, we will keep a list to make sure we don't double count.
     total = 0.0
     total_staff = 0
+    counted_staff = list()
     group_data = []
 
     # Go through each group in turn
     for group in package.groups.all():
-        # We are going to have some summary statistics for each group
+        # We are going to have some summary statistics for each group too
         group_list = []
         group_size = 0
         group_total = 0.0
@@ -350,6 +360,12 @@ def loads_by_staff_chart(request):
             # If this colleague isn't flagged as having a workload and doesn't have any, also skip
             if not staff.has_workload and hours ==0:
                 continue
+
+            # Check if we have seen this person already, but if not add them to the grand total
+            if not staff in counted_staff:
+                counted_staff.append(staff)
+                total += hours
+                total_staff += 1
 
             # For each member of staff, we want a list which includes, for each category
             # The category, the number of hours in that category, and the percentage for the category
@@ -394,8 +410,6 @@ def loads_by_staff_chart(request):
 
         group_data.append(
             [group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average])
-        total += group_total
-        total_staff += len(staff_list)
 
     if total_staff:
         average = total / total_staff
@@ -407,6 +421,7 @@ def loads_by_staff_chart(request):
     context = {
         'group_data': group_data,
         'total': total,
+        'total_staff': total_staff,
         'average': average,
         'package': package,
         'categories': Category.objects.all(),
