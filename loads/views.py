@@ -1394,6 +1394,9 @@ def add_assessment_sign_off(request, module_id):
     else:
         form = AssessmentStateSignOffForm()
         form.fields['assessment_state'].queryset = next_states
+        form.fields['signed_by'].initial = request.user
+        form.fields['module'].initial = module
+
 
     template = loader.get_template('loads/modules/add_assessment_signoff.html')
     context = {
