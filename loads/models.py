@@ -478,7 +478,7 @@ class Staff(models.Model):
         """return the last name of the linked user account"""
         return self.user.last_name
 
-    def hours_by_type(self, package=0):
+    def hours_by_category(self, package=0):
         """
         Calculates the total allocated hours for a given WorkPackage for each category
 

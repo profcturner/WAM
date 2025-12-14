@@ -356,7 +356,7 @@ def loads_by_staff_chart(request):
         # And the associated staff objects, sort them here to avoid a double hit
         staff_list = Staff.objects.all().filter(user__in=users).order_by('user__last_name')
         for staff in staff_list:
-            staff_hours_by_category = staff.hours_by_type(package=package)
+            staff_hours_by_category = staff.hours_by_category(package=package)
 
             # Total hours
             hours = sum(staff_hours_by_category.values())
