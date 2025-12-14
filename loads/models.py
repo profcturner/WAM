@@ -9,6 +9,11 @@ from django.core.validators import validate_comma_separated_integer_list
 
 from WAM.settings import WAM_DEFAULT_ACTIVITY_TYPE
 
+import logging
+
+# Create a logger
+logger = logging.getLogger(__name__)
+
 
 def divide_by_semesters(total_hours, semester_string):
     """divide hours equally between targeted semesters
@@ -473,14 +478,15 @@ class Staff(models.Model):
         """return the last name of the linked user account"""
         return self.user.last_name
 
-    def hours_by_type(self, package=0):
-        """Calculate the total allocated hours for a given WorkPackage
+    def hours_by_category(self, package=0):
+        """
+        Calculates the total allocated hours for a given WorkPackage for each category
 
-        If package is zero it attempts to find the value for the logged in user
+        :param: package     the workpackage to calculate hours for
+        :return:            a dict, keyed by category, values the hours against that category
         """
 
         # Create a dict for all available categories, starting with 0 hours in each
-
         hours_by_category = dict()
         categories = Category.objects.all()
         for category in categories:
@@ -495,9 +501,9 @@ class Staff(models.Model):
         # Add hours calculated from "automatic" module allocation
         modulestaff = ModuleStaff.objects.all().filter(staff=self.id).filter(package=package)
         for moduledata in modulestaff:
-            c_hours = moduledata.module.get_contact_hours()
-            as_hours = moduledata.module.get_assessment_hours()
-            ad_hours = moduledata.module.get_admin_hours()
+            c_hours = moduledata.contact_proportion * moduledata.module.get_contact_hours() / 100
+            as_hours = moduledata.assessment_proportion * moduledata.module.get_assessment_hours() / 100
+            ad_hours = (moduledata.admin_proportion * moduledata.module.get_admin_hours() / 100)
 
             hours = c_hours + as_hours + ad_hours
 
@@ -530,19 +536,19 @@ class Staff(models.Model):
             as_hours = moduledata.module.get_assessment_hours_by_semester()
             ad_hours = moduledata.module.get_admin_hours_by_semester()
 
-            semester1_hours += int(c_hours[1] * moduledata.contact_proportion / 100)
-            semester1_hours += int(as_hours[1] * moduledata.assessment_proportion / 100)
-            semester1_hours += int(ad_hours[1] * moduledata.admin_proportion / 100)
+            semester1_hours += (c_hours[1] * moduledata.contact_proportion / 100)
+            semester1_hours += (as_hours[1] * moduledata.assessment_proportion / 100)
+            semester1_hours += (ad_hours[1] * moduledata.admin_proportion / 100)
 
-            semester2_hours += int(c_hours[2] * moduledata.contact_proportion / 100)
-            semester2_hours += int(as_hours[2] * moduledata.assessment_proportion / 100)
-            semester2_hours += int(ad_hours[2] * moduledata.admin_proportion / 100)
+            semester2_hours += (c_hours[2] * moduledata.contact_proportion / 100)
+            semester2_hours += (as_hours[2] * moduledata.assessment_proportion / 100)
+            semester2_hours += (ad_hours[2] * moduledata.admin_proportion / 100)
 
-            semester3_hours += int(c_hours[3] * moduledata.contact_proportion / 100)
-            semester3_hours += int(as_hours[3] * moduledata.assessment_proportion / 100)
-            semester3_hours += int(ad_hours[3] * moduledata.admin_proportion / 100)
+            semester3_hours += (c_hours[3] * moduledata.contact_proportion / 100)
+            semester3_hours += (as_hours[3] * moduledata.assessment_proportion / 100)
+            semester3_hours += (ad_hours[3] * moduledata.admin_proportion / 100)
 
-        return [int(semester1_hours + semester2_hours + semester3_hours),
+        return [semester1_hours + semester2_hours + semester3_hours,
                 semester1_hours, semester2_hours, semester3_hours, len(activities)]
 
     def total_hours(self, package=0):
