@@ -376,6 +376,14 @@ class UserClientTest(TestCase):
         response = self.client.get("/tasks/detail/%s" % task.id)
         self.assertEqual(response.status_code, 200)
 
+        # These views should be response code 200 (OK)
+        response = self.client.get("/tasks/completion/%s/%s" % (task.id, staff.id))
+        self.assertEqual(response.status_code, 200)
+
+        # These views should be response code 200 (OK)
+        response = self.client.get("/tasks/bystaff/%s" % staff.id)
+        self.assertEqual(response.status_code, 200)
+
         # These views should be response code 403 (Forbidden)
         response = self.client.get("/tasks/create/")
         self.assertEqual(response.status_code, 403)
