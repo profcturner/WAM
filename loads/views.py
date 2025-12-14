@@ -252,6 +252,8 @@ def loads(request):
 
             # Check if we have seen this person already, but if not add them to the grand total
             if not staff in counted_staff:
+                logger.debug("loads: considering staff %s, total hours %f" % (staff, load_info[0]))
+                counted_staff.append(staff)
                 counted_staff.append(staff)
                 total += load_info[0]
                 total_staff += 1
@@ -372,6 +374,7 @@ def loads_by_staff_chart(request):
 
             # Check if we have seen this person already, but if not add them to the grand total
             if not staff in counted_staff:
+                logger.debug("loads: considering staff %s, total hours %f" % (staff, hours))
                 counted_staff.append(staff)
                 total += hours
                 total_staff += 1
