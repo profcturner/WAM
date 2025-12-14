@@ -373,17 +373,27 @@ class UserClientTest(TestCase):
         self.assertIsNotNone(staff.package)
 
         # These views should be response code 200 (OK)
+        response = self.client.get("/tasks/index/")
+        self.assertEqual(response.status_code, 200)
+        #TODO: Check task count (after UX update)
+
+        response = self.client.get("/tasks/archived/index/")
+        self.assertEqual(response.status_code, 200)
+        # TODO: Check task count (after UX update)
+
         response = self.client.get("/tasks/detail/%s" % task.id)
         self.assertEqual(response.status_code, 200)
 
-        # These views should be response code 200 (OK)
         response = self.client.get("/tasks/completion/%s/%s" % (task.id, staff.id))
         self.assertEqual(response.status_code, 200)
 
-        # These views should be response code 200 (OK)
         response = self.client.get("/tasks/bystaff/%s" % staff.id)
         self.assertEqual(response.status_code, 200)
 
         # These views should be response code 403 (Forbidden)
         response = self.client.get("/tasks/create/")
         self.assertEqual(response.status_code, 403)
+
+        #TODO: Add completion form submission
+        #TODO: Check archive works
+        #TODO: Add admin views
