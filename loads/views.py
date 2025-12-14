@@ -844,7 +844,7 @@ def tasks_details(request, task_id):
     else:
         percentage_complete = 0
 
-    logger.debug("%s:Task details viewed %s", request.user, task, extra={'package': package})
+    logger.debug("%s:Task details viewed %s", request.user, task)
     template = loader.get_template('loads/tasks/details.html')
     context = {
         'task': task,
