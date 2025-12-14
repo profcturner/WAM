@@ -1,6 +1,27 @@
 {% extends 'loads/base_external.html'  %}
 
 {% block content %}
-<h1>Welcome not logged in</h1>
-<p>Welcome to the (prototype) tool for modelling allocation of workload for staff, and task tracker, and tool for externally examining work. Most of the functionality is in the Admin interface, for which you may need your username and password, and where you may have rather limited access depending on your user type. Please report issues to <a href="mailto:c.turner@ulster.ac.uk">c.turner@ulster.ac.uk</a></p>
-{% endblock %}
+
+<h2 class="my-3">Welcome</h2>
+
+    <div class="row align-items-start">
+    <div class="col">
+        <img src="{% static 'logos/apple-touch-icon-180x180.png' %}" alt="WAM Logo">
+    </div>
+    <div class="col">
+        <p>
+            Welcome to <strong>WAM</strong>.
+        </p>
+        <p>
+            WAM is a tool for modelling allocation of workload, tracking task
+            completions and providing quality assurance around the setting of assessments.
+        </p>
+
+        <p>
+            Please report issues to <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="mailto:{{ admin_email }}">{{ admin_name }}</a>.
+        </p>
+    </div>
+  </div>
+
+
+<{% endblock %}
