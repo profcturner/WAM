@@ -40,8 +40,8 @@
                 <td>{{ project.activity_type }}</td>
                 <td>{{ project.start }}</td>
                 <td>{{ project.end }}</td>
-                <td><a href="{% url 'projects_details' project.id %}">Details</a></td>
-                <td><a href="{% url 'projects_generate_activities' project.id %}">Generate Activities</a></td>
+                <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'projects_details' project.id %}">Details</a></td>
+                <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'projects_generate_activities' project.id %}">Generate activities</a></td>
             </tr>
             {% endfor %}
         </tbody>
