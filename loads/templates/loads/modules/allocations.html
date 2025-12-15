@@ -62,10 +62,11 @@
                     {% endfor %}
                     {% if formset.non_form_errors %}
                     <tr>
-                        <td colspan="4"><span class="error_message">
-                        {% for error in formset.non_form_errors %}
-                        {{ error|escape }}
-                        {% endfor %}</span></td>
+                        <td colspan="4" class="wam-text-danger">
+                            {% for error in formset.non_form_errors %}
+                            {{ error|escape }}
+                            {% endfor %}
+                        </td>
                     </tr>
                 {% endif %}
                 </tbody>
