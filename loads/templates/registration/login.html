@@ -15,12 +15,12 @@
                 </div>
                 <form method="post">
                 {% csrf_token %}
+                {# Process hidden fields, we don't need to style them #}
+                {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
+                {% endfor %}
                 <div class="card-body">
                     <div class="card-text text-start">
-                        {# Process hidden fields, we don't need to style them #}
-                        {% for hidden in form.hidden_fields %}
-                            {{ hidden }}
-                        {% endfor %}
                         {# old variant #}
                         {# {{ form.as_p }} #}
                         {# new variant #}
@@ -28,16 +28,18 @@
                         <div class="mt-4">
                             <label for="{{ field.id_for_label }}"
                                    class="form-label">{{ field.label }}</label>
-                            <input type="{{ field.field.widget.input_type }}"
-                                   class="form-control"
-                                   id="{{ field.id_for_label }}"
+                            <input type="{{ field.field.widget.input_type }}" class="form-control" id="{{ field.id_for_label }}"
+                                   {% for name, value in field.field.widget.attrs.items %}
+                                   {% if value is not False %} {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                                   {% endfor %}
+                                   name="{{ field.html_name }}"
                                    {% if not field.field.max_length is None %}
                                    maxlength="{{ field.field.max_length }}"
                                    {% endif %}
-                                   name="{{ field.name }}" value="" />
+                                   value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"{% if field.field.required %} required{% endif %} />
                             {# Show field errors as a list, one per line #}
                             {% if field.errors %}
-                                <div class="text-danger small mt-1">
+                                <div class="wam-text-danger small mt-1">
                                     {% for error in field.errors %}
                                     <p>{{ error|escape }}</p>
                                      {% endfor %}

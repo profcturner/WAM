@@ -34,7 +34,7 @@
                            value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"{% if field.field.required %} required{% endif %} />
                     {# Show field errors as a list, one per line #}
                     {% if field.errors %}
-                        <div class="text-danger small mt-1">
+                        <div class="wam-text-danger small mt-1">
                             {% for error in field.errors %}
                             <p>{{ error|escape }}</p>
                              {% endfor %}
@@ -58,7 +58,7 @@
                     </select>
                     {# Show field errors as a list, one per line #}
                     {% if field.errors %}
-                        <div class="text-danger small mt-1">
+                        <div class="wam-text-danger small mt-1">
                             {% for error in field.errors %}
                             <p>{{ error|escape }}</p>
                              {% endfor %}

@@ -9,29 +9,29 @@
     <table class="table table-sm table-striped table-hover">
         <thead>
             <tr>
-                <th class="col-6">Task name</th>
-                <th>Deadline</th>
-                <th>Time left</th>
-                <th>Status</th>
-                <th>Complete</th>
+                <th class="col-4">Task name</th>
+                <th class="col-3">Deadline</th>
+                <th class="col-3">Time left</th>
+                <th class="col-1">Status</th>
+                <th class="col-1">Complete</th>
             </tr>
         </thead>
         <tbody class="table-group-divider">
             {% for task, urgent, overdue in combined_list_incomplete %}
             <tr>
-                <td class="col-6">{{ task.name }}</td>
-                <td>{{ task.deadline }}&nbsp;</td>
-                <td>{{ task.deadline|timeuntil }}</td>
-                <td>
+                <td class="col-4">{{ task.name }}</td>
+                <td class="col-3 font-monospace">{{ task.deadline }}&nbsp;</td>
+                <td class="col-3">{{ task.deadline|timeuntil }}</td>
+                <td class="col-1">
                     {% if overdue %}
                     {{ task.deadline|timesince }} <span class="badge text-bg-danger">Overdue</span>
-                    {% elif not urgent %}
+                    {% elif urgent %}
                     <span class="badge text-bg-warning">Urgent</span>
                     {% else %}
                     Pending
                     {% endif %}
                 </td>
-                <td>
+                <td class="col-1">
                     <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'tasks_completion' task_id=task.id staff_id=staff.id %}">
                         Complete
                     </a>
@@ -41,7 +41,7 @@
         </tbody>
     </table>
 </div>
-<p>
+<p class="text-info-emphasis">
     {{ staff }} has {{ combined_list_incomplete|length}} outstanding task{{combined_list_incomplete|length|pluralize}}.
 </p>
 {% else %}
@@ -52,24 +52,24 @@
 
 
 {% if combined_list_complete %}
-<h3 class="mt-4">Tasks completed</h3>
+<h3 class="mt-5">Tasks completed</h3>
 <div class="table-responsive small">
     <table class="table table-sm table-striped table-hover">
         <thead>
             <tr>
-                <th class="col-6">Task name</th>
-                <th>Deadline</th>
-                <th>Time left</th>
-                <th>Completed</th>
+                <th class="col-4">Task name</th>
+                <th class="col-3">Deadline</th>
+                <th class="col-3">Time left</th>
+                <th class="col-2">Completed</th>
             </tr>
         </thead>
         <tbody class="table-group-divider">
             {% for task, when in combined_list_complete %}
             <tr>
-                <td class="col-6">{{ task.name }}</td>
-                <td>{{ task.deadline }}&nbsp;</td>
-                <td>{{ task.deadline|timeuntil }}</td>
-                <td>{{ task.when }}</td>
+                <td class="col-4">{{ task.name }}</td>
+                <td class="col-3 font-monospace">{{ task.deadline }}&nbsp;</td>
+                <td class="col-3">{{ task.deadline|timeuntil }}</td>
+                <td class="col-2">{{ task.when }}</td>
             </tr>
             {% endfor %}
         </tbody>

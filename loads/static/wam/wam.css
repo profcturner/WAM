@@ -56,3 +56,23 @@ ul.wam-menu-list li::before {
     font-weight: bold;
     font-size: 1.2em;
 }
+/* text-danger-emphasis works better in dark mode, whereas text-danger
+   works better in light mode. */
+.wam-text-danger {
+    color: #dc3545 !important;
+}
+[data-bs-theme=dark] {
+    .wam-text-danger {
+        color: #ea868f !important;
+    }
+}
+/* Hide footer when printing */
+@media print {
+    footer {
+        display: none !important;
+    }
+    #footer {
+        display: none !important;
+    }
+}
+/*@media (prefers-color-scheme: dark) { color: #ea868f; }*/

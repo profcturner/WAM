@@ -59,7 +59,7 @@
                        value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"{% if field.field.required %} required{% endif %} />
                 {# Show field errors as a list, one per line #}
                 {% if field.errors %}
-                    <div class="text-danger small mt-1">
+                    <div class="wam-text-danger small mt-1">
                         {% for error in field.errors %}
                         <p>{{ error|escape }}</p>
                          {% endfor %}
@@ -113,11 +113,11 @@
                     <th class="font-monospace">{{ module.module_code }}</th>
                     <td>{{ module.module_name }}</td>
                     <td class="font-monospace" style="white-space: pre;">{{ contact_hours|stringformat:"6.2f" }}</td>
-                    <td class="font-monospace{% if contact_proportion != 100 %} text-danger{% endif %}" style="white-space: pre;">{{ contact_proportion|stringformat:"6.2f" }}%</td>
+                    <td class="font-monospace{% if contact_proportion != 100 %} wam-text-danger{% endif %}" style="white-space: pre;">{{ contact_proportion|stringformat:"6.2f" }}%</td>
                     <td class="font-monospace" style="white-space: pre;">{{ admin_hours|stringformat:"6.2f" }}</td>
-                    <td class="font-monospace{% if admin_proportion != 100 %} text-danger{% endif %}" style="white-space: pre;">{{ admin_proportion|stringformat:"6.2f" }}%</td>
+                    <td class="font-monospace{% if admin_proportion != 100 %} wam-text-danger{% endif %}" style="white-space: pre;">{{ admin_proportion|stringformat:"6.2f" }}%</td>
                     <td class="font-monospace" style="white-space: pre;">{{ assessment_hours|stringformat:"6.2f" }} </td>
-                    <td class="font-monospace{% if assessment_proportion != 100 %} text-danger{% endif %}" style="white-space: pre;">{{ assessment_proportion|stringformat:"6.2f" }}%</td>
+                    <td class="font-monospace{% if assessment_proportion != 100 %} wam-text-danger{% endif %}" style="white-space: pre;">{{ assessment_proportion|stringformat:"6.2f" }}%</td>
                     <td class="font-monospace" style="white-space: pre;">{{ extra_hours|stringformat:"5.2f" }}</td>
                     {% if brief_details %}
                     <td class="small">

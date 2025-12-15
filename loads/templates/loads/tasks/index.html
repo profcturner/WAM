@@ -3,50 +3,78 @@
 {% block content %}
 
 {% if archived %}
-<h3 class="my-3">Archived Tasks</h3>
+<h3 class="my-3">Archived tasks</h3>
 {% else %}
-<h3 class="my-3">Active Tasks</h3>
+<h3 class="my-3">Active tasks</h3>
 {% endif %}
 
 {% if augmented_tasks %}
-    <table border="1">
-      <tr>
-        <th>Task Name</th><th>Deadline</th><th>Time left</th><th>Status</th><th>Details</th><th>Edit</th>
-      </tr>
-      {% for task, urgent, overdue in augmented_tasks %}
-      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <th>{{ task.name }}</th>
-        <td>{{ task.deadline }}</td>
-        <td>{{ task.deadline|timeuntil }}</td>
-        {% if overdue %}
-        <td><span class="urgent">Overdue<br />{{ task.deadline|timesince }}</span></td>
-        {% elif urgent %}
-        <td><span class="urgent">Urgent</span></td>
-        {% else %}
-        <td>Pending</td>
-        {% endif %}
-        <td><a href="{% url 'tasks_details' task.id %}">Details</a></td>
-      <td><a href="{% url 'update task' task.id %}">Edit</a></td>
-      </tr>      
-      {% endfor %}
+<div class="table-responsive small mt-4">
+    <table class="table table-sm table-striped table-hover">
+        <thead>
+            <tr>
+                <th scope="col">Task name</th>
+                <th scope="col">Deadline</th>
+                <th scope="col">Time left</th>
+                <th scope="col">Status</th>
+                <th scope="col">Details</th>
+                <th scope="col">Edit</th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            {% for task, urgent, overdue in augmented_tasks %}
+            <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+                <td>
+                    {{ task.name }}
+                </td>
+                <td>
+                    {{ task.deadline }}
+                </td>
+                <td>
+                    {{ task.deadline|timeuntil }}
+                </td>
+                {% if overdue %}
+                <td>
+                    <span class="badge text-bg-danger">Overdue</span><br />{{ task.deadline|timesince }}
+                </td>
+                {% elif urgent %}
+                <td>
+                    <span class="badge text-bg-warning">Urgent</span>
+                </td>
+                {% else %}
+                <td>
+                    Pending
+                </td>
+                {% endif %}
+                <td>
+                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'tasks_details' task.id %}">Details</a>
+                </td>
+                <td>
+                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update task' task.id %}">Edit</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
     
-    <p>There are {{ augmented_tasks|length}} {% if archived %}archived{% else %}open{% endif %} task{{tasks|length|pluralize}}.</p>
+    <p class="text-info-emphasis">
+        There are {{ augmented_tasks|length}} {% if archived %}archived{% else %}open{% endif %} task{{tasks|length|pluralize}}.
+    </p>
 {% else %}
     {% if archived %}
-        <p>No archived tasks are available.</p>
+        <p class="text-info-emphasis">No archived tasks are available.</p>
     {% else %}
-        <p>No unarchived tasks are available.</p>
+        <p class="text-info-emphasis">No unarchived tasks are available.</p>
     {% endif %}
 {% endif %}
 
-<div class="mt-4">
+<div class="mt-5">
     <h4>
-        Create a new Task
+        Create a new task
     </h4>
     <p>
         <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'create task' %}">
-            Click here to add a new Task
+            Click here to add a new task
         </a>
     </p>
 </div>

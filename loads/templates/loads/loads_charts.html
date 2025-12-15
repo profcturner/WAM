@@ -45,7 +45,7 @@
 
 {% if group_data %}
     {% for group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average in group_data %}
-    <div class="container bg-white p-5 shadow rounded">
+    <div class="container p-5 bg-body-secondary shadow-sm rounded">
         <h3>
             {{group}}
         </h3>
@@ -57,11 +57,11 @@
                 <div class="chart-label"><a class="link-offset-2 link-underline link-underline-opacity-25" href="{% url 'activities' staff.id %}">{{ staff }}</a></div>
                 <div class="progress-wrapper">
                     <div class="hundred-percent-marker"></div>
-                    <div class="progress" style="width: {{ bar_width }}%;">
+                    <div class="progress bg-body-tertiary" style="width: {{ bar_width }}%;">
                         {% for category, hours, percentage in loads_by_category %}
                         <!-- Start a Block -->
                         <div class="progress-bar bg-col{{ category.pk }}" role="progressbar" style="width: {{ percentage }}%">
-                            <span class="font-monospace" data-toggle="tooltip" title="{{ category.abbreviation }}: {{ hours|floatformat:0 }} Hours">
+                            <span class="font-monospace" data-toggle="tooltip" title="{{ category.abbreviation }}: {{ hours|floatformat:0 }} Hours, {{ percentage|floatformat:0 }}%">
                                 {{ percentage|floatformat:0 }}%
                             </span>
                         </div>
