@@ -35,11 +35,16 @@ from loads.views import ActivityListView
 from loads.views import CreateActivityView
 from loads.views import UpdateActivityView
 
+from WAM.settings import WAM_ADMIN_CONTACT_NAME, WAM_ADMIN_CONTACT_EMAIL
 
+help_contact = {
+    'help_name': WAM_ADMIN_CONTACT_NAME,
+    'help_url': "mailto:" + WAM_ADMIN_CONTACT_EMAIL,
+}
 
 urlpatterns = [
     re_path(r'^$', views.index, name='index'),
-    re_path(r'^accounts/login/$', auth_views.LoginView.as_view(), name='login'),
+    re_path(r'^accounts/login/$', auth_views.LoginView.as_view(extra_context=help_contact), name='login'),
     re_path(r'^accounts/logout/$', auth_views.LogoutView.as_view(), name='logout'),
     re_path(r'^workpackage/change/$', views.workpackage_change, name='workpackage_change'),
     re_path(r'^workpackage/migrate/$', views.workpackage_migrate, name='workpackage_migrate'),    

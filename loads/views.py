@@ -806,7 +806,7 @@ def tasks_bystaff(request, staff_id):
             combined_item = [task, completion[0].when]
             combined_list_complete.append(combined_item)
 
-    logger.debug("%s: Tasks for %s viewed", request.user, staff, extra={'package': package})
+    logger.debug("%s: Tasks for %s viewed", request.user, staff)
     template = loader.get_template('loads/tasks/bystaff.html')
     context = {
         'staff': staff,
@@ -844,7 +844,7 @@ def tasks_details(request, task_id):
     else:
         percentage_complete = 0
 
-    logger.debug("%s:Task details viewed %s", request.user, task, extra={'package': package})
+    logger.debug("%s:Task details viewed %s", request.user, task)
     template = loader.get_template('loads/tasks/details.html')
     context = {
         'task': task,
