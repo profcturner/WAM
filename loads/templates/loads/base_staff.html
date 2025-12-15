@@ -16,11 +16,11 @@
 {% block menu %}
 
 {# Create top-level menus, and possibly some dropdowns #}
-<nav class="navbar navbar-expand-lg fixed-top text-body bg-body-secondary" data-bs-theme="light" style="height:80px">
+<nav class="navbar navbar-expand-lg fixed-top text-body bg-body-secondary opacity-100" style="height:80px">
     <div class="container-fluid p-1">
-        <button class="navbar-toggler bg-dark ms-2"
+        <button class="navbar-toggler xbtn xbtn-primary xtext-bg-dark ms-2"
                 type="button"
-                data-bs-toggle="collapse"
+                data-bs-toggle="offcanvas"
                 data-bs-target="#navbarWAM"
                 aria-controls="navbarWAM" aria-expanded="false"
                 aria-label="Toggle navigation">
@@ -32,9 +32,18 @@
             <img src="//cdn.ulster.ac.uk/home/ulster-frontend/img/microsites/ulster-university-logo.png"
                  style="max-height: 48px" title="Ulster University Workload Modelling" alt="WAM" />
         </a>
-        <div class="collapse navbar-collapse" id="navbarWAM">
+        <div class="offcanvas offcanvas-start" id="navbarWAM">
             {# I'm guessing these can be dynamically generated based on which modules are active, etc #}
             {# TODO: We should add 'aria-current="page"' on the active menu choice                    #}
+            <div class="offcanvas-header border-bottom border-secondary d-inline-flex">
+                <div class="me-auto">
+                    <button type="button" class="btn btn-close me-3 float-left" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div>
+                    <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Menu</h5>
+                </div>
+            </div>
+            <div class="offcanvas-body">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0 small">
                 <li class="nav-item">
                     <a class="nav-link{%if home_page %} active{% endif %}"
@@ -47,9 +56,9 @@
                         Loads
                     </a>
                     <ul class="dropdown-menu">
-                        <li class="dropdown-item"><a class="nav-link" href="{% url 'loads' %}">Loads By Staff</a></li>
-                        <li class="dropdown-item"><a class="nav-link" href="{% url 'loads_modules' semesters='' %}">Loads By Modules</a></li>
-                        <li class="dropdown-item"><a class="nav-link" href="{% url 'loads_charts' %}">Load Charts</a></li>
+                        <li class="dropdown-item small"><a class="nav-link" href="{% url 'loads' %}">Loads By Staff</a></li>
+                        <li class="dropdown-item small"><a class="nav-link" href="{% url 'loads_modules' semesters='' %}">Loads By Modules</a></li>
+                        <li class="dropdown-item small"><a class="nav-link" href="{% url 'loads_charts' %}">Load Charts</a></li>
                     </ul>
                 </li>
                 {% else %}
@@ -64,8 +73,8 @@
                         Tasks
                     </a>
                     <ul class="dropdown-menu">
-                        <li class="dropdown-item"><a class="nav-link" href="{% url 'tasks_index' %}">Active Tasks</a></li>
-                        <li class="dropdown-item"><a class="nav-link" href="{% url 'archived_tasks_index' %}">Archived Tasks</a></li>
+                        <li class="dropdown-item small"><a class="nav-link" href="{% url 'tasks_index' %}">Active Tasks</a></li>
+                        <li class="dropdown-item small"><a class="nav-link" href="{% url 'archived_tasks_index' %}">Archived Tasks</a></li>
                     </ul>
                 </li>
                 {% else %}
@@ -102,7 +111,7 @@
                     <a class="nav-link text-decoration-none {% active request custom_admin_index %}" href="{% url 'custom_admin_index' %}"
                        target="wam_admin" title="click to access section: Admin">Admin</a>
                 </li>
-            {% if not request.meta.remote_user %}
+                {% if not request.meta.remote_user %}
                 <li class="nav-item">
                     <form id="wam-logout" method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
@@ -111,8 +120,9 @@
                         </button>
                     </form>
                 </li>
-            {% endif %}
+                {% endif %}
             </ul>
+            </div>
         </div>
     </div>
 </nav>
