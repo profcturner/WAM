@@ -52,3 +52,4 @@ WAM/.ropeproject/objectdb
 WAM/local_settings.py
 .DS_Store
 django.log
+/WAM/local

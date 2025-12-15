@@ -17,7 +17,10 @@ from django.urls import include, path, re_path
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 
-from WAM.settings import WAM_ADFS_AUTH
+from WAM.settings import WAM_ADFS_AUTH, DEBUG_TOOLBAR
+
+if DEBUG_TOOLBAR:
+    from debug_toolbar.toolbar import debug_toolbar_urls
 
 from loads import views
 
@@ -32,11 +35,16 @@ from loads.views import ActivityListView
 from loads.views import CreateActivityView
 from loads.views import UpdateActivityView
 
+from WAM.settings import WAM_ADMIN_CONTACT_NAME, WAM_ADMIN_CONTACT_EMAIL
 
+help_contact = {
+    'help_name': WAM_ADMIN_CONTACT_NAME,
+    'help_url': "mailto:" + WAM_ADMIN_CONTACT_EMAIL,
+}
 
 urlpatterns = [
     re_path(r'^$', views.index, name='index'),
-    re_path(r'^accounts/login/$', auth_views.LoginView.as_view(), name='login'),
+    re_path(r'^accounts/login/$', auth_views.LoginView.as_view(extra_context=help_contact), name='login'),
     re_path(r'^accounts/logout/$', auth_views.LogoutView.as_view(), name='logout'),
     re_path(r'^workpackage/change/$', views.workpackage_change, name='workpackage_change'),
     re_path(r'^workpackage/migrate/$', views.workpackage_migrate, name='workpackage_migrate'),    
@@ -106,4 +114,8 @@ urlpatterns = [
 # Add ADFS login URLS if required
 if WAM_ADFS_AUTH:
     urlpatterns.append(path('oauth2/', include('django_auth_adfs.urls')))
+
+# Add Debug Toolbar
+if DEBUG_TOOLBAR:
+    urlpatterns += debug_toolbar_urls()
 

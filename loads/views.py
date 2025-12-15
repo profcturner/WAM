@@ -61,6 +61,7 @@ from .forms import ExternalExaminerCreationForm
 from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
 
+from WAM.settings import WAM_ADMIN_CONTACT_EMAIL, WAM_ADMIN_CONTACT_NAME
 from operator import itemgetter
 
 # Get an instance of a logger
@@ -72,6 +73,8 @@ def index(request):
     template = loader.get_template('loads/index.html')
     context = {
         'home_page': True,
+        'admin_name': WAM_ADMIN_CONTACT_NAME,
+        'admin_email': WAM_ADMIN_CONTACT_EMAIL,
     }
     logger.debug("Visiting home page")
     return HttpResponse(template.render(context, request))
@@ -215,8 +218,11 @@ def loads(request):
     # This controls whether hours or percentages are shown
     show_percentages = package.show_percentages
 
+    # We shall want to consider totals for averages, but as some users can be in multiple
+    # groups, we will keep a list to make sure we don't double count.
     total = 0.0
     total_staff = 0
+    counted_staff = list()
     group_data = []
 
     # Go through each group in turn
@@ -228,7 +234,7 @@ def loads(request):
         group_allocated_staff = 0
         group_allocated_average = 0.0
         # Get the users in the group
-        users = User.objects.all().filter(groups__in=[group]).distinct().order_by('last_name')
+        users = User.objects.all().filter(groups__in=[group]).distinct()
         # And the associated staff objects
         staff_list = Staff.objects.all().filter(user__in=users).order_by('user__last_name')
         for staff in staff_list:
@@ -243,6 +249,14 @@ def loads(request):
             # If this colleague isn't flagged as having a workload and doesn't have any, also skip
             if not staff.has_workload and load_info[0] ==0:
                 continue
+
+            # Check if we have seen this person already, but if not add them to the grand total
+            if not staff in counted_staff:
+                logger.debug("loads: considering staff %s, total hours %f" % (staff, load_info[0]))
+                counted_staff.append(staff)
+                counted_staff.append(staff)
+                total += load_info[0]
+                total_staff += 1
 
             # Ok, we should include this colleague
             if show_percentages:
@@ -266,8 +280,6 @@ def loads(request):
             group_allocated_average = group_total / group_allocated_staff
         group_data.append(
             [group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average])
-        total += group_total
-        total_staff += len(staff_list)
 
     if total_staff:
         average = total / total_staff
@@ -279,6 +291,7 @@ def loads(request):
     context = {
         'group_data': group_data,
         'total': total,
+        'total_staff': total_staff,
         'average': average,
         'package': package,
         'show_percentages': show_percentages,
@@ -290,7 +303,13 @@ def loads(request):
 @login_required
 @staff_only
 def loads_by_staff_chart(request):
-    """Show a graph of the loads for all members of staff in a group"""
+    """
+    Show a graph of the loads for all members of staff in all groups in a given workpackage
+
+    The principal focus of this view is allowing clear peer comparability. And as such FTE scaling is
+    currently build in, and while there is a parameter to disable it, by default, staff are sorted in
+    descending load order in each group.
+    """
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
@@ -310,39 +329,41 @@ def loads_by_staff_chart(request):
 
     # We will likely want this to be configurable
     sort_lists = True
-    #TODO: This isn't enabled yet, need to enable scaling for those staff not at 100 FTE
+    #TODO: This is still pretty much built in as True by assumption in some of the code below
     scale_fte = True
 
-    # This controls whether hours or percentages are shown
-    show_percentages = package.show_percentages
+    # I'm not sure it makes sense not to have percentages, but in case we change our minds
     show_percentages = True
 
+    # We shall want to consider totals for averages, but as some users can be in multiple
+    # groups, we will keep a list to make sure we don't double count.
     total = 0.0
     total_staff = 0
+    counted_staff = list()
     group_data = []
 
     # Go through each group in turn
     for group in package.groups.all():
-        # We are going to have some summary statistics for each group
+        # We are going to have some summary statistics for each group too
         group_list = []
         group_size = 0
         group_total = 0.0
         group_average = 0.0
         group_allocated_staff = 0
         group_allocated_average = 0.0
-        # Get the users in the group
-        users = User.objects.all().filter(groups__in=[group]).distinct().order_by('last_name')
-        # And the associated staff objects
+        # Get the users in the group, order by last name initially
+        users = User.objects.all().filter(groups__in=[group]).distinct()
+        # And the associated staff objects, sort them here to avoid a double hit
         staff_list = Staff.objects.all().filter(user__in=users).order_by('user__last_name')
         for staff in staff_list:
-            staff_hours_by_category = staff.hours_by_type(package=package)
-
-            # Note below: the reason for checking any load as will as conditions is to allow
-            # colleagues to appear in other workpackages in times they had an allocated load, even
-            # if they are now inactive or flagged as having no workload
+            staff_hours_by_category = staff.hours_by_category(package=package)
 
             # Total hours
             hours = sum(staff_hours_by_category.values())
+
+            # Note below: the reason for checking any load as will as conditions is to allow
+            # colleagues to appear in other workpackages in times when they had an allocated load, even
+            # if they are now inactive or flagged as having no workload
 
             # Check any staff member with no load is active, if not, skip them
             if not staff.is_active() and hours == 0:
@@ -350,6 +371,13 @@ def loads_by_staff_chart(request):
             # If this colleague isn't flagged as having a workload and doesn't have any, also skip
             if not staff.has_workload and hours ==0:
                 continue
+
+            # Check if we have seen this person already, but if not add them to the grand total
+            if not staff in counted_staff:
+                logger.debug("loads: considering staff %s, total hours %f" % (staff, hours))
+                counted_staff.append(staff)
+                total += hours
+                total_staff += 1
 
             # For each member of staff, we want a list which includes, for each category
             # The category, the number of hours in that category, and the percentage for the category
@@ -363,13 +391,13 @@ def loads_by_staff_chart(request):
                     staff_loads_by_category.append(
                         [key, value, 100 * value / package.nominal_hours])
 
-
             # For each staff member, the bar width is keyed to be 80% for 100% load, up to 100% for 125% load
             # This allows us to show some moderately overloaded staff clearly.
             if scale_fte:
                 bar_width = 0.8 * 100 * (100 / staff.fte) * hours / package.nominal_hours
             else:
                 bar_width = 0.8 * 100 * hours / package.nominal_hours
+
             if bar_width < 80:
                 bar_width = 80
             if bar_width > 100:
@@ -394,8 +422,6 @@ def loads_by_staff_chart(request):
 
         group_data.append(
             [group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average])
-        total += group_total
-        total_staff += len(staff_list)
 
     if total_staff:
         average = total / total_staff
@@ -407,6 +433,7 @@ def loads_by_staff_chart(request):
     context = {
         'group_data': group_data,
         'total': total,
+        'total_staff': total_staff,
         'average': average,
         'package': package,
         'categories': Category.objects.all(),
@@ -779,7 +806,7 @@ def tasks_bystaff(request, staff_id):
             combined_item = [task, completion[0].when]
             combined_list_complete.append(combined_item)
 
-    logger.debug("%s: Tasks for %s viewed", request.user, staff, extra={'package': package})
+    logger.debug("%s: Tasks for %s viewed", request.user, staff)
     template = loader.get_template('loads/tasks/bystaff.html')
     context = {
         'staff': staff,
@@ -817,7 +844,7 @@ def tasks_details(request, task_id):
     else:
         percentage_complete = 0
 
-    logger.debug("%s:Task details viewed %s", request.user, task, extra={'package': package})
+    logger.debug("%s:Task details viewed %s", request.user, task)
     template = loader.get_template('loads/tasks/details.html')
     context = {
         'task': task,
@@ -1394,6 +1421,9 @@ def add_assessment_sign_off(request, module_id):
     else:
         form = AssessmentStateSignOffForm()
         form.fields['assessment_state'].queryset = next_states
+        form.fields['signed_by'].initial = request.user
+        form.fields['module'].initial = module
+
 
     template = loader.get_template('loads/modules/add_assessment_signoff.html')
     context = {
