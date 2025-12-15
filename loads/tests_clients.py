@@ -222,7 +222,7 @@ class UserClientTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/external/")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/generators/index/")
         self.assertEqual(response.status_code, 200)
@@ -340,10 +340,10 @@ class UserClientTest(TestCase):
         response = self.client.get("/modules/index/")
         self.assertEqual(response.status_code, 200)
 
-        # These views should be response code 403 (Forbidden) for a regular member of staff with no other permissions
         response = self.client.get("/external/")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
 
+        # These views should be response code 403 (Forbidden) for a regular member of staff with no other permissions
         response = self.client.get("/projects/index/")
         self.assertEqual(response.status_code, 403)
 

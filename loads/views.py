@@ -79,7 +79,7 @@ def index(request):
     logger.debug("Visiting home page")
     return HttpResponse(template.render(context, request))
 
-@external_only
+#@external_only
 def external_index(request):
     """The main home page for External Examiners"""
 
