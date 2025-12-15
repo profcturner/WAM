@@ -136,6 +136,16 @@ LOGOUT_REDIRECT_URL = 'logged out'
 # New in Django 3.2, we should set an explicit automatic primary key type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+from django.contrib.messages import constants as messages
+
+MESSAGE_TAGS = {
+        messages.DEBUG: 'alert-secondary',
+        messages.INFO: 'alert-info',
+        messages.SUCCESS: 'alert-success',
+        messages.WARNING: 'alert-warning',
+        messages.ERROR: 'alert-danger',
+}
+
 # Create a local settings file called local_settings.py to override details
 try:
     from WAM.local_settings import *

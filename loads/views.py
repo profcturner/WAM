@@ -188,6 +188,7 @@ def delete_assessment_resource(request, resource_id, confirm=None):
 
     # If we are still here we can delete safely
     resource.delete()
+    messages.info(request, 'Deleted assessment resource.')
 
     url = reverse('modules_details', kwargs={'module_id': resource.module_id})
     return HttpResponseRedirect(url)
@@ -1434,6 +1435,77 @@ def add_assessment_sign_off(request, module_id):
         'form': form
     }
     return HttpResponse(template.render(context, request))
+
+
+@login_required
+@permission_required('loads.del_assessmentstatesignoff')
+def delete_assessment_sign_off(request, signoff_id, confirm=None):
+    """
+    Provides an interface for deleting an Assessment State Signed Off
+
+    This should only be available to admins with sufficient permissions, only the last sign-off should be
+    possible to delete, and only if there are not subsequent items.
+    """
+    # Get the signoff itself
+    signoff = get_object_or_404(AssessmentStateSignOff, pk=signoff_id)
+
+    try:
+        staff = Staff.objects.get(user=request.user)
+    except Staff.DoesNotExist:
+        staff = None
+
+    if not staff:
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    logger.info("%s potentially deleting assessment signoff" % staff, extra={'signoff': signoff})
+
+    # Assume a lack of permissions
+    permission = False
+
+    if staff.user.is_superuser:
+        permission = True
+    elif staff.user.is_staff and request.user.has_perm('loads.del_assessmentstatesignoff'):
+        permission = True
+    elif signoff.module.package in staff.get_all_packages() and request.user.has_perm('loads.del_assessmentstatesignoff'):
+        permission = True
+
+    if not permission:
+        logger.info("No permission to deleting assessment signoff")
+        messages.error(request, 'Sorry, you do not have administrative privileges for this action.')
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    # Check for any more recent signoffs and if so, this is forbidden
+    logger.debug("Check for more recent signoffs")
+    newer_signoffs = AssessmentStateSignOff.objects.all().filter(module=signoff.module).filter(created__gt=signoff.created)
+    if len(newer_signoffs):
+        messages.error(request, 'Only the most recent sign off may be deleted.')
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    # Check for any more recent items than the signoff, and if this is so, this is forbidden
+    logger.debug("Check for more recent resources")
+    newer_resources = AssessmentResource.objects.all().filter(module=signoff.module).filter(created__gt=signoff.created)
+    if len(newer_resources):
+        messages.error(request, 'Sign offs cannot be deleted after more recent items have been added.')
+        return HttpResponseRedirect(reverse('forbidden'))
+
+
+    # Check if the deletion is confirmed
+    if not confirm:
+        logger.debug("Deletion not confirmed")
+        context = {
+            'signoff': signoff
+        }
+        template = loader.get_template('loads/modules/delete_assessment_signoff.html')
+        logger.debug("template loaded")
+        return HttpResponse(template.render(context, request))
+
+    # If we are still here we can delete safely
+    signoff.delete()
+    logger.info("Signoff deleted")
+    messages.info(request, 'Deleted assessment signoff.')
+
+    url = reverse('modules_details', kwargs={'module_id': signoff.module.id})
+    return HttpResponseRedirect(url)
 
 
 @login_required
