@@ -104,8 +104,12 @@
                 </li>
             {% if not request.meta.remote_user %}
                 <li class="nav-item">
-                    <a class="nav-link text-decoration-none" href="{% url 'logout' %}"
-                       target="_blank" title="click to log out">Logout</a>
+                    <form id="wam-logout" method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                        <button type="submit" class="nav-link text-decoration-none" title="Click here to log out">
+                            Logout
+                        </button>
+                    </form>
                 </li>
             {% endif %}
             </ul>
