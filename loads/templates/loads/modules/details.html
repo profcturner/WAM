@@ -208,6 +208,7 @@
     {% if signoff %}
         <h4>
             {{ signoff.assessment_state }} by {{ signoff.signed_by.first_name }} {{ signoff.signed_by.last_name }} on {{ signoff.created }}
+        (<a href="{% url 'delete_assessment_sign_off' signoff.id %}">delete</a>)
         </h4>
         <p>
             {{ signoff.notes }}

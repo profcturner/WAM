@@ -84,6 +84,8 @@ urlpatterns = [
             views.delete_assessment_resource, name='delete_assessment_resource'),
     re_path(r'^modules/add_assessment_sign_off/(?P<module_id>[0-9]+)$', views.add_assessment_sign_off,
             name='add_assessment_sign_off'),
+    re_path(r'^modules/delete_assessment_sign_off/(?P<signoff_id>[0-9]+)(?P<confirm>/confirm)?$', views.delete_assessment_sign_off,
+            name='delete_assessment_sign_off'),
     re_path(r'^modules/allocations/(?P<package_id>[0-9]+)/(?P<module_id>[0-9]+)$', views.module_staff_allocation,
             name='module_staff_allocation'),
     re_path(r'^modules/create/$', CreateModuleView.as_view(), name='create module'),
