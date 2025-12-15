@@ -119,7 +119,7 @@
     {% if modulestaff %}
     <div class="table-responsive small mt-2 mb-2">
         <table class="table table-striped table-hover w-100">
-            <thead class="sticky-top">
+            <thead>
                 <tr>
                     <th class="col-7" scope="col">Staff Member</th>
                     <th scope="col">Contact proportion</th>
@@ -175,7 +175,7 @@
         </table>
         </div>
     {% else %}
-        <div class="text-primary-emphasis">No custom activities recorded for this module.</div>
+        <div class="text-info-emphasis">No custom activities recorded for this module.</div>
     {% endif %}
 </div>
 
@@ -206,31 +206,39 @@
     {% for signoff, resources in assessment_history %}
 
     {% if signoff %}
-        <h3>{{ signoff.assessment_state }} by {{ signoff.signed_by.first_name }} {{ signoff.signed_by.last_name }} on {{ signoff.created }}</h3>
-        <p>{{ signoff.notes }}</p>
+        <h4>
+            {{ signoff.assessment_state }} by {{ signoff.signed_by.first_name }} {{ signoff.signed_by.last_name }} on {{ signoff.created }}
+        </h4>
+        <p>
+            {{ signoff.notes }}
+        </p>
     {% endif %}
 
     {% if resources %}
         <div class="table-responsive small mt-2 mb-2">
             <table class="table table-striped table-hover w-100">
-                <tr>
-                    <th>Resource Type</th>
-                    <th>Name</th>
-                    <th>Owner</th>
-                    <th>Created</th>
-                    <th>View</th>
-                    <th>Delete</th>
-                </tr>
-            {% for resource in resources %}
-                <tr>
-                    <td>{{ resource.resource_type }}</td>
-                    <td>{{ resource.name }}</td>
-                    <td>{{ resource.owner }}</td>
-                    <td>{{ resource.created }}</td>
-                    <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'download_assessment_resource' resource.id %}">View</a></td>
-                    <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'delete_assessment_resource' resource.id %}">Delete</a></td>
-                </tr>
-            {% endfor %}
+                <thead>
+                    <tr>
+                        <th scope="col">Resource Type</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Owner</th>
+                        <th scope="col">Created</th>
+                        <th scope="col">View</th>
+                        <th scope="col">Delete</th>
+                    </tr>
+                </thead>
+                <tbody class="table-group-divider">
+                    {% for resource in resources %}
+                    <tr>
+                        <td>{{ resource.resource_type }}</td>
+                        <td>{{ resource.name }}</td>
+                        <td>{{ resource.owner }}</td>
+                        <td>{{ resource.created }}</td>
+                        <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'download_assessment_resource' resource.id %}">View</a></td>
+                        <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'delete_assessment_resource' resource.id %}">Delete</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
             </table>
         </div>
     {% endif %}
@@ -238,7 +246,7 @@
     {% endfor %}
 
 {% else %}
-    <div class="text-primary-emphasis">
+    <div class="text-info-emphasis">
         No assessment resources recorded for this module.
     </div>
 
