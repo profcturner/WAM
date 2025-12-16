@@ -1,5 +1,6 @@
 {% extends 'loads/base.html' %}
 
+{% load static %}
 {% load tags %}
 {% load tz %}
 
@@ -16,32 +17,29 @@
 {% block menu %}
 
 {# Create top-level menus, and possibly some dropdowns #}
-<nav class="navbar navbar-expand-lg fixed-top text-body bg-body-secondary opacity-100" style="height:80px">
+<nav class="navbar navbar-expand-lg fixed-top text-body bg-body-secondary opacity-100" style="height:80px" id="menuTopWAM">
     <div class="container-fluid p-1">
-        <button class="navbar-toggler xbtn xbtn-primary xtext-bg-dark ms-2"
+        <button class="navbar-toggler ms-2 me-2"
                 type="button"
                 data-bs-toggle="offcanvas"
                 data-bs-target="#navbarWAM"
                 aria-controls="navbarWAM" aria-expanded="false"
-                aria-label="Toggle navigation">
+                aria-label="Toggle navigation"
+                title="Navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <a class="navbar-brand float-start" href="{% url 'index' %}">
             {# TODO: We need to make this logo, and link, customizable #}
             {# The max-height should, however, remain as to not disrupt the layout, etc #}
-            <img src="//cdn.ulster.ac.uk/home/ulster-frontend/img/microsites/ulster-university-logo.png"
-                 style="max-height: 48px" title="Ulster University Workload Modelling" alt="WAM" />
+            <img src="{% static 'logos/WAM_logo.png' %}"
+                 style="max-height: 48px" title="Workload and Assessment Modeller" alt="WAM" />
         </a>
-        <div class="offcanvas offcanvas-start" id="navbarWAM">
+        <div class="offcanvas offcanvas-start" id="navbarWAM" tabindex="-1">
             {# I'm guessing these can be dynamically generated based on which modules are active, etc #}
             {# TODO: We should add 'aria-current="page"' on the active menu choice                    #}
-            <div class="offcanvas-header border-bottom border-secondary d-inline-flex">
-                <div class="me-auto">
-                    <button type="button" class="btn btn-close me-3 float-left" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-                </div>
-                <div>
-                    <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Menu</h5>
-                </div>
+            <div class="offcanvas-header text-start justify-content-between">
+                    <button type="button" class="btn btn-close ms-0" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                    <h5 class="offcanvas-title me-0" id="offcanvasNavbarLabel">Menu</h5>
             </div>
             <div class="offcanvas-body">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0 small">
