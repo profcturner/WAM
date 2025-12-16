@@ -17,7 +17,7 @@ Some of the current key features of this software are:
 ### Workload Allocation
 
 * Allows staff, activities and models to be split into "Work Packages", which typically can be used for a given department in a given academic year. The model may vary from year to year.
-* Promotes transparency by allowing those staff within the model to their workload in relation to their peers.
+* Promotes transparency by allowing those staff within the model to understand their workload in relation to their immediate peers.
 * Allows activities to be split across types and categories.
 * Allows activities to be allocated against 1-3 semesters to help analyse loading across an academic year.
 * Activities can be allocated by hours or percentages of overall time.
