@@ -11,8 +11,8 @@ build/
 develop-eggs/
 dist/
 eggs/
-lib/
-lib64/
+*lib*
+*lib64*
 parts/
 sdist/
 var/
@@ -40,8 +40,8 @@ tmtags
 
 tmtagsHistory
 
-db.sqlite3.backup
-
+*db.sqlite3
+venvWAM/pyvenv.cfg
 media/*
 .idea/*
 
@@ -53,3 +53,4 @@ WAM/local_settings.py
 .DS_Store
 django.log
 /WAM/local
+*THINKINGS.txt*
