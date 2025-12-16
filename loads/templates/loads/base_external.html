@@ -61,7 +61,7 @@
                 </li>
                 {% if not request.meta.remote_user %}
                 <li class="nav-item">
-                    <form id="wam-logout" method="post" action="{% url 'logout' %}">
+                    <form id="wam-logout" method="post" action="{% url 'external_logout' %}">
                     {% csrf_token %}
                         <button type="submit" class="nav-link text-decoration-none" title="Click here to log out">
                             Logout

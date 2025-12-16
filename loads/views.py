@@ -102,6 +102,16 @@ def logged_out(request):
     """Show that we are logged out"""
 
     template = loader.get_template('loads/logged_out.html')
+    logger.info("Staff Member logged out")
+
+    return HttpResponse(template.render({}, request))
+
+
+def external_logged_out(request):
+    """Show that an external examiner is logged out"""
+
+    logger.info("External examiner logged out")
+    template = loader.get_template('loads/external/logged_out.html')
 
     return HttpResponse(template.render({}, request))
 
@@ -962,9 +972,12 @@ def tasks_completion(request, task_id, staff_id):
 
 
 @login_required
-@staff_only
 def add_assessment_resource(request, module_id):
-    """Provide a form for uploading a module resource"""
+    """
+    Provide a form for uploading a module resource
+
+    This will be used by module team members, and external examiners
+    """
     # Fetch the staff user associated with the person requesting
     staff = get_object_or_404(Staff, user=request.user)
     # Get the module itself
