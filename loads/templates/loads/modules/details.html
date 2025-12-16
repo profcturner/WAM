@@ -182,7 +182,7 @@
 <div class="mt-5">
     <h5>Assessment Resources</h5>
     {% if assessment_signoffs.0.assessment_state.next_states_guidance %}
-    <p class="text-info">
+    <p class="text-info-emphasis">
         {{ assessment_signoffs.0.assessment_state.next_states_guidance|safe }}
     </p>
     {%  else %}
@@ -206,10 +206,10 @@
     {% for signoff, resources in assessment_history %}
 
     {% if signoff %}
-        <h4>
+        <h5 class="mt-5">
             {{ signoff.assessment_state }} by {{ signoff.signed_by.first_name }} {{ signoff.signed_by.last_name }} on {{ signoff.created }}
-        (<a href="{% url 'delete_assessment_sign_off' signoff.id %}">delete</a>)
-        </h4>
+        (<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'delete_assessment_sign_off' signoff.id %}">delete</a>)
+        </h5>
         <p>
             {{ signoff.notes }}
         </p>
