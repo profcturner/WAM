@@ -3,15 +3,12 @@
 {% load humanize %}
 
 {% load static %}
-{# <!-- Include formset plugin - including jQuery dependency -->                      #}
-{# <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script> #}
-{# <script src="{% static 'loads/persist-headers.js' %}"></script>                    #}
 
 <link rel="stylesheet" type="text/css" href="{% static 'loads/load_charts.css' %}" />
 
 <p class="mb-4">
     Selected year:<br/>
-    <span class="font-monospace fw-bold me-2">{{package}}</span> <a class="btn btn-secondary btn-sm" href="{%url 'workpackage_change' %}">Change year</a>
+    <span class="font-monospace fw-bold me-2">{{package}}</span> <a class="btn btn-secondary btn-sm wam-hide-on-print" href="{%url 'workpackage_change' %}">Change year</a>
 </p>
 
 <!-- Style Colours from WAM configuration -->
@@ -25,7 +22,7 @@
 
 {% if package.draft or package.in_the_future or package.in_the_past %}
 <div class="border border-2 border-danger p-3 rounded-3 mb-4">
-    <h6 class="fw-bold">!! Please note these exceptions <i class="fw-normal small">(hover for more information)</i></h6>
+    <h6 class="fw-bold">!! Please note these exceptions <i class="fw-normal small wam-hide-on-print">(hover for more information)</i></h6>
     <div class="d-flex">
         {% if package.draft %}
         <div class="badge text-bg-danger me-2"
