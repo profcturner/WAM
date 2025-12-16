@@ -73,6 +73,32 @@
   opacity: 0.75;
 }
 
+/* The vertical line indicating 110% */
+.hundredten-percent-marker {
+  position: absolute;
+  left: 88%; /* Exactly at the end of the standard container */
+  top: -10px;
+  bottom: -10px;
+  /* Red dashed line */
+  /* border-left: 2px dashed #dc3545; */
+  border-left: 2px dashed var(--bs-secondary); /* Bootstrap style */
+  z-index: 1;
+  opacity: 0.50;
+}
+
+/* The vertical line indicating 110% */
+.ninety-percent-marker {
+  position: absolute;
+  left: 72%; /* Exactly at the end of the standard container */
+  top: -10px;
+  bottom: -10px;
+  /* Red dashed line */
+  /* border-left: 2px dashed #dc3545; */
+  border-left: 2px dashed var(--bs-secondary); /* Bootstrap style */
+  z-index: 1;
+  opacity: 0.50;
+}
+
 /* Utility to ensure text inside bars is readable */
 .progress-bar {
   overflow: hidden;

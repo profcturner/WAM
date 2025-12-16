@@ -5,7 +5,9 @@ from .models import Staff
 
 
 def staff_only(function):
-    """Checks the logged in User has a valid related Staff object"""
+    """
+    Checks the logged in User is an internal member of staff with a valid related Staff object
+    """
     def wrapper(request, *args, **kwargs):
         try:
             staff = Staff.objects.get(user=request.user)
@@ -13,6 +15,7 @@ def staff_only(function):
                 raise PermissionDenied("""Sorry, but this page is for internal staff only""")
         except Staff.DoesNotExist:
             # Is this a Superuser
+            # TODO: Should no longer be necessary now Staff objects are auto created
             if request.user.is_superuser:
                 # This is likely a created superuser with no matching Staff object. Create one.
                 staff = Staff.objects.create(user=request.user, staff_number=request.user.get_username(), title="",
@@ -33,7 +36,9 @@ def staff_only(function):
 
 
 def external_only(function):
-    """Checks the logged in User has a valid related Staff object"""
+    """
+    Checks the logged in User is an External Examiner with a valid related Staff object
+    """
     def wrapper(request, *args, **kwargs):
         try:
             staff = Staff.objects.get(user=request.user)
