@@ -17,13 +17,13 @@
                 <th scope="col">Deadline</th>
                 <th scope="col">Time left</th>
                 <th scope="col">Status</th>
-                <th scope="col">Details</th>
-                <th scope="col">Edit</th>
+                <th scope="col" class="wam-hide-on-print">Details</th>
+                <th scope="col" class="wam-hide-on-print">Edit</th>
             </tr>
         </thead>
         <tbody class="table-group-divider">
             {% for task, urgent, overdue in augmented_tasks %}
-            <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+            <tr>
                 <td>
                     {{ task.name }}
                 </td>
@@ -46,10 +46,10 @@
                     Pending
                 </td>
                 {% endif %}
-                <td>
+                <td class="wam-hide-on-print">
                     <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'tasks_details' task.id %}">Details</a>
                 </td>
-                <td>
+                <td class="wam-hide-on-print">
                     <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update task' task.id %}">Edit</a>
                 </td>
             </tr>
@@ -68,7 +68,7 @@
     {% endif %}
 {% endif %}
 
-<div class="mt-5">
+<div class="mt-5 wam-hide-on-print">
     <h4>
         Create a new task
     </h4>

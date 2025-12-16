@@ -10,7 +10,7 @@
             <tr>
                 <th scope="col">Programme code</th>
                 <th scope="col">Programme name</th>
-                <th scope="col" class="col-1">Details</th>
+                <th scope="col" class="col-1 wam-hide-on-print">Details</th>
             </tr>
         </thead>
         <tbody class="table-group-divider">
@@ -18,15 +18,20 @@
             <tr>
                 <td class="font-monospace">{{ programme.programme_code }}</td>
                 <td>{{ programme.programme_name }}</td>
-                <td class="col-1"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update programme' programme.pk %}">Details</a></td>
+                <td class="col-1 wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update programme' programme.pk %}">Details</a></td>
             {% endfor %}
             </tr>
         </tbody>
     </table>
 </div>
 
-<h4 class="my-3">Add Programme</h4>
-
-<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'create programme' %}">Click here to create a new Programme</a>
+<div class="wam-hide-on-print">
+    <h4 class="my-3">
+        Add Programme
+    </h4>
+    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'create programme' %}">
+        Click here to create a new Programme
+    </a>
+</div>
 
 {% endblock content %}

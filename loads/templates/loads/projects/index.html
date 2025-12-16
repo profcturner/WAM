@@ -3,22 +3,24 @@
   
 <h3 class="my-3">Projects</h3>
 
-<p>
-    Projects are used to help allocate activities to a number of members of
-    staff at the same time, where those staff are working on a common project,
-    albeit with potentially different allocations.
-</p>
-<p>
-    Projects are time bound, and so can create allocations across different
-    work packages as appropriate. Generating activities for projects
-    <strong>will delete existing allocations for the project and create a new
-    set</strong>.
-</p>
-<p>
-    Generated activities are placed in an Activity Set, deleting the set will
-    delete all the related allocations. The usual use case for this is
-    something like a research grant.
-</p>
+<div class="wam-hide-on-print">
+    <p>
+        Projects are used to help allocate activities to a number of members of
+        staff at the same time, where those staff are working on a common project,
+        albeit with potentially different allocations.
+    </p>
+    <p>
+        Projects are time bound, and so can create allocations across different
+        work packages as appropriate. Generating activities for projects
+        <strong>will delete existing allocations for the project and create a new
+        set</strong>.
+    </p>
+    <p>
+        Generated activities are placed in an Activity Set, deleting the set will
+        delete all the related allocations. The usual use case for this is
+        something like a research grant.
+    </p>
+</div>
 
 {% if projects %}
 <div class="table-responsive small mt-4">
@@ -29,8 +31,8 @@
                 <th scope="col">Activity type</th>
                 <th scope="col">Start</th>
                 <th scope="col">End</th>
-                <th scope="col">Details</th>
-                <th scope="col">Generate activities</th>
+                <th scope="col" class="wam-hide-on-print">Details</th>
+                <th scope="col" class="wam-hide-on-print">Generate activities</th>
             </tr>
         </thead>
         <tbody class="table-group-divider">
@@ -40,8 +42,8 @@
                 <td>{{ project.activity_type }}</td>
                 <td>{{ project.start }}</td>
                 <td>{{ project.end }}</td>
-                <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'projects_details' project.id %}">Details</a></td>
-                <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'projects_generate_activities' project.id %}">Generate activities</a></td>
+                <td class="wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'projects_details' project.id %}">Details</a></td>
+                <td class="wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'projects_generate_activities' project.id %}">Generate activities</a></td>
             </tr>
             {% endfor %}
         </tbody>

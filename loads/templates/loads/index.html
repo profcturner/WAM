@@ -2,26 +2,25 @@
 
 {% load static %}
 
-<h2 class="my-3">Welcome!</h2>
-
-    <div class="row align-items-start">
-    <div class="col">
-        <img src="{% static 'logos/apple-touch-icon-180x180.png' %}" alt="WAM Logo">
+<div class="my-3 row align-items-start justify-content-around">
+    <div class="col-4 text-center">
+        <h3>Welcome!</h3>
+        <img class="img-fluid" src="{% static 'logos/apple-touch-icon-180x180.png' %}" alt="" />
     </div>
-    <div class="col">
+    <div class="col-7 align-self-center">
         <p>
             Welcome to <strong>WAM</strong>.
         </p>
         <p>
             WAM is a tool for modelling allocation of workload, tracking task
-            completions and providing quality assurance around the setting of assessments.
+            completions, and providing quality assurance around the setting of
+            assessments.
         </p>
-
         <p>
-            Please report issues to <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="mailto:{{ admin_email }}">{{ admin_name }}</a>.
+            Please report issues to <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="mailto:{{ admin_email }}">{{ admin_name }}</a>
         </p>
     </div>
-  </div>
+</div>
 
 
 

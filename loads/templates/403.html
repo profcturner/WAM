@@ -1,14 +1,27 @@
 {% extends 'loads/base_automatic.html' %}
-
 {% block content %}
-
-<h1>Access Forbidden</h1>
-
-    <p>Unfortunately you do not have permission to access this area.
-        Please do contact the system administrator if you think is incorrect.</p>
-
-    {% if exception %}
-        <h2>Further information:</h2><p>{{ exception }}</p>
-    {% endif %}
-
+<main>
+    <div class="container-fluid my-5 py-2 px-3 text-center h-100"
+         style="margin-top:100px !important;max-width:980px !important;">
+        <div>
+            <h1 class="h2 my-5 p-2 d-inline-block font-monospace text-danger">
+                403 | Access forbidden
+            </h1>
+            <div class="text-left">
+                <p>Unfortunately you do not have permission to access this area.</p>
+                <p>Please do contact the system administrator if you think is incorrect.</p>
+            </div>
+            {% if exception %}
+            <div class="mt-5 text-left">
+                <h5 class="text-decoration-underline" style="text-underline-offset: 0.375em !important;">
+                    Further information
+                </h5>
+                <p>
+                    {{ exception }}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</main>
 {% endblock %}

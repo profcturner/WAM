@@ -15,15 +15,11 @@
                 </div>
                 <form method="post">
                 {% csrf_token %}
-                {# Process hidden fields, we don't need to style them #}
                 {% for hidden in form.hidden_fields %}
                     {{ hidden }}
                 {% endfor %}
                 <div class="card-body">
                     <div class="card-text text-start">
-                        {# old variant #}
-                        {# {{ form.as_p }} #}
-                        {# new variant #}
                         {% for field in form.visible_fields %}
                         <div class="mt-4">
                             <label for="{{ field.id_for_label }}"
@@ -53,7 +49,8 @@
                     </div>
                 </div>
                 <div class="card-footer small">
-                    Please contact <a href="{{ help_url }}">{{ help_name }}</a> for support.
+                    Please contact <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{{ help_url }}">
+                    {{ help_name }}</a> for support
                 </div>
                 </form>
             </div>

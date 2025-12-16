@@ -1,34 +1,51 @@
-{% extends "loads/base_automatic.html" %} {% block content %}
+{% extends "loads/base_automatic.html" %}
 
-<h2>Activity Generators</h2>
+{% block content %}
 
-<p>
-    Activity Generators are used to allocated activities to a numbers of staff members at the same time. The created activities
-    are linked in an Activity Set, if the Set is deleted all those related Activities will be deleted as well. Note that each
-    time you generate activities another set is created, the old one is <strong>not</strong> deleted. This is to allow you to,
-    for instance, add multiple PhD supervisions. You can change the target groups and users between each generation. You can
-    change other details too, but this is not recommended, better to create another generator.
-</p>
+<h3 class="my-3">Activity Generators</h3>
+
+<div class="wam-hide-on-print">
+    <p>
+        Activity Generators are used to allocated activities to a numbers of staff members at the same time.
+    </p>
+    <p>
+        The created activities
+        are linked in an <i>Activity Set</i>, if the Set is deleted all those related Activities will be deleted as well. Note that each
+        time you generate activities another set is created, the old one is <strong>not</strong> deleted. This is to allow you to,
+        for instance, add multiple PhD supervisions. You can change the target groups and users between each generation. You can
+        change other details too, but this is not recommended, it's better to create another generator.
+    </p>
+</div>
 
 {% if generators %}
-    <table border="1">
-      <tr>
-        <th>Generator Name</th>
-        <th>Activity Type</th>
-        <th>Generate Activities</th>
-      </tr>
-      {% for generator in generators %}
-      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <th>{{ generator.name }}</th>
-        <td>{{ generator.activity_type }}</td>
-        <td><a href="{% url 'generators_generate_activities' generator.id %}">Generate Activities</a></td>
-      </tr>      
-      {% endfor %}
+<div class="table-responsive small mt-4">
+    <table class="table table-sm table-striped table-hover">
+        <thead>
+            <tr>
+                <th scope="col">Generator Name</th>
+                <th scope="col">Activity Type</th>
+                <th scope="col" class="wam-hide-on-print">Generate Activities</th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            {% for generator in generators %}
+            <tr>
+                <th>{{ generator.name }}</th>
+                <td>{{ generator.activity_type }}</td>
+                <td class="wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'generators_generate_activities' generator.id %}">Generate Activities</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
+</div>
     
-    <p>{{ generators|length}} active generator{{projects|length|pluralize}} in the selected work package.</p>
+<p class="text-info-emphasis">
+    {{ generators|length}} active generator{{projects|length|pluralize}} in the selected work package.
+</p>
 {% else %}
-    <p>No activity generators are available in this work package.</p>
+<p>
+    No activity generators are available in this work package.
+</p>
 {% endif %}
 
 {% endblock content %}
