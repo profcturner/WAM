@@ -1451,6 +1451,7 @@ def add_assessment_sign_off(request, module_id):
 
 
 @login_required
+@staff_only
 @permission_required('loads.del_assessmentstatesignoff')
 def delete_assessment_sign_off(request, signoff_id, confirm=None):
     """
