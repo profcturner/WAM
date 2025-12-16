@@ -338,8 +338,11 @@ def loads_by_staff_chart(request):
             url = reverse('workpackage_change')
             return HttpResponseRedirect(url)
 
-    # We will likely want this to be configurable
+    # We will likely want these to be configurable
+    # By default, we will sort lists by highest to lowest workload (if False, alphabetically)
     sort_lists = True
+    # By default, we will add lines at 90% and 100%
+    show_90_110 = False
     #TODO: This is still pretty much built in as True by assumption in some of the code below
     scale_fte = True
 
@@ -442,6 +445,8 @@ def loads_by_staff_chart(request):
     logger.debug("%s: Loads by staff chart viewed", request.user, extra={'package': package})
     template = loader.get_template('loads/loads_charts.html')
     context = {
+        'sort_lists': sort_lists,
+        'show_90_110': show_90_110,
         'group_data': group_data,
         'total': total,
         'total_staff': total_staff,

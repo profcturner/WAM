@@ -54,6 +54,10 @@
                 <div class="chart-label"><a class="link-offset-2 link-underline link-underline-opacity-25" href="{% url 'activities' staff.id %}">{{ staff }}</a></div>
                 <div class="progress-wrapper">
                     <div class="hundred-percent-marker"></div>
+                    {% if show_90_110 %}
+                    <div class="ninety-percent-marker"></div>
+                    <div class="hundredten-percent-marker"></div>
+                    {% endif %}
                     <div class="progress bg-body-tertiary" style="width: {{ bar_width }}%;">
                         {% for category, hours, percentage in loads_by_category %}
                         <!-- Start a Block -->
@@ -69,7 +73,11 @@
             {% endfor %}
         </div>
         <div class="alert alert-info small">
-            <strong>Legend:</strong> The red dashed line represents 100% capacity, taking into account staff FTE. Hovering on percentages shows underlying hours. Grey areas are unallocated. Over allocations past 125% are scaled down to fit.
+            <strong>Legend:</strong> The red dashed line represents 100% capacity, taking into account staff FTE.
+            {% if show_90_110 %}
+                Grey dashed lines represent 90% and 100% capacity.
+            {% endif %}
+            Hovering on percentages shows underlying hours. Grey areas are unallocated. Over allocations past 125% are scaled down to fit.
             <div class="mt-3 small">Categories:
                 <div class="mt-2 legend_wrapper">
                     {% for category in categories %}
