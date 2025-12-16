@@ -23,7 +23,7 @@
         </thead>
         <tbody class="table-group-divider">
             {% for task, urgent, overdue in augmented_tasks %}
-            <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
+            <tr>
                 <td>
                     {{ task.name }}
                 </td>
