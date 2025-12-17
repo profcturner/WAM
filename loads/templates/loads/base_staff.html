@@ -110,14 +110,16 @@
                        target="wam_admin" title="click to access section: Admin">Admin</a>
                 </li>
                 {% if not request.meta.remote_user %}
-                <li class="nav-item">
-                    <form id="wam-logout" method="post" action="{% url 'logout' %}">
-                    {% csrf_token %}
-                        <button type="submit" class="nav-link text-decoration-none" title="Click here to log out">
-                            Logout
-                        </button>
-                    </form>
-                </li>
+                    {% if logged_in_staff %}
+                    <li class="nav-item">
+                        <form id="wam-logout" method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                            <button type="submit" class="nav-link text-decoration-none" title="Click here to log out">
+                                Logout
+                            </button>
+                        </form>
+                    </li>
+                    {% endif %}
                 {% endif %}
             </ul>
             </div>
