@@ -13,7 +13,7 @@
                 <th class="col-3">Deadline</th>
                 <th class="col-3">Time left</th>
                 <th class="col-1">Status</th>
-                <th class="col-1">Complete</th>
+                <th class="col-1 wam-hide-on-print">Complete</th>
             </tr>
         </thead>
         <tbody class="table-group-divider">
@@ -31,7 +31,7 @@
                     Pending
                     {% endif %}
                 </td>
-                <td class="col-1">
+                <td class="col-1 wam-hide-on-print">
                     <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'tasks_completion' task_id=task.id staff_id=staff.id %}">
                         Complete
                     </a>
