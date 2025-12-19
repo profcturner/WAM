@@ -2,7 +2,9 @@ import os
 import mimetypes
 import logging
 
+from django.core.mail import mail_admins
 from django.shortcuts import get_object_or_404, render
+from django.http import Http404
 from django.urls import reverse, reverse_lazy
 from django.forms import modelformset_factory
 from django.contrib import messages
@@ -144,7 +146,13 @@ def download_assessment_resource(request, resource_id):
     file_mimetype = mimetypes.guess_type(filename)[0]
 
     # Start a response
-    response = HttpResponse(resource.resource.file, content_type=file_mimetype)
+    try:
+        response = HttpResponse(resource.resource.file, content_type=file_mimetype)
+    except FileNotFoundError:
+        logger.critical("File %s, missing for existing resource id %u" % (filename, resource.pk), extra={'resource': resource})
+        mail_admins("WAM error, missing file", "File %s, missing for existing resource id %u" % (filename, resource.pk))
+        raise Http404("The requested file was not found.")
+
 
     # Let's suggest the filename
     response['Content-Disposition'] = 'inline; filename="%s"' % filename
