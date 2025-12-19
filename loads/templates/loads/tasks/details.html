@@ -62,7 +62,7 @@
                 <th scope="col" class="col-11">
                     Staff name
                 </th>
-                <th>
+                <th class="wam-hide-on-print">
                     Complete
                 </th>
             </tr>
@@ -73,7 +73,7 @@
                 <td class="col-11">
                     {{ target }}
                 </td>
-                <td>
+                <td class="wam-hide-on-print">
                     <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'tasks_completion' task_id=task.id staff_id=target.id %}">
                         Complete
                     </a>

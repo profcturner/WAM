@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h4>Details for Module {{ module.name }}<small> (<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-1" href="{% url 'update module' module.pk %}">Edit</a>)</small></h4>
+<h4>Details for Module {{ module.name }}{% if logged_in_staff and not logged_in_staff.is_external %}<span class="small wam-hide-on-print"> (<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-1" href="{% url 'update module' module.pk %}">Edit</a>)</span>{% endif %}</h4>
 
 <div class="mt-4">
     <div class="row mb-2">
@@ -117,7 +117,7 @@
 <div class="mt-5">
     <h5>Module Staff Allocations</h5>
     {% if modulestaff %}
-    <div class="table-responsive small mt-2 mb-2">
+    <div class="table-responsive small mt-2">
         <table class="table table-striped table-hover w-100">
             <thead>
                 <tr>
@@ -145,13 +145,18 @@
             </tbody>
         </table>
     </div>
-    <p>
+    {% if logged_in_staff and not logged_in_staff.is_external %}
+    <p class="wam-hide-on-print">
         <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'module_staff_allocation' package.id module.id %}">Edit Allocations</a>
     </p>
+    {% endif %}
     {% else %}
-      <p>
-          No allocations of staff recorded for this module
-          (<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'module_staff_allocation' package.id module.id %}">Edit</a>)</p>
+    <p>
+        <span class="text-info-emphasis">No allocations of staff recorded for this module</span>
+        {% if logged_in_staff and not logged_in_staff.is_external %}
+        <span class="wam-hide-on-print">(<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'module_staff_allocation' package.id module.id %}">Edit</a>)</span>
+        {% endif %}
+    </p>
     {% endif %}
 </div>
 
@@ -197,7 +202,7 @@
         Please note that these items are not considered final, but rather as in draft until they are signed off.
     </p>
     {% endif %}
-    <p>
+    <p class="wam-hide-on-print">
         <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'add_assessment_resource' module.id %}">add assessment resource</a> |
         <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'add_assessment_sign_off' module.id %}">sign off resources</a>
     </p>
@@ -208,7 +213,7 @@
     {% if signoff %}
         <h5 class="mt-5">
             {{ signoff.assessment_state }} by {{ signoff.signed_by.first_name }} {{ signoff.signed_by.last_name }} on {{ signoff.created }}
-        (<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'delete_assessment_sign_off' signoff.id %}">delete</a>)
+        <span class="wam-hide-on-print">(<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'delete_assessment_sign_off' signoff.id %}">delete</a>)</span>
         </h5>
         <p>
             {{ signoff.notes }}
@@ -224,8 +229,8 @@
                         <th scope="col">Name</th>
                         <th scope="col">Owner</th>
                         <th scope="col">Created</th>
-                        <th scope="col">View</th>
-                        <th scope="col">Delete</th>
+                        <th scope="col" class="wam-hide-on-print">View</th>
+                        <th scope="col" class="wam-hide-on-print">Delete</th>
                     </tr>
                 </thead>
                 <tbody class="table-group-divider">
@@ -235,8 +240,8 @@
                         <td>{{ resource.name }}</td>
                         <td>{{ resource.owner }}</td>
                         <td>{{ resource.created }}</td>
-                        <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'download_assessment_resource' resource.id %}">View</a></td>
-                        <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'delete_assessment_resource' resource.id %}">Delete</a></td>
+                        <td class="wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'download_assessment_resource' resource.id %}">View</a></td>
+                        <td class="wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'delete_assessment_resource' resource.id %}">Delete</a></td>
                     </tr>
                     {% endfor %}
                 </tbody>

@@ -2,7 +2,9 @@
 
 {% block content %}
 
-<h4>Activity breakdown for {{staff}}<small> (<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'staff_module_allocation' package.id staff.id %}">Edit</a>)</small></h4>
+<h4 class="my-3">
+    Activity breakdown for {{staff}}<span class="small wam-hide-on-print"> (<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'staff_module_allocation' package.id staff.id %}">Edit</a>)</span>
+</h4>
 <p class="my-3">
     Selected Work Package:<br/>
     <span class="font-monospace fw-bold me-2">{{package}}</span>

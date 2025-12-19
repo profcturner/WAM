@@ -84,12 +84,25 @@
 </div>
 
 <div class="mt-5">
-    <h4>Loads by Modules {% if valid_semesters %}<span class="small">(restricted to those in Semester{{valid_semesters_length_plaralise}} {% for semester in valid_semesters %}{% if forloop.first %}{% else %}{% if forloop.last %} and {% else %}, {% endif %}{% endif %}{{semester}}{% endfor %})</span>{% endif %}</h4>
+    <h4 class="mb-3">Loads by Modules {% if valid_semesters %}<span class="small">(restricted to those in Semester{{valid_semesters_length_plaralise}} {% for semester in valid_semesters %}{% if forloop.first %}{% else %}{% if forloop.last %} and {% else %}, {% endif %}{% endif %}{{semester}}{% endfor %})</span>{% endif %}</h4>
+
+    <style>
+        .table > tbody > tr.row-odd > * {
+          --bs-table-accent-bg: var(--bs-table-striped-bg);
+          color: var(--bs-table-striped-color);
+        }
+        .table > tbody > tr.row-even > * {
+          --bs-table-accent-bg: transparent;
+        }
+        .table > tbody > tr.data-row.has-detail > * {
+          border-bottom-width: 0;
+        }
+    </style>
 
     {% if combined_list %}
-    <div class="table-responsive small">
-        <table class="table table-sm table-striped table-hover">
-            <thead class="sticky-top">
+    <div class="table-responsive-xl small">
+        <table class="table table-sm xtable-striped table-hover">
+            <thead>
                 <tr>
                     <th scope="col">Module code</th>
                     <th scope="col">Module name</th>
@@ -100,14 +113,16 @@
                     <th scope="col">Assessment<br />hours</th>
                     <th scope="col">Assessment<br />proportion</th>
                     <th scope="col">Extra hours</th>
+                    {% if not brief_details %}
                     <th scope="col" class="wam-hide-on-print">Details</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody class="table-group-divider">
                 {% for module, contact_hours, contact_proportion, admin_hours, admin_proportion, assessment_hours, assessment_proportion, extra_hours, module_staff in combined_list %}
-                <tr>
+                <tr class="data-row row-{{ forloop.counter0|divisibleby:2|yesno:'even,odd' }} {% if brief_details %}has-detail{% endif %}">
                     <th class="font-monospace">{{ module.module_code }}</th>
-                    <td>{{ module.module_name }}</td>
+                    <th class="font-monospace">{{ module.module_name }}</th>
                     <td class="font-monospace" style="white-space: pre;">{{ contact_hours|stringformat:"6.2f" }}</td>
                     <td class="font-monospace{% if contact_proportion != 100 %} wam-text-danger{% endif %}" style="white-space: pre;">{{ contact_proportion|stringformat:"6.2f" }}%</td>
                     <td class="font-monospace" style="white-space: pre;">{{ admin_hours|stringformat:"6.2f" }}</td>
@@ -115,16 +130,25 @@
                     <td class="font-monospace" style="white-space: pre;">{{ assessment_hours|stringformat:"6.2f" }} </td>
                     <td class="font-monospace{% if assessment_proportion != 100 %} wam-text-danger{% endif %}" style="white-space: pre;">{{ assessment_proportion|stringformat:"6.2f" }}%</td>
                     <td class="font-monospace" style="white-space: pre;">{{ extra_hours|stringformat:"5.2f" }}</td>
-                    {% if brief_details %}
-                    <td class="small">
-                    {% for allocation in module_staff %}
-                    <strong>{{ allocation.staff }}</strong><br />Contact {{ allocation.contact_proportion }}%; Admin {{ allocation.admin_proportion }}%; Assessment {{ allocation.assessment_proportion }}% <br/>
-                    {% endfor %}
-                    </td>
-                    {% else %}
+                    {% if not brief_details %}
                     <td class="wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'modules_details' module.id %}">Details</a></td>
                     {% endif %}
                 </tr>
+                {% if brief_details %}
+                <tr class="detail-row row-{{ forloop.counter0|divisibleby:2|yesno:'even,odd' }}">
+                    <td class="small text-end text-info-emphasis" colspan="2">
+                        {# Details #}
+                    </td>
+                    <td class="small ms-1 text-info-emphasis" colspan="7">
+                        {% for allocation in module_staff %}
+                        <div class="row m-0 p-0 g-0 ms-2">
+                            <div class="col-4 m-0 p-0"><strong>{{ allocation.staff }}</strong></div>
+                            <div class="col-8 m-0 p-0">Contact {{ allocation.contact_proportion }}%; Admin {{ allocation.admin_proportion }}%; Assessment {{ allocation.assessment_proportion }}% </div>
+                        </div>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endif %}
                 {% endfor %}
             </tbody>
         </table>
