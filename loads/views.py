@@ -89,6 +89,8 @@ def external_index(request):
     template = loader.get_template('loads/external/index.html')
     context = {
         'home_page': True,
+        'admin_name': WAM_ADMIN_CONTACT_NAME,
+        'admin_email': WAM_ADMIN_CONTACT_EMAIL,
     }
     return HttpResponse(template.render(context, request))
 
