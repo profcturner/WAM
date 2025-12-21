@@ -150,6 +150,7 @@ def download_assessment_resource(request, resource_id):
 
     # Start a response
     try:
+        logger.info("%s downloading assessment resource %u" % (staff, resource.id), extra={'resource': resource})
         response = HttpResponse(resource.resource.file, content_type=file_mimetype)
     except FileNotFoundError:
         logger.critical("File %s, missing for existing resource id %u" % (filename, resource.pk), extra={'resource': resource})
