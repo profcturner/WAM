@@ -5,9 +5,10 @@ import logging
 from django.core.mail import mail_admins
 from django.shortcuts import get_object_or_404, render
 from django.http import Http404
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse, reverse_lazy, resolve
 from django.forms import modelformset_factory
 from django.contrib import messages
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
@@ -1755,8 +1756,10 @@ def workpackage_change(request):
                          extra={'form': form})
 
             # Try to find where we came from
-            next = request.POST.get('next', '/')
-            if next:
+            next = request.POST.get('next', reverse('index'))
+            is_safe = url_has_allowed_host_and_scheme(url=next, allowed_hosts=request.get_host(),
+                                                      require_https=request.is_secure())
+            if is_safe and next:
                 return HttpResponseRedirect(next)
             else:
                 # redirect to the loads page
