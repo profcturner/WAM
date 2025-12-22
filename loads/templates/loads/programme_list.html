@@ -18,13 +18,14 @@
             <tr>
                 <td class="font-monospace">{{ programme.programme_code }}</td>
                 <td>{{ programme.programme_name }}</td>
-                <td class="col-1 wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update programme' programme.pk %}">Details</a></td>
+                <td class="col-1 wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% if logged_in_staff.is_external %}{% url 'view programme' programme.pk %}{% else %}{% url 'update programme' programme.pk %}{% endif %}">Details</a></td>
             {% endfor %}
             </tr>
         </tbody>
     </table>
 </div>
 
+{% if not logged_in_staff.is_external %}
 <div class="wam-hide-on-print">
     <h4 class="my-3">
         Add Programme
@@ -33,5 +34,6 @@
         Click here to create a new Programme
     </a>
 </div>
+{% endif %}
 
 {% endblock content %}

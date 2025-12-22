@@ -14,8 +14,7 @@ from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMix
 from django.core.exceptions import PermissionDenied
 
 # Class Views
-from django.views.generic import ListView
-from django.views.generic import UpdateView, CreateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 
 from django.views import View
 
@@ -64,7 +63,7 @@ from .forms import ExternalExaminerCreationForm
 from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
 
-from WAM.settings import WAM_ADMIN_CONTACT_EMAIL, WAM_ADMIN_CONTACT_NAME
+from WAM.settings import WAM_VERSION, WAM_ADMIN_CONTACT_EMAIL, WAM_ADMIN_CONTACT_NAME
 from operator import itemgetter
 
 # Get an instance of a logger
@@ -82,6 +81,20 @@ def index(request):
     logger.debug("[%s] visiting home page" % request.user)
     return HttpResponse(template.render(context, request))
 
+def about(request):
+    """
+    About the application
+    """
+
+    template = loader.get_template('loads/about.html')
+    context = {
+        'home_page': True,
+        'admin_name': WAM_ADMIN_CONTACT_NAME,
+        'admin_email': WAM_ADMIN_CONTACT_EMAIL,
+        'wam_version': WAM_VERSION,
+    }
+    logger.debug("[%s] visiting about page" % request.user)
+    return HttpResponse(template.render(context, request))
 #@external_only
 def external_index(request):
     """The main home page for External Examiners"""
@@ -766,7 +779,8 @@ def assessmentstaff_delete(request, assessmentstaff_id):
     if assessmentstaff.package not in staff.get_all_packages(include_hidden=True):
         return HttpResponseRedirect(reverse('forbidden'))
     else:
-        logger.info("[%s]: (admin) removed a member of the assessment team (%s)" % (request.user, assessmentstaff.staff))
+        messages.success(request, 'Assessment Team member removed successfully')
+        logger.info("[%s] (admin) removed a member of the assessment team (%s)" % (request.user, assessmentstaff.staff))
         assessmentstaff.delete()
 
     url = reverse('assessmentstaff_index')
@@ -955,7 +969,6 @@ def create_external_examiner(request):
 
 
 @login_required
-@staff_only
 def tasks_completion(request, task_id, staff_id):
     """Processes recording of a task completion"""
     # Get the task itself, and all targetted users
@@ -984,6 +997,7 @@ def tasks_completion(request, task_id, staff_id):
 
             new_item.save()
             form.save_m2m()
+            messages.success(request, 'Task marked as completed')
             logger.info("[%s] marked task %s complete for %s" % (request.user, task, staff), extra={'form': form})
 
             # redirect to the task details
@@ -1865,15 +1879,16 @@ def workpackage_migrate(request):
 
 # Class based views
 
-class CreateTaskView(PermissionRequiredMixin, CreateView):
+class CreateTaskView(CreateView):
     """View for creating a task"""
-    permission_required = 'loads.add_task'
     model = Task
     success_url = reverse_lazy('tasks_index')
     fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups']
 
     def get_form(self, form_class=None):
-        """We need to restrict form querysets"""
+        """
+        We need to restrict form querysets
+        """
         form = super(CreateTaskView, self).get_form(form_class)
 
         # Work out the correct package and the staff within in
@@ -1885,8 +1900,15 @@ class CreateTaskView(PermissionRequiredMixin, CreateView):
         packages = staff.get_all_packages()
         groups = Group.objects.all().filter(workpackage__in=packages).distinct()
 
-        form.fields['targets'].queryset = package_staff
-        form.fields['groups'].queryset = groups
+        # Check if the staff member has permission to make tasks (in the admin interface)
+        if staff.user.has_perm('loads.add_task'):
+            # They are, so don't restrict the targets or groups any further
+            form.fields['targets'].queryset = package_staff
+            form.fields['groups'].queryset = groups
+        else:
+            # They are not, so the only allowable target is oneself
+            form.fields['targets'].queryset = Staff.objects.all().filter(user=staff.user)
+            form.fields['groups'].queryset = Group.objects.none()
         return form
 
 
@@ -2020,6 +2042,13 @@ class CreateProgrammeView(PermissionRequiredMixin, CreateView):
         self.object.package = package
         response = super(CreateProgrammeView, self).form_valid(form)
         return response
+
+
+class DetailsProgrammeView(DetailView):
+    """View for editing a Programme"""
+    model = Programme
+    success_url = reverse_lazy('programmes_index')
+    fields = ['programme_code', 'programme_name', 'examiners', 'directors']
 
 
 class UpdateProgrammeView(PermissionRequiredMixin, UpdateView):
