@@ -82,7 +82,8 @@ class Command(BaseCommand):
             self.stdout.write(string)
 
         string = 'TEST MODE, No emails will actually be sent.'
-        logger.info(string)
+        if options['test-only']:
+            logger.info(string)
         if verbosity and options['test-only']:
             self.stdout.write(self.style.WARNING(string))
 
