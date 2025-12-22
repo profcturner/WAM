@@ -955,7 +955,6 @@ def create_external_examiner(request):
 
 
 @login_required
-@staff_only
 def tasks_completion(request, task_id, staff_id):
     """Processes recording of a task completion"""
     # Get the task itself, and all targetted users
@@ -984,6 +983,7 @@ def tasks_completion(request, task_id, staff_id):
 
             new_item.save()
             form.save_m2m()
+            messages.success(request, 'Task marked as completed')
             logger.info("[%s] marked task %s complete for %s" % (request.user, task, staff), extra={'form': form})
 
             # redirect to the task details
