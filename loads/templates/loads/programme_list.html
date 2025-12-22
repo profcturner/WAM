@@ -25,6 +25,7 @@
     </table>
 </div>
 
+{% if not logged_in_staff.is_external %}
 <div class="wam-hide-on-print">
     <h4 class="my-3">
         Add Programme
@@ -33,5 +34,6 @@
         Click here to create a new Programme
     </a>
 </div>
+{% endif %}
 
 {% endblock content %}
