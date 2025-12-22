@@ -111,6 +111,7 @@ class WorkPackage(models.Model):
         See clone_from() for details and documentation."""
 
         messages.append(("Information", "Cloning and mapping Programmes", ""))
+        logger.info("cloning and mapping programmes from source package")
         # Get all the programmes
         programmes = Programme.objects.all().filter(package=source_package)
         # Create a mapping dict
@@ -153,6 +154,7 @@ class WorkPackage(models.Model):
         """
 
         messages.append(("Information", "Cloning and Mapping Activity Sets", ""))
+        logger.info("cloning and mapping activity sets")
         # Get all activities in the package that belong to an Activity Set
         activities = Activity.objects.all().filter(package=source_package).filter(activity_set__isnull=False)
         # Create a mapping dict
@@ -183,6 +185,7 @@ class WorkPackage(models.Model):
         """Clones generated activities not belonging to a module"""
 
         messages.append(("Information", "Cloning Generated Activities not belonging to a Module", ""))
+        logger.info("cloning generated activities")
         activities = \
             Activity.objects.all().filter(package=source_package). \
                 filter(activity_set__isnull=False).filter(module__isnull=True)
@@ -204,6 +207,7 @@ class WorkPackage(models.Model):
         """Clones activities not belonging to a set or module"""
 
         messages.append(("Information", "Cloning Custom Activities not belonging to a Module", ""))
+        logger.info("cloning custom activities")
         activities = Activity.objects.all().filter(package=source_package).filter(activity_set__isnull=True).filter(
             module__isnull=True)
         for activity in activities:
@@ -219,6 +223,7 @@ class WorkPackage(models.Model):
         """Clones modules, module activities and module staff"""
 
         messages.append(("Information", "Cloning Module Data", ""))
+        logger.info("cloning module data")
         # Create a mapping dict
         mapping_module = dict()
 
@@ -335,6 +340,7 @@ class WorkPackage(models.Model):
         returns a list of tuples showing what has been cloned
         """
 
+        logger.info("cloning from package %s into %s" % (source_package, self))
         # Record data on cloned items, errors etc for reporting to the user
         messages = []
 
@@ -343,6 +349,7 @@ class WorkPackage(models.Model):
             + Module.objects.filter(package=self).count()
             + ModuleStaff.objects.filter(package=self).count()) > 0:
             messages.append(("Error", "Destination Workpackage not empty", "Aborting"))
+            logger.warning("destination package not empty")
             return messages
 
         if options['copy_programmes']:

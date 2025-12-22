@@ -2,10 +2,13 @@ import os
 import mimetypes
 import logging
 
+from django.core.mail import mail_admins
 from django.shortcuts import get_object_or_404, render
-from django.urls import reverse, reverse_lazy
+from django.http import Http404
+from django.urls import reverse, reverse_lazy, resolve
 from django.forms import modelformset_factory
 from django.contrib import messages
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
@@ -76,7 +79,7 @@ def index(request):
         'admin_name': WAM_ADMIN_CONTACT_NAME,
         'admin_email': WAM_ADMIN_CONTACT_EMAIL,
     }
-    logger.debug("Visiting home page")
+    logger.debug("[%s] visiting home page" % request.user)
     return HttpResponse(template.render(context, request))
 
 #@external_only
@@ -86,7 +89,10 @@ def external_index(request):
     template = loader.get_template('loads/external/index.html')
     context = {
         'home_page': True,
+        'admin_name': WAM_ADMIN_CONTACT_NAME,
+        'admin_email': WAM_ADMIN_CONTACT_EMAIL,
     }
+    logger.info("[%s] visiting external examiners home page" % request.user)
     return HttpResponse(template.render(context, request))
 
 
@@ -94,6 +100,7 @@ def forbidden(request):
     """General permissions failure warning"""
 
     template = loader.get_template('loads/forbidden.html')
+    logger.info("[%s] action was forbidden" % request.user)
 
     return HttpResponse(template.render({}, request))
 
@@ -102,7 +109,7 @@ def logged_out(request):
     """Show that we are logged out"""
 
     template = loader.get_template('loads/logged_out.html')
-    logger.info("Staff Member logged out")
+    logger.info("staff member logged out")
 
     return HttpResponse(template.render({}, request))
 
@@ -110,8 +117,8 @@ def logged_out(request):
 def external_logged_out(request):
     """Show that an external examiner is logged out"""
 
-    logger.info("External examiner logged out")
     template = loader.get_template('loads/external/logged_out.html')
+    logger.info("external examiner logged out")
 
     return HttpResponse(template.render({}, request))
 
@@ -144,7 +151,14 @@ def download_assessment_resource(request, resource_id):
     file_mimetype = mimetypes.guess_type(filename)[0]
 
     # Start a response
-    response = HttpResponse(resource.resource.file, content_type=file_mimetype)
+    try:
+        logger.info("[%s] downloading assessment resource %u" % (request.user, resource.id), extra={'resource': resource})
+        response = HttpResponse(resource.resource.file, content_type=file_mimetype)
+    except FileNotFoundError:
+        logger.critical("File %s, missing for existing resource id %u" % (filename, resource.pk), extra={'resource': resource})
+        mail_admins("WAM error, missing file", "File %s, missing for existing resource id %u" % (filename, resource.pk))
+        raise Http404("The requested file was not found.")
+
 
     # Let's suggest the filename
     response['Content-Disposition'] = 'inline; filename="%s"' % filename
@@ -193,10 +207,13 @@ def delete_assessment_resource(request, resource_id, confirm=None):
         context = {
             'resource': resource
         }
+        logger.info("[%s] initiating assessment resource %u deletion" % (request.user, resource.id),
+                    extra={'resource': resource})
         template = loader.get_template('loads/modules/delete_assessment_resource.html')
         return HttpResponse(template.render(context, request))
 
     # If we are still here we can delete safely
+    logger.info("[%s] confirming assessment resource %u deletion" % (request.user, resource.id), extra={'resource': resource})
     resource.delete()
     messages.info(request, 'Deleted assessment resource.')
 
@@ -226,6 +243,7 @@ def loads(request):
             url = reverse('workpackage_change')
             return HttpResponseRedirect(url)
 
+    logger.info("[%s] loads by staff viewed" % request.user, extra={'package': package})
     # This controls whether hours or percentages are shown
     show_percentages = package.show_percentages
 
@@ -297,7 +315,6 @@ def loads(request):
     else:
         average = 0
 
-    logger.debug("%s: Loads by staff viewed", request.user, extra={'package': package})
     template = loader.get_template('loads/loads.html')
     context = {
         'group_data': group_data,
@@ -338,6 +355,7 @@ def loads_by_staff_chart(request):
             url = reverse('workpackage_change')
             return HttpResponseRedirect(url)
 
+    logger.info("[%s] loads by staff chart viewed" % request.user, extra={'package': package})
     # We will likely want these to be configurable
     # By default, we will sort lists by highest to lowest workload (if False, alphabetically)
     sort_lists = True
@@ -442,7 +460,6 @@ def loads_by_staff_chart(request):
     else:
         average = 0
 
-    logger.debug("%s: Loads by staff chart viewed", request.user, extra={'package': package})
     template = loader.get_template('loads/loads_charts.html')
     context = {
         'sort_lists': sort_lists,
@@ -467,6 +484,8 @@ def loads_modules(request, semesters, staff_details=False):
     staff = get_object_or_404(Staff, user=request.user)
     # And therefore the package enabled for that user
     package = staff.package
+
+    logger.info("[%s] loads by modules viewed" % request.user, extra={'package': package})
     modules = Module.objects.all().filter(package=package).order_by('module_code')
 
     # if this is a POST request we need to process the form data
@@ -533,7 +552,6 @@ def loads_modules(request, semesters, staff_details=False):
 
         combined_list.append(module_info)
 
-    logger.debug("%s: Loads by modules viewed", request.user, extra={'package': package})
     template = loader.get_template('loads/loads/modules.html')
     context = {
         'form': form,
@@ -557,9 +575,10 @@ def activities(request, staff_id):
     package = staff.package
 
     show_percentages = package.show_percentages
-
     # Now the staff member we want to look at
     staff = get_object_or_404(Staff, pk=staff_id)
+
+    logger.info("[%s] viewed activities for %s" % (request.user, staff), extra={'package': package})
     activities = Activity.objects.all().filter(staff=staff).filter(package=package).order_by('name')
     combined_list = []
     combined_list_modules = []
@@ -659,7 +678,6 @@ def activities(request, staff_id):
         semester3_total = semester3_total * 100 / package.nominal_hours
         total = 100 * total / package.nominal_hours
 
-    logger.debug("%s: Activities viewed", request.user, extra={'package': package})
     template = loader.get_template('loads/activities.html')
     context = {
         'staff': staff,
@@ -686,6 +704,8 @@ def assessmentstaff_index(request):
     # And therefore the package enabled for that user
     package = staff.package
 
+    logger.info("[%s] (admin) assessment team viewed" % request.user, extra={'package': package})
+
     # Get all the staff who are currently on the assessment team
     assessment_staff = AssessmentStaff.objects.filter(package=package).order_by("staff")
 
@@ -700,9 +720,8 @@ def assessmentstaff_index(request):
             new_staff = form.cleaned_data['staff']
             new_package = form.cleaned_data['package']
             messages.success(request, 'Assessment Team member added successfully')
-            logger.warning("%s: added an assessment team member (%s to package %s)", request.user,
-                           new_staff, new_package,
-                           extra={'form': form})
+            logger.warning("[%s] (admin) added an assessment team member (%s to package %s)" % (request.user,
+                           new_staff, new_package), extra={'form': form})
             form.save()
             url = reverse('assessmentstaff_index')
             return HttpResponseRedirect(url)
@@ -713,8 +732,6 @@ def assessmentstaff_index(request):
         form.fields['package'].initial = package
         form.fields['staff'].queryset = possible_assessment_staff
 
-
-    logger.debug("%s: AsessmentStaff index (Assessment Team) viewed", request.user, extra={'package': package})
     template = loader.get_template('loads/assessmentstaff_list.html')
     context = {
         'staff': staff,
@@ -749,7 +766,7 @@ def assessmentstaff_delete(request, assessmentstaff_id):
     if assessmentstaff.package not in staff.get_all_packages(include_hidden=True):
         return HttpResponseRedirect(reverse('forbidden'))
     else:
-        logger.info("(%s): Removed a member of the Assessment Team (%s)", request.user.username, assessmentstaff.staff)
+        logger.info("[%s]: (admin) removed a member of the assessment team (%s)" % (request.user, assessmentstaff.staff))
         assessmentstaff.delete()
 
     url = reverse('assessmentstaff_index')
@@ -768,7 +785,7 @@ def tasks_index(request):
     for task in tasks:
         augmented_tasks.append([task, task.is_urgent(), task.is_overdue()])
 
-    logger.debug("%s: Tasks viewed", request.user)
+    logger.info("[%s] viewed their tasks" % request.user)
     template = loader.get_template('loads/tasks/index.html')
     context = {
         'augmented_tasks': augmented_tasks,
@@ -791,7 +808,7 @@ def archived_tasks_index(request):
     for task in tasks:
         augmented_tasks.append([task, task.is_urgent(), task.is_overdue()])
 
-    logger.debug("%s: Archived Tasks viewed", request.user)
+    logger.debug("[%s] viewed their archived tasks" % request.user)
     template = loader.get_template('loads/tasks/index.html')
     context = {
         'augmented_tasks': augmented_tasks,
@@ -808,6 +825,7 @@ def tasks_bystaff(request, staff_id):
     staff = get_object_or_404(Staff, pk=staff_id)
     all_tasks = staff.get_all_tasks()
 
+    logger.info("[%s] viewed the tasks assigned to %s" % (request.user, staff))
     # We will create separate lists for those tasks that are complete
     combined_list_complete = []
     combined_list_incomplete = []
@@ -822,7 +840,6 @@ def tasks_bystaff(request, staff_id):
             combined_item = [task, completion[0].when]
             combined_list_complete.append(combined_item)
 
-    logger.debug("%s: Tasks for %s viewed", request.user, staff)
     template = loader.get_template('loads/tasks/bystaff.html')
     context = {
         'staff': staff,
@@ -837,6 +854,8 @@ def tasks_details(request, task_id):
     """Obtains a list of all completions for a given task"""
     # Get the task itself, and all targetted users
     task = get_object_or_404(Task, pk=task_id)
+
+    logger.info("[%s] viewed details of task %s" % (request.user, task), extra={'task': task})
     all_targets = task.get_all_targets()
 
     combined_list_complete = []
@@ -860,7 +879,6 @@ def tasks_details(request, task_id):
     else:
         percentage_complete = 0
 
-    logger.debug("%s:Task details viewed %s", request.user, task)
     template = loader.get_template('loads/tasks/details.html')
     context = {
         'task': task,
@@ -879,7 +897,7 @@ def tasks_details(request, task_id):
 def custom_admin_index(request):
     """The beginnings of a more integrated admin menu"""
 
-    logger.debug("%s: Custom Admin Menu viewed", request.user)
+    logger.info("[%s] (admin) custom admin menu viewed" % request.user)
     template = loader.get_template('loads/admin/index.html')
     return HttpResponse(template.render({}, request))
 
@@ -895,14 +913,17 @@ def create_staff_user(request):
         form = StaffCreationForm(request.POST)
         if form.is_valid():
             form.save()
+            new_username = form.cleaned_data['username']
+
             messages.success(request, 'Account created successfully')
 
-            logger.info("%s: created a staff user", request.user, extra={'form': form})
+            logger.info("[%s] (admin) created a staff user %s" % (request.user, new_username), extra={'form': form})
             url = reverse('custom_admin_index')
             return HttpResponseRedirect(url)
 
     else:
         form = StaffCreationForm()
+        logger.info("[%s] (admin) opened form to create a staff user" % request.user)
 
     return render(request, 'loads/admin/create_staff_user.html', {'form': form})
 
@@ -918,14 +939,17 @@ def create_external_examiner(request):
         form = ExternalExaminerCreationForm(request.POST)
         if form.is_valid():
             form.save()
+            new_username = form.cleaned_data['username']
+
             messages.success(request, 'Account created successfully')
-            logger.info("%s: created an External Examiner user", request.user, extra={'form': form})
+            logger.info("[%s] created an external examiner user %s" % (request.user, new_username), extra={'form': form})
 
             url = reverse('custom_admin_index')
             return HttpResponseRedirect(url)
 
     else:
         form = ExternalExaminerCreationForm()
+        logger.info("[%s] (admin) opened form to create an external examiner user" % request.user)
 
     return render(request, 'loads/admin/create_external_examiner.html', {'form': form})
 
@@ -960,7 +984,7 @@ def tasks_completion(request, task_id, staff_id):
 
             new_item.save()
             form.save_m2m()
-            logger.info("%s: masked task %s complete for %s", request.user, task, staff, extra={'form': form})
+            logger.info("[%s] marked task %s complete for %s" % (request.user, task, staff), extra={'form': form})
 
             # redirect to the task details
             # TODO: which is a pain if we came from the bystaff view
@@ -970,6 +994,7 @@ def tasks_completion(request, task_id, staff_id):
     # if a GET (or any other method) we'll create a blank form
     else:
         form = TaskCompletionForm()
+        logger.info("[%s] opened task %s for %s" % (request.user, task, staff), extra={'form': form})
 
     return render(request, 'loads/tasks/completion.html', {'form': form, 'task': task,
                                                            'overdue': task.is_overdue(),
@@ -1006,7 +1031,8 @@ def add_assessment_resource(request, module_id):
 
             new_item.save()
             form.save_m2m()
-            logger.info("%s: added as assessment resource for module %s", request.user, module)
+            logger.info("[%s] added an assessment resource for module %s in package %s" %
+                        (request.user, module, module.package))
 
             url = reverse('modules_details', kwargs={'module_id': module_id})
             return HttpResponseRedirect(url)
@@ -1015,6 +1041,7 @@ def add_assessment_resource(request, module_id):
     # if a GET (or any other method) we'll create a form from the current logged in user
     else:
         form = AssessmentResourceForm()
+        logger.info("[%s] opened the form to add an assessment resource for module %s" % (request.user, module))
 
     return render(request, 'loads/modules/add_assessment_resource.html',
                   {'form': form, 'staff': staff, 'module': module})
@@ -1068,7 +1095,7 @@ def module_staff_allocation(request, module_id, package_id):
                 allocation.package = package
             # Now do a real save
             formset.save(commit=True)
-            logger.info("%s: adjusted the module allocation for module %s", request.user, module, extra={'form': form})
+            logger.info("[%s] adjusted the module allocation for module %s" % (request.user, module), extra={'form': form})
 
             # redirect to the activites page
             # TODO this might just be a different package from this one, note.
@@ -1081,6 +1108,7 @@ def module_staff_allocation(request, module_id, package_id):
         # Again, only allow staff members in the package
         for form in formset:
             form.fields['staff'].queryset = package.get_all_staff()
+        logger.info("[%s] opened the form for the module allocation for module %s" % (request.user, module), extra={'form': form})
 
     return render(request, 'loads/modules/allocations.html', {'module': module, 'package': package, 'formset': formset})
 
@@ -1185,7 +1213,7 @@ def modules_index(request, semesters):
         combined_item = [module, relationship, resource, signoff, action_possible, module.get_lead_examiners()]
         combined_list.append(combined_item)
 
-    logger.debug("%s: visited the Modules Index for package %s", request.user, package, extra={'form': form})
+    logger.info("[%s] visited the modules index for package %s" % (request.user, package), extra={'form': form})
     template = loader.get_template('loads/modules/index.html')
     context = {
         'form': form,
@@ -1302,7 +1330,7 @@ def external_modules_index(request, semesters):
         combined_item = [module, relationship, resource, signoff, action_possible, module.get_lead_examiners()]
         combined_list.append(combined_item)
 
-    logger.debug("%s: visited the External Examiner Modules Index for package %s", request.user, package, extra={'form': form})
+    logger.info("[%s] visited the external examiner modules index for package %s" % (request.user, package), extra={'form': form})
     template = loader.get_template('loads/modules/index.html')
     context = {
         'form': form,
@@ -1362,7 +1390,7 @@ def modules_details(request, module_id):
             #there are unsigned items
             unsigned_items = True
 
-    logger.debug("%s: examined the Module Details for %s", request.user, module)
+    logger.info("[%s] examined the module details for %s" % (request.user, module))
     template = loader.get_template('loads/modules/details.html')
     context = {
         'module': module,
@@ -1430,8 +1458,8 @@ def add_assessment_sign_off(request, module_id):
             signoff.module = module
 
             signoff.save()
-            logger.info("%s: signed off assessment states for Module %s Index for package %s", request.user, module, package,
-                         extra={'form': form})
+            logger.info("[%s] signed off assessment states for module %s for package %s" %
+                        (request.user, module, module.package), extra={'form': form})
 
             url = reverse('modules_details', kwargs={'module_id': module_id})
             return HttpResponseRedirect(url)
@@ -1442,6 +1470,8 @@ def add_assessment_sign_off(request, module_id):
         form.fields['assessment_state'].queryset = next_states
         form.fields['signed_by'].initial = request.user
         form.fields['module'].initial = module
+        logger.info("[%s] opened the assessment state sign off form for module %s for package %s" %
+                    (request.user, module, module.package), extra={'form': form})
 
 
     template = loader.get_template('loads/modules/add_assessment_signoff.html')
@@ -1476,7 +1506,8 @@ def delete_assessment_sign_off(request, signoff_id, confirm=None):
     if not staff:
         return HttpResponseRedirect(reverse('forbidden'))
 
-    logger.info("%s potentially deleting assessment signoff" % staff, extra={'signoff': signoff})
+    logger.warning("[%s] potentially deleting assessment signoff for module %s, package %s" %
+                   (request.user, signoff.module, signoff.module.package), extra={'signoff': signoff})
 
     # Assume a lack of permissions
     permission = False
@@ -1489,19 +1520,19 @@ def delete_assessment_sign_off(request, signoff_id, confirm=None):
         permission = True
 
     if not permission:
-        logger.info("No permission to deleting assessment signoff")
+        logger.warning("no permission for deleting assessment signoff granted")
         messages.error(request, 'Sorry, you do not have administrative privileges for this action.')
         return HttpResponseRedirect(reverse('forbidden'))
 
     # Check for any more recent signoffs and if so, this is forbidden
-    logger.debug("Check for more recent signoffs")
+    logger.debug("check for more recent signoffs")
     newer_signoffs = AssessmentStateSignOff.objects.all().filter(module=signoff.module).filter(created__gt=signoff.created)
     if len(newer_signoffs):
         messages.error(request, 'Only the most recent sign off may be deleted.')
         return HttpResponseRedirect(reverse('forbidden'))
 
     # Check for any more recent items than the signoff, and if this is so, this is forbidden
-    logger.debug("Check for more recent resources")
+    logger.debug("check for more recent resources")
     newer_resources = AssessmentResource.objects.all().filter(module=signoff.module).filter(created__gt=signoff.created)
     if len(newer_resources):
         messages.error(request, 'Sign offs cannot be deleted after more recent items have been added.')
@@ -1510,7 +1541,7 @@ def delete_assessment_sign_off(request, signoff_id, confirm=None):
 
     # Check if the deletion is confirmed
     if not confirm:
-        logger.debug("Deletion not confirmed")
+        logger.debug("deletion not confirmed")
         context = {
             'signoff': signoff
         }
@@ -1519,8 +1550,9 @@ def delete_assessment_sign_off(request, signoff_id, confirm=None):
         return HttpResponse(template.render(context, request))
 
     # If we are still here we can delete safely
+    logger.warning("[%s] deleted assessment signoff for module %s, package %s" %
+                   (request.user, signoff.module, signoff.module.package), extra={'signoff': signoff})
     signoff.delete()
-    logger.info("Signoff deleted")
     messages.info(request, 'Deleted assessment signoff.')
 
     url = reverse('modules_details', kwargs={'module_id': signoff.module.id})
@@ -1570,8 +1602,8 @@ def staff_module_allocation(request, staff_id, package_id):
                 allocation.package = package
             # Now do a real save
             formset.save(commit=True)
-            logger.info("%s: edited the module allocation for %s on package %s", request.user, staff, package,
-                         extra={'form': form})
+            logger.info("[%s] edited the module allocation for %s on package %s" %
+                        (request.user, staff, package), extra={'form': form})
 
             # redirect to the activites page
             # TODO this might just be a different package from this one, note.
@@ -1599,7 +1631,7 @@ def generators_index(request):
 
     generators = ActivityGenerator.objects.all().filter(package=staff.package)
 
-    logger.debug("%s: visited the Generators Index for workpackage %s", request.user, staff.package)
+    logger.info("[%s] (admin) visited the generators index for package %s" % (request.user, staff.package))
     template = loader.get_template('loads/generators/index.html')
     context = {
         'generators': generators,
@@ -1624,7 +1656,7 @@ def generators_generate_activities(request, generator_id):
 
     generator.generate_activities()
     messages.success(request, 'Activities Regenerated.')
-    logger.info("%s: triggered a Generator %s in Package %s", request.user, generator, generator.package)
+    logger.info("[%s] (admin) triggered generator %s in package %s" % (request.user, generator, generator.package))
     url = reverse('generators_index')
     return HttpResponseRedirect(url)
 
@@ -1638,7 +1670,7 @@ def projects_index(request):
     staff = get_object_or_404(Staff, user=request.user)
     projects = Project.objects.all()
 
-    logger.debug("%s: visited the Projects Index", request.user)
+    logger.info("[%s] (admin) visited the projects index" % request.user)
     template = loader.get_template('loads/projects/index.html')
     context = {
         'projects': projects,
@@ -1686,7 +1718,7 @@ def projects_details(request, project_id):
                 allocation.project = project
             # Now do a real save
             formset.save(commit=True)
-            logger.info("%s: edited the details for Project %s", request.user, project,
+            logger.info("[%s] (admin) edited the details for project %s" % (request.user, project),
                          extra={'form': form})
 
             # redirect to the activites page
@@ -1699,6 +1731,8 @@ def projects_details(request, project_id):
         formset = ProjectStaffFormSet(queryset=ProjectStaff.objects.filter(project=project))
         for form in formset:
             form.fields['staff'].queryset = package.get_all_staff()
+        logger.info("[%s] (admin) opened the details for project %s" % (request.user, project),
+                    extra={'form': form})
 
     return render(request, 'loads/projects/allocations.html',
                   {'project': project, 'project_form': project_form, 'formset': formset})
@@ -1721,6 +1755,8 @@ def projects_generate_activities(request, project_id):
 
     project.generate_activities()
     messages.success(request, 'Activities Regenerated.')
+    logger.info("[%s] (admin) generated activities for project %s" % (request.user, project))
+
     url = reverse('projects_index')
     return HttpResponseRedirect(url)
 
@@ -1735,6 +1771,7 @@ def workpackage_change(request):
     # Get all workpackages that touch on the staff member's group
     packages = staff.get_all_packages()
 
+    logger.debug("[%s] changing package" % request.user)
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request and the given staff
@@ -1743,12 +1780,18 @@ def workpackage_change(request):
         # check whether it's valid:
         if form.is_valid():
             form.save()
-            logger.info("%s: changed workpackage to %s", request.user, staff.package,
+            logger.info("[%s] changed package to %s", request.user, staff.package,
                          extra={'form': form})
 
             # Try to find where we came from
-            next = request.POST.get('next', '/')
-            if next:
+            next = request.POST.get('next', reverse('index'))
+            is_safe = url_has_allowed_host_and_scheme(url=next, allowed_hosts=request.get_host(),
+                                                      require_https=request.is_secure())
+
+            if not is_safe:
+                logger.critical("[%s] used an invalid next page in package change" % request.user)
+
+            if is_safe and next:
                 return HttpResponseRedirect(next)
             else:
                 # redirect to the loads page
@@ -1795,9 +1838,11 @@ def workpackage_migrate(request):
 
             destination_package = form.cleaned_data['destination_package']
             source_package = form.cleaned_data['source_package']
-            logger.info("%s: migrated Package %s to %s", request.user, source_package, destination_package,
+            logger.info("[%s] (admin) migrating package %s to %s" % (request.user, source_package, destination_package),
                          extra={'form': form})
             changes = destination_package.clone_from(source_package, options)
+            logger.info("[%s] (admin) package %s to %s migration complete" % (request.user, source_package, destination_package),
+                        extra={'form': form})
 
             template = loader.get_template('loads/workpackages/migrate_results.html')
             context = {
@@ -1813,6 +1858,7 @@ def workpackage_migrate(request):
         form = MigrateWorkPackageForm()
         form.fields['source_package'].queryset = packages
         form.fields['destination_package'].queryset = packages
+        logger.info("[%s] (admin) package migration form opened" % request.user, extra={'form': form})
 
     return render(request, 'loads/workpackages/migrate.html', {'form': form, 'staff': staff})
 
