@@ -63,7 +63,7 @@ from .forms import ExternalExaminerCreationForm
 from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
 
-from WAM.settings import WAM_ADMIN_CONTACT_EMAIL, WAM_ADMIN_CONTACT_NAME
+from WAM.settings import WAM_VERSION, WAM_ADMIN_CONTACT_EMAIL, WAM_ADMIN_CONTACT_NAME
 from operator import itemgetter
 
 # Get an instance of a logger
@@ -81,6 +81,20 @@ def index(request):
     logger.debug("[%s] visiting home page" % request.user)
     return HttpResponse(template.render(context, request))
 
+def about(request):
+    """
+    About the application
+    """
+
+    template = loader.get_template('loads/about.html')
+    context = {
+        'home_page': True,
+        'admin_name': WAM_ADMIN_CONTACT_NAME,
+        'admin_email': WAM_ADMIN_CONTACT_EMAIL,
+        'wam_version': WAM_VERSION,
+    }
+    logger.debug("[%s] visiting about page" % request.user)
+    return HttpResponse(template.render(context, request))
 #@external_only
 def external_index(request):
     """The main home page for External Examiners"""

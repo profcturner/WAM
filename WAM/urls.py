@@ -45,6 +45,7 @@ help_contact = {
 
 urlpatterns = [
     re_path(r'^$', views.index, name='index'),
+    re_path(r'^about/$', views.about, name='about'),
     re_path(r'^accounts/login/$', auth_views.LoginView.as_view(extra_context=help_contact), name='login'),
     re_path(r'^accounts/logout/$', auth_views.LogoutView.as_view(), name='logout'),
     re_path(r'^accounts/external_logout/$', auth_views.LogoutView.as_view(next_page=views.external_logged_out), name='external_logout'),
