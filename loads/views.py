@@ -78,7 +78,7 @@ def index(request):
         'admin_name': WAM_ADMIN_CONTACT_NAME,
         'admin_email': WAM_ADMIN_CONTACT_EMAIL,
     }
-    logger.debug("[%s] visiting home page" % request.user)
+    logger.info("[%s] visiting home page" % request.user)
     return HttpResponse(template.render(context, request))
 
 def about(request):
@@ -93,9 +93,10 @@ def about(request):
         'admin_email': WAM_ADMIN_CONTACT_EMAIL,
         'wam_version': WAM_VERSION,
     }
-    logger.debug("[%s] visiting about page" % request.user)
+    logger.info("[%s] visiting about page" % request.user)
     return HttpResponse(template.render(context, request))
-#@external_only
+
+
 def external_index(request):
     """The main home page for External Examiners"""
 
