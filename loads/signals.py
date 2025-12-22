@@ -4,6 +4,7 @@ import logging
 
 from django.conf import settings
 from django.db.models.signals import post_save
+from django.contrib.auth.signals import user_logged_in, user_logged_out, user_login_failed
 from django.dispatch import receiver
 from django.contrib.auth.models import User
 from .models import Staff
@@ -79,3 +80,29 @@ def create_staff(sender, instance, created, **kwargs):
         # Finally, if we are here, there are no regexs, try and make a generic staff object
         Staff.objects.create(user=instance, staff_number=instance.username)
         return
+
+@receiver(user_logged_in)
+def user_logged_in_callback(sender, request, user, **kwargs):
+    # to cover more complex cases:
+    # http://stackoverflow.com/questions/4581789/how-do-i-get-user-ip-address-in-django
+    ip = request.META.get('REMOTE_ADDR')
+
+    logger.info('[{user}] logged in via ip: {ip}'.format(
+        user=user,
+        ip=ip
+    ))
+
+@receiver(user_logged_out)
+def user_logged_out_callback(sender, request, user, **kwargs):
+    ip = request.META.get('REMOTE_ADDR')
+
+    logger.info('[{user}] logged out via ip: {ip}'.format(
+        user=user,
+        ip=ip
+    ))
+
+@receiver(user_login_failed)
+def user_login_failed_callback(sender, credentials, **kwargs):
+    logger.warning('login failed for: {credentials}'.format(
+        credentials=credentials,
+    ))
