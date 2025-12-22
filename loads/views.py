@@ -766,7 +766,8 @@ def assessmentstaff_delete(request, assessmentstaff_id):
     if assessmentstaff.package not in staff.get_all_packages(include_hidden=True):
         return HttpResponseRedirect(reverse('forbidden'))
     else:
-        logger.info("[%s]: (admin) removed a member of the assessment team (%s)" % (request.user, assessmentstaff.staff))
+        messages.success(request, 'Assessment Team member removed successfully')
+        logger.info("[%s] (admin) removed a member of the assessment team (%s)" % (request.user, assessmentstaff.staff))
         assessmentstaff.delete()
 
     url = reverse('assessmentstaff_index')
