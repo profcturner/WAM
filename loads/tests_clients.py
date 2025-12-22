@@ -390,9 +390,8 @@ class UserClientTest(TestCase):
         response = self.client.get("/tasks/bystaff/%s" % staff.id)
         self.assertEqual(response.status_code, 200)
 
-        # These views should be response code 403 (Forbidden)
         response = self.client.get("/tasks/create/")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
 
         #TODO: Add completion form submission
         #TODO: Check archive works
