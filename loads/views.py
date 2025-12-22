@@ -14,8 +14,7 @@ from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMix
 from django.core.exceptions import PermissionDenied
 
 # Class Views
-from django.views.generic import ListView
-from django.views.generic import UpdateView, CreateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 
 from django.views import View
 
@@ -1898,7 +1897,7 @@ class CreateTaskView(CreateView):
             form.fields['groups'].queryset = Group.objects.none()
         return form
 
-    
+
 class UpdateTaskView(PermissionRequiredMixin, UpdateView):
     """View for creating a task"""
     permission_required = 'loads.change_task'
@@ -2029,6 +2028,13 @@ class CreateProgrammeView(PermissionRequiredMixin, CreateView):
         self.object.package = package
         response = super(CreateProgrammeView, self).form_valid(form)
         return response
+
+
+class DetailsProgrammeView(DetailView):
+    """View for editing a Programme"""
+    model = Programme
+    success_url = reverse_lazy('programmes_index')
+    fields = ['programme_code', 'programme_name', 'examiners', 'directors']
 
 
 class UpdateProgrammeView(PermissionRequiredMixin, UpdateView):
