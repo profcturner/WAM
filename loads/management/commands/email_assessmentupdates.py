@@ -16,8 +16,7 @@ from django.conf import settings
 
 import datetime
 import logging
-# code to handle timezones
-from django.utils.timezone import utc
+utc = datetime.timezone.utc
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
