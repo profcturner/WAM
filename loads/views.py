@@ -1866,15 +1866,16 @@ def workpackage_migrate(request):
 
 # Class based views
 
-class CreateTaskView(PermissionRequiredMixin, CreateView):
+class CreateTaskView(CreateView):
     """View for creating a task"""
-    permission_required = 'loads.add_task'
     model = Task
     success_url = reverse_lazy('tasks_index')
     fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups']
 
     def get_form(self, form_class=None):
-        """We need to restrict form querysets"""
+        """
+        We need to restrict form querysets
+        """
         form = super(CreateTaskView, self).get_form(form_class)
 
         # Work out the correct package and the staff within in
@@ -1886,11 +1887,18 @@ class CreateTaskView(PermissionRequiredMixin, CreateView):
         packages = staff.get_all_packages()
         groups = Group.objects.all().filter(workpackage__in=packages).distinct()
 
-        form.fields['targets'].queryset = package_staff
-        form.fields['groups'].queryset = groups
+        # Check if the staff member has permission to make tasks (in the admin interface)
+        if staff.user.has_perm('loads.add_task'):
+            # They are, so don't restrict the targets or groups any further
+            form.fields['targets'].queryset = package_staff
+            form.fields['groups'].queryset = groups
+        else:
+            # They are not, so the only allowable target is oneself
+            form.fields['targets'].queryset = Staff.objects.all().filter(user=staff.user)
+            form.fields['groups'].queryset = Group.objects.none()
         return form
 
-
+    
 class UpdateTaskView(PermissionRequiredMixin, UpdateView):
     """View for creating a task"""
     permission_required = 'loads.change_task'
