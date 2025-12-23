@@ -59,16 +59,27 @@
                     <a class="nav-link text-decoration-none {% active request generators_index %}" href="https://github.com/profcturner/WAM/wiki"
                        target="_blank" title="click to access section: Help">Help</a>
                 </li>
-                {% if not request.meta.remote_user %}
-                    {% if logged_in_staff %}
+                {% if wam_adfs_auth %}{# This code provides oauth logout where required #}
                     <li class="nav-item">
-                        <form id="wam-logout" method="post" action="{% url 'external_logout' %}">
+                        <form id="wam-logout" method="post" action="{% url 'django_auth_adfs:logout' %}">
                         {% csrf_token %}
                             <button type="submit" class="nav-link text-decoration-none" title="Click here to log out">
-                                Logout
+                                    Logout
                             </button>
                         </form>
                     </li>
+                {% else %}
+                    {% if not request.meta.remote_user %}
+                        {% if logged_in_staff %}
+                        <li class="nav-item">
+                            <form id="wam-logout" method="post" action="{% url 'external_logout' %}">
+                            {% csrf_token %}
+                                <button type="submit" class="nav-link text-decoration-none" title="Click here to log out">
+                                    Logout
+                                </button>
+                            </form>
+                        </li>
+                        {% endif %}
                     {% endif %}
                 {% endif %}
             </ul>
