@@ -58,7 +58,6 @@
 <div class="border border-secondary-subtle rounded-3 p-3 mt-4">
     <form action="" method="post">
         {% csrf_token %}
-        <input type="hidden" name="next" value="{{ request.META.HTTP_REFERER }}">
         {# Process hidden fields, we don't need to style them #}
         {% for hidden in form.hidden_fields %}
             {{ hidden }}
