@@ -5,7 +5,7 @@ import logging
 from django.core.mail import mail_admins
 from django.shortcuts import get_object_or_404, render
 from django.http import Http404
-from django.urls import reverse, reverse_lazy, resolve
+from django.urls import reverse, reverse_lazy
 from django.forms import modelformset_factory
 from django.contrib import messages
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -14,22 +14,14 @@ from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMix
 from django.core.exceptions import PermissionDenied
 
 # Class Views
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-
-from django.views import View
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
 
 # Permission decorators
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from .decorators import staff_only, external_only, admin_only
 from django.utils.decorators import method_decorator
-
-# Create your views here.
-
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import redirect
-
-from django.template import RequestContext, loader
-
+from django.template import loader
 from django.contrib.auth.models import User, Group
 
 from .models import ActivityGenerator, Category
@@ -37,7 +29,6 @@ from .models import AssessmentResource
 from .models import AssessmentStaff
 from .models import AssessmentState
 from .models import AssessmentStateSignOff
-from .models import ExternalExaminer
 from .models import Staff
 from .models import Task
 from .models import Activity
@@ -64,7 +55,6 @@ from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
 
 from WAM.settings import WAM_VERSION, WAM_ADMIN_CONTACT_EMAIL, WAM_ADMIN_CONTACT_NAME
-from operator import itemgetter
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -89,8 +79,9 @@ def next_page_pop(request, backup_url=None):
 
     Doing this can avoid overzealous web application firewalls, hopefully
 
-    :param request: The user's request data
-    :return:        The url for redirection, or a backup if not found in the session
+    :param request:     The user's request data
+    :param backup_url:  Use this URL is the pop fails
+    :return:            The url for redirection, or a backup if not found in the session
     """
     url = request.session.pop('next_page')
     # Just in case we can't get one
@@ -174,6 +165,7 @@ def download_assessment_resource(request, resource_id):
     """Download an assessment resource"""
     # Get the resource object
     resource = get_object_or_404(AssessmentResource, pk=resource_id)
+    logger.info("[%s] attempting to download assessment resource %u" % (request.user, resource.id), extra={'resource': resource})
 
     # Fetch the staff user associated with the person requesting
     try:
@@ -182,11 +174,13 @@ def download_assessment_resource(request, resource_id):
         staff = None
 
     if not staff:
+        logger.info("[%s] forbidden from downloading resource, no staff object." % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
     permission = resource.is_downloadable_by(staff)
 
     if not permission:
+        logger.info("[%s] forbidden from downloading resource, no permission for this resource." % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
     resource.downloads += 1
@@ -217,6 +211,8 @@ def delete_assessment_resource(request, resource_id, confirm=None):
     """Delete an assessment resource, should not be possible for signed resources, except for superuser"""
     # Get the resource object
     resource = get_object_or_404(AssessmentResource, pk=resource_id)
+    logger.info("[%s] attempting to delete assessment resource %u" % (request.user, resource.id),
+                extra={'resource': resource})
 
     # TODO: this is none too elegant, and could be outsourced
     # Fetch the staff user associated with the person requesting
@@ -227,6 +223,7 @@ def delete_assessment_resource(request, resource_id, confirm=None):
 
     # If neither here, time to boot
     if not staff:
+        logger.info("[%s] forbidden from deleting resource, no staff object." % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
     # Assume a lack of permissions
@@ -238,13 +235,16 @@ def delete_assessment_resource(request, resource_id, confirm=None):
 
     if signed:
         if staff and staff.user.is_superuser:
+            logger.debug("[%s] is a superuser, permission granted to delete this resource." % request.user)
             permission = True
     else:
         # Unsigned resources can be deleted, by owners and module coordinators
         if resource.owner == staff or resource.module.coordinator == staff:
+            logger.debug("[%s] owns the resource or is a module coordinator, permission granted to delete this resource." % request.user)
             permission = True
 
     if not permission:
+        logger.info("[%s] forbidden from deleting resource, no permission for this resource." % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
     # Ok, we are allowed to delete
@@ -410,7 +410,7 @@ def loads_by_staff_chart(request):
     #TODO: This is still pretty much built in as True by assumption in some of the code below
     scale_fte = True
 
-    # I'm not sure it makes sense not to have percentages, but in case we change our minds
+    # I'm not sure that it makes sense not to have percentages, but in case we change our minds
     show_percentages = True
 
     # We shall want to consider totals for averages, but as some users can be in multiple
@@ -535,6 +535,7 @@ def loads_modules(request, semesters, staff_details=False):
     modules = Module.objects.all().filter(package=package).order_by('module_code')
 
     # if this is a POST request we need to process the form data
+    brief_details = None
     if request.method == 'POST':
         # create a form instance and populate it with data from the request
         form = LoadsByModulesForm(request.POST)
@@ -559,7 +560,7 @@ def loads_modules(request, semesters, staff_details=False):
 
     combined_list = []
     for module in modules:
-        # Is it valid for the semester, i.e. are and of its semesters in the passed in one?
+        # Is it valid for the semester, i.e. are any of its semesters in the one being passed in?
         if len(valid_semesters):
             module_semesters = module.semester.split(',')
             valid_semester = False
@@ -810,6 +811,7 @@ def assessmentstaff_delete(request, assessmentstaff_id):
 
     # Is this the current user's business?
     if assessmentstaff.package not in staff.get_all_packages(include_hidden=True):
+        logger.info("[%s] (admin) assessment team package not in the user's packages" % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
     else:
         messages.success(request, 'Assessment Team member removed successfully')
@@ -1016,6 +1018,7 @@ def tasks_completion(request, task_id, staff_id):
     is_current_user = (request.user == staff.user)
     can_override = request.user.has_perm('loads.add_taskcompletion')
     if not (is_current_user or can_override):
+        logger.info("[%s] not the target user and has no override permission to complete task" % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
     # if this is a POST request we need to process the form data
@@ -1108,6 +1111,7 @@ def module_staff_allocation(request, module_id, package_id):
 
     # If either the logged in user or target user aren't in the package, this is forbidden
     if package not in user_staff.get_all_packages():
+        logger.info("[%s] user is not a member of this package" % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
     # The logged in user should be able to do this via the Admin interface, or disallow.
@@ -1115,16 +1119,17 @@ def module_staff_allocation(request, module_id, package_id):
         'loads.change_modulestaff') and request.user.has_perm('loads.delete_modulestaff')
 
     if not permission:
+        logger.info("[%s] user has no permissions to alter allocations" % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
     # Get a formset with only the choosable fields
-    AllocationFormSet = modelformset_factory(ModuleStaff, formset=BaseModuleStaffByModuleFormSet,
+    allocation_form_set = modelformset_factory(ModuleStaff, formset=BaseModuleStaffByModuleFormSet,
                                              fields=('staff', 'contact_proportion', 'admin_proportion',
                                                      'assessment_proportion'),
                                              can_delete=True)
 
     if request.method == "POST":
-        formset = AllocationFormSet(
+        formset = allocation_form_set(
             request.POST, request.FILES,
             queryset=ModuleStaff.objects.filter(package=package).filter(module=module).order_by(
                 'staff__user__last_name')
@@ -1150,7 +1155,7 @@ def module_staff_allocation(request, module_id, package_id):
             url = reverse('modules_details', args=[module_id])
             return HttpResponseRedirect(url)
     else:
-        formset = AllocationFormSet(queryset=ModuleStaff.objects.filter(package=package).filter(module=module).order_by(
+        formset = allocation_form_set(queryset=ModuleStaff.objects.filter(package=package).filter(module=module).order_by(
             'staff__user__last_name'))
         # Again, only allow staff members in the package
         for form in formset:
@@ -1394,6 +1399,7 @@ def modules_details(request, module_id):
     """Detailed information on a given module"""
     # Get the module itself
     module = get_object_or_404(Module, pk=module_id)
+    logger.info("[%s] seeking to examine the module details for %s" % (request.user, module))
 
     # Fetch the staff user associated with the person requesting
     try:
@@ -1401,9 +1407,11 @@ def modules_details(request, module_id):
 
         if staff.is_external:
             if not staff.can_examine_module(module):
+                logger.info("[%s] not an examiner for module %s" % (request.user, module))
                 return HttpResponseRedirect(reverse('forbidden'))
         else:
             if not staff.user.is_superuser and not module.package in staff.get_all_packages(include_hidden=True):
+                logger.info("[%s] module %s is not in user's packages" % (request.user, module))
                 return HttpResponseRedirect(reverse('forbidden'))
     except Staff.DoesNotExist:
         staff = None
@@ -1437,7 +1445,6 @@ def modules_details(request, module_id):
             #there are unsigned items
             unsigned_items = True
 
-    logger.info("[%s] examined the module details for %s" % (request.user, module))
     template = loader.get_template('loads/modules/details.html')
     context = {
         'module': module,
@@ -1464,6 +1471,7 @@ def add_assessment_sign_off(request, module_id):
     """Detailed information on a given module"""
     # Get the module itself
     module = get_object_or_404(Module, pk=module_id)
+    logger.info("[%s] seeking to add assessment sign off for module %s" % (request.user, module))
 
     # TODO: this is none too elegant, and could be outsourced
     # Fetch the staff user associated with the person requesting
@@ -1475,6 +1483,7 @@ def add_assessment_sign_off(request, module_id):
 
     # If neither here, time to boot
     if not staff:
+        logger.info("[%s] has no staff object" % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
     # Get all signoffs to date
@@ -1544,6 +1553,7 @@ def delete_assessment_sign_off(request, signoff_id, confirm=None):
     """
     # Get the signoff itself
     signoff = get_object_or_404(AssessmentStateSignOff, pk=signoff_id)
+    logger.info("[%s] seeking to add assessment sign off for module %s" % (request.user, signoff.module))
 
     try:
         staff = Staff.objects.get(user=request.user)
@@ -1551,6 +1561,7 @@ def delete_assessment_sign_off(request, signoff_id, confirm=None):
         staff = None
 
     if not staff:
+        logger.info("[%s] has no staff object" % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
     logger.warning("[%s] potentially deleting assessment signoff for module %s, package %s" %
@@ -1621,18 +1632,21 @@ def staff_module_allocation(request, staff_id, package_id):
     # And the package we are going to act on
     package = get_object_or_404(WorkPackage, pk=package_id)
 
+    logger.info("[%s] seeking to edit module allocation for %s in package %s" % (request.user, staff, package))
+
     # If either the logged in user or target user aren't in the package, this is forbidden
     if package not in user_staff.get_all_packages() or package not in staff.get_all_packages(include_hidden=True):
+        logger.info("[%s] package not in user's package" % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
     # Get a formset with only the choosable fields
-    AllocationFormSet = modelformset_factory(ModuleStaff, formset=BaseModuleStaffByStaffFormSet,
+    allocation_form_set = modelformset_factory(ModuleStaff, formset=BaseModuleStaffByStaffFormSet,
                                              fields=('module', 'contact_proportion', 'admin_proportion',
                                                      'assessment_proportion'),
                                              can_delete=True)
 
     if request.method == "POST":
-        formset = AllocationFormSet(
+        formset = allocation_form_set(
             request.POST, request.FILES,
             queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff)
         )
@@ -1658,7 +1672,7 @@ def staff_module_allocation(request, staff_id, package_id):
             url = reverse('activities', args=[staff_id])
             return HttpResponseRedirect(url)
     else:
-        formset = AllocationFormSet(queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff))
+        formset = allocation_form_set(queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff))
         # Again, only allow modules in the package
         for form in formset:
             form.fields['module'].queryset = Module.objects.filter(package=package)
@@ -1696,9 +1710,11 @@ def generators_generate_activities(request, generator_id):
     staff = get_object_or_404(Staff, user=request.user)
     # And the generator
     generator = get_object_or_404(ActivityGenerator, pk=generator_id)
+    logger.info("[%s] seeking to generate activities for generator %u" % (request.user, generator.id))
 
     # If either the logged in user or target user aren't in the package, this is forbidden
     if generator.package not in staff.get_all_packages(include_hidden="True"):
+        logger.info("[%s] package not in user's packages" % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
     generator.generate_activities()
