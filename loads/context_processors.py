@@ -1,10 +1,13 @@
-
+# Context Processors make custom variables in all templates
 
 from loads.models import Staff
+from WAM.settings import WAM_ADFS_AUTH
 
 
 def staff(request):
-    """A context processor to add the logged in member of staff"""
+    """
+    A context processor to add the logged in member of staff
+    """
 
     try:
         staff = Staff.objects.get(user=request.user)
@@ -21,3 +24,13 @@ def staff(request):
         return {
 
         }
+
+
+def auth_adfs(request):
+    """
+    A context processor to expose if external authentication is enabled
+    """
+
+    return {
+        'wam_adfs_auth': WAM_ADFS_AUTH
+    }
