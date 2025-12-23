@@ -69,6 +69,38 @@ from operator import itemgetter
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+
+def next_page_push(request, url):
+    """
+    A helper function to push any next_page data into the session
+
+    Doing this can avoid overzealous web application firewalls, hopefully
+
+    :param request: The user's request data
+    :param url:     The url to redirect to on next pop
+    """
+    logger.debug("[%s] pushing next page %s in session" % (request.user, url))
+    request.session['next_page'] = url
+
+
+def next_page_pop(request, backup_url=None):
+    """
+    A helper function to pop any next_page data from the session
+
+    Doing this can avoid overzealous web application firewalls, hopefully
+
+    :param request: The user's request data
+    :return:        The url for redirection, or a backup if not found in the session
+    """
+    url = request.session.pop('next_page')
+    # Just in case we can't get one
+    if url is None:
+        logger.debug("[%s] could not pop next page from session, bacup url used %s" % (request.user, url))
+        return backup_url
+    else:
+        logger.debug("[%s] popping next page %s from session" % (request.user, url))
+        return url
+
 def index(request):
     """Main index page for non admin views"""
 
@@ -1799,7 +1831,8 @@ def workpackage_change(request):
                          extra={'form': form})
 
             # Try to find where we came from
-            next = request.POST.get('next', reverse('index'))
+            next = next_page_pop(request)
+            #next = request.POST.get('next', reverse('index'))
             is_safe = url_has_allowed_host_and_scheme(url=next, allowed_hosts=request.get_host(),
                                                       require_https=request.is_secure())
 
@@ -1817,6 +1850,7 @@ def workpackage_change(request):
     else:
         form = StaffWorkPackageForm(instance=staff)
         form.fields['package'].queryset = packages
+        next_page_push(request, request.headers['Referer'])
 
     return render(request, 'loads/workpackage.html', {'form': form, 'staff': staff})
 
