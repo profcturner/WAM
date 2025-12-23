@@ -1832,7 +1832,7 @@ def workpackage_change(request):
 
             # Try to find where we came from
             next = next_page_pop(request)
-            #next = request.POST.get('next', reverse('index'))
+            #TODO: Put the below handling into pop helper
             is_safe = url_has_allowed_host_and_scheme(url=next, allowed_hosts=request.get_host(),
                                                       require_https=request.is_secure())
 
@@ -1850,7 +1850,13 @@ def workpackage_change(request):
     else:
         form = StaffWorkPackageForm(instance=staff)
         form.fields['package'].queryset = packages
-        next_page_push(request, request.headers['Referer'])
+        try:
+            #TODO: Sometimes Referer is not present, but I think this handling needs to be improved
+            next_page_push(request, request.headers['Referer'])
+        except KeyError:
+            next_page_push(request, reverse('loads'))
+
+
 
     return render(request, 'loads/workpackage.html', {'form': form, 'staff': staff})
 
