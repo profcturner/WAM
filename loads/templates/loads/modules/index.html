@@ -4,7 +4,7 @@
 
 <p class="mb-3">
     Selected year:<br/>
-    <span class="font-monospace fw-bold me-2">{{package}}</span> <a class="btn btn-secondary btn-sm" href="{%url 'workpackage_change' %}?next={{ request.path|urlencode }}">Change year</a>
+    <span class="font-monospace fw-bold me-2">{{package}}</span> <a class="btn btn-secondary btn-sm wam-hide-on-print" href="{%url 'workpackage_change' %}?next={{ request.path|urlencode }}">Change year</a>
 </p>
 
 {% if package.draft and package.in_the_future and package.in_the_past %}
@@ -27,11 +27,11 @@
 </div>
 {% endif %}
 
-<a class="btn btn-info" data-bs-toggle="collapse" href="#filterForm" role="button" aria-controls="filterForm">
+<a class="btn btn-info wam-hide-on-print" data-bs-toggle="collapse" href="#filterForm" role="button" aria-controls="filterForm">
     Filter
 </a>
 
-<div class="border border-secondary-subtle rounded-3 p-3 mb-3 mt-3 collapse{% if request.POST.semesters or request.POST.programme or request.POST.lead_programme or request.POST.show_people %} show{% endif %}"
+<div class="border border-secondary-subtle rounded-3 p-3 mb-3 mt-3 collapse{% if request.POST.semesters or request.POST.programme or request.POST.lead_programme or request.POST.show_people %} show{% endif %} wam-hide-on-print"
      id="filterForm">
     <h6 class="mt-1 mb-5">Use this form to restrict the modules shown if desired.</h6>
     <form action="" method="post">
@@ -118,7 +118,7 @@
                     <th scope="col">Module name</th>
                     <th scope="col">Relationship</th>
                     <th scope="col">Most recent assessment status</th>
-                    <th scope="col">Details</th>
+                    <th scope="col" class="wam-hide-on-print">Details</th>
                     {% if show_people %}
                     <th scope="col">Module coordinator</th><th>Moderator</th>
                     <th scope="col">Lead examiner</th>
@@ -132,7 +132,16 @@
                     <td>{{ module.module_name }}</td>
                     <td>{% if relationship %}<strong>{% for relation in relationship %}{% if relation == 'external' %}External Examiner (Information Only){% endif %}{% if relation == 'lead_external' %}Lead External Examiner{% endif %}{% if relation == 'team_member' %}Team{% endif %}{% if relation == 'moderator' %}Moderator{% endif %}{% endfor %}</strong>{% else %}--{% endif %} </td>
                     {% if signoff %}
-                    <td>{% if action_possible %}<strong>{% endif %}{{ signoff.assessment_state }} ({{ signoff.created }}){% if action_possible %}</strong>{% endif %}</td>
+                    <td>
+                        {% if action_possible %}
+                        <strong>
+                        {% endif %}
+                        {{ signoff.assessment_state }}
+                        {% if action_possible %}
+                        </strong>
+                        {% endif %}
+                        ({{ signoff.created }})
+                    </td>
                     {% else %}
                     {# No sign off, look for a resource instead #}
                     {% if resource %}
@@ -141,7 +150,7 @@
                     <td>No sign offs, no activity</td>
                     {% endif %}
                     {% endif %}
-                    <td><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'modules_details' module.id %}">Details</a></td>
+                    <td class="wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'modules_details' module.id %}">Details</a></td>
                     {% if show_people %}
                     <td>{{ module.coordinator }}</td>
                     <td>{% for moderator in module.moderators.all %}{{ moderator }}<br />{% endfor %}</td>
@@ -162,7 +171,7 @@
 </div>
 
 {% if not logged_in_staff.is_external %}
-<div class="mt-5">
+<div class="mt-5 wam-hide-on-print">
     <h4>Add Module</h4>
     <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'create module' %}">Click here to create a new Module</a>
 </div>

@@ -1,16 +1,18 @@
 {% extends "loads/base_automatic.html" %} {% block content %}
 
-<h3>
-    Change Active WorkPackage for {{ staff }}
+<h3 class="my-3">
+    Change active WorkPackage
 </h3>
-<p>
+<h4 class="my-3">
+    {{ staff }}
+</h4>
+<p class="mt-5">
     Current active workpackage: <span class="font-monospace">{{ staff.package }}</span>
 </p>
 
-<div class="border border-secondary-subtle rounded-3 p-3 mb-3 mt-4">
+<div class="border border-secondary-subtle rounded-3 p-3 mb-3 mt-5">
     <form action="" method="post">
         {% csrf_token %}
-        <input type="hidden" name="next" value="{{ request.META.HTTP_REFERER }}" />
         {# Process hidden fields, we don't need to style them #}
         {% for hidden in form.hidden_fields %}
             {{ hidden }}

@@ -15,7 +15,7 @@
                     <th scope="col">Name</th>
                     <th scope="col">Type</th>
                     <th scope="col">Staff</th>
-                    <th scope="col" class="text-center">Details</th>
+                    <th scope="col" class="text-center wam-hide-on-print">Details</th>
                 </tr>
             </thead>
             <tbody class="table-group-divider">
@@ -24,7 +24,7 @@
                     <td>{{ activity.name }}</td>
                     <td>{{ activity.activity_type }}</td>
                     <td>{{ activity.staff }}</td>
-                    <td class="text-center"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update activity' activity.pk %}">Edit</a></td>
+                    <td class="text-center wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update activity' activity.pk %}">Edit</a></td>
                 {% endfor %}
                 </tr>
             </tbody>
@@ -37,7 +37,7 @@
     {% endif %}
 </div>
 
-<div class="mt-4">
+<div class="mt-4 wam-hide-on-print">
     <h4>
         Add Activity
     </h4>

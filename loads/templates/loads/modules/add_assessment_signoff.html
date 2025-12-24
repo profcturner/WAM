@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h3>Sign-off resources</h3>
+<h3 class="my-3">Sign-off resources</h3>
 <p class="font-monospace">{{ module }}</p>
 
 {% if package.in_the_future or package.in_the_past %}
@@ -25,7 +25,7 @@
 already added can no longer be deleted.</p>
 
 {% if assessment_signoffs.0.assessment_state.next_states_guidance %}
-<p class="text-info mt-4">
+<p class="text-info-emphasis mt-4">
     {{ assessment_signoffs.0.assessment_state.next_states_guidance|safe }}
 </p>
 {% endif %}
@@ -137,7 +137,7 @@ already added can no longer be deleted.</p>
     </p>
 {% endif %}
 
-<div class="mt-4">
+<div class="mt-5">
     <h4>
         History
     </h4>
@@ -145,26 +145,33 @@ already added can no longer be deleted.</p>
         <p>
             For your convenience, here is the previous sign-off history, with notes, for this module.
         </p>
-        <table border="1" width="800">
-          <tr>
-            <th>Type</th><th>Owner</th><th>Created</th>
-          </tr>
-        {% for signoff in assessment_signoffs %}
-          <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-            <th>{{ signoff.assessment_state }}</th>
-            <th>{{ signoff.signed_by.first_name }} {{ signoff.signed_by.last_name }}</th>
-            <th>{{ signoff.created }}</th>
-          </tr>
-            <tr  class="{% cycle 'row1' 'row2' as rowcolours %}">
-            <td colspan="3">
-                {{ signoff.notes }}
-            </td>
-
-            </tr>
-        {% endfor %}
-        </table>
+        <div class="table-responsive small">
+            <table class="table table-sm table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Type</th>
+                        <th scope="col">Owner</th>
+                        <th scope="col">Created</th>
+                    </tr>
+                </thead>
+                <tbody class="table-group-divider">
+                    {% for signoff in assessment_signoffs %}
+                    <tr>
+                        <th>{{ signoff.assessment_state }}</th>
+                        <th>{{ signoff.signed_by.first_name }} {{ signoff.signed_by.last_name }}</th>
+                        <th>{{ signoff.created }}</th>
+                    </tr>
+                    <tr>
+                        <td colspan="3">
+                            {{ signoff.notes }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
-        <div class="text-primary-emphasis">
+        <div class="text-info-emphasis">
             No assessment sign-offs recorded for this module.
         </div>
     {% endif %}

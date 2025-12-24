@@ -1,23 +1,52 @@
-{% extends "loads/base_automatic.html" %} {% block content %}
+{% extends "loads/base_automatic.html" %}
+{% block content %}
 
-<h2>Migrate WorkPackage {{ source_package }} to {{ destination_package }}</h2>
+<h3 class="my-3">Migrate WorkPackage</h3>
+
+<div class="my-4">
+    <div class="row">
+        <div class="col-1 me-2 text-end">
+            From:
+        </div>
+        <div class="col font-monospace">
+            {{ source_package }}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-1 me-2 text-end">
+            To:
+        </div>
+        <div class="col font-monospace">
+            {{ destination_package }}
+        </div>
+    </div>
+</div>
 
 {% if changes %}
-    <table border="1">
-      <tr>
-        <th>Outcome</th><th>Type</th><th>Name</th>
-      </tr>
-
-{% for outcome, type, name in changes %}
-  <tr class="{{forloop.counter|divisibleby:2|yesno:"row2,row1"}}">
-        <th>{{ outcome|safe }}</th>
-        <td>{{ type|safe }}</td>
-        <td>{{ name|safe }}</td>
-  </tr>      
-{% endfor %}
-</table>
+<div class="table-responsive small">
+    <table class="table table-sm table-striped table-hover">
+        <thead>
+            <tr>
+                <th scope="col">Outcome</th>
+                <th scope="col">Type</th>
+                <th scope="col">Name</th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            {% for outcome, type, name in changes %}
+            <tr>
+                <th>{{ outcome|safe }}</th>
+                <td>{{ type|safe }}</td>
+                <td>{{ name|safe }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% else %}
-No outcome information!?
+<p class="alert alert-warning">
+    No outcome information!?
+</p>
 {% endif %}
 
 {% endblock content %}

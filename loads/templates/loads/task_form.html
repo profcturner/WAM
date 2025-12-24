@@ -1,11 +1,18 @@
 {% extends "loads/base_automatic.html" %} {% block content %}
 
 {% if form.instance.pk %}
-<h3>Update Task</h3>
+<h3>
+    Update Task
+</h3>
 {% else %}
-<h3>Create Task</h3>
-
-<p>This form allows the creation of new Tasks.</p>
+<h3>
+    Create Task
+</h3>
+<p class="mt-3 mb-4">
+    This form allows the creation of new Tasks.<br />
+    These Tasks may be assigned to a mixture of specific members of staff, and groups of staff.
+    Please note that unless you have suitable permissions, you will only be able to assign tasks to yourself.
+</p>
 {% endif %}
 
 <div class="border border-secondary-subtle rounded-3 p-3 mb-3 mt-3">
@@ -28,7 +35,7 @@
                            name="{{ field.html_name }}"{% if field.field.required %} required{% endif %}>{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}</textarea>
                     {# Show field errors as a list, one per line #}
                     {% if field.errors %}
-                        <div class="text-danger small mt-1">
+                        <div class="wam-text-danger small mt-1">
                             {% for error in field.errors %}
                             <p>{{ error|escape }}</p>
                              {% endfor %}
@@ -45,7 +52,7 @@
                            value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"{% if field.field.required %} required{% endif %} />
                     {# Show field errors as a list, one per line #}
                     {% if field.errors %}
-                        <div class="text-danger small mt-1">
+                        <div class="wam-text-danger small mt-1">
                             {% for error in field.errors %}
                             <p>{{ error|escape }}</p>
                              {% endfor %}
@@ -74,7 +81,7 @@
                     {% endif %}
                     {# Show field errors as a list, one per line #}
                     {% if field.errors %}
-                        <div class="text-danger small mt-1">
+                        <div class="wam-text-danger small mt-1">
                             {% for error in field.errors %}
                             <p>{{ error|escape }}</p>
                              {% endfor %}
@@ -94,7 +101,7 @@
             {% endif %}
         </div>
         {% endfor %}
-        <div class="row mt-4 mb-3">
+        <div class="row mt-4 mb-3 d-print-none">
             <div class="col-12">
                 <input class="btn btn-primary" type="submit" value="Submit" />
             </div>

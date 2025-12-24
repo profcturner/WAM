@@ -56,3 +56,58 @@ ul.wam-menu-list li::before {
     font-weight: bold;
     font-size: 1.2em;
 }
+/* text-danger-emphasis works better in dark mode, whereas text-danger
+   works better in light mode. */
+.wam-text-danger {
+    color: #dc3545 !important;
+}
+[data-bs-theme=dark] {
+    .wam-text-danger {
+        color: #ea868f !important;
+    }
+}
+/* Only shown while printing */
+.wam-show-on-print {
+    display: none;
+}
+/* General class to hide element when printing */
+@media print {
+    .wam-hide-on-print {
+        display: none !important;
+    }
+    .wam-show-on-print {
+        display: block !important;
+    }
+}
+/* Hide footer when printing */
+@media print {
+    footer {
+        display: none !important;
+    }
+    #footer {
+        display: none !important;
+    }
+}
+@media screen {
+    #contentTopWAM {
+        margin-top:100px !important;
+        max-width:980px !important;
+    }
+}
+@media print {
+    #menuTopWAM {
+        display: none !important;
+    }
+    #contentTopWAM {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    body {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    .printBreakWAM {
+        break-after: page;
+    }
+}
+/*@media (prefers-color-scheme: dark) { color: #ea868f; }*/

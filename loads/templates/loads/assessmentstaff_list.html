@@ -1,38 +1,118 @@
-{% extends "loads/base_automatic.html" %} {% block content %}
+{% extends "loads/base_automatic.html" %}
+{% block content %}
 
-<p>Selected Work Package : {{package}} <a href="{%url 'workpackage_change' %}">(Change Package)</a></p>
+<p class="mb-4">
+    Selected year:<br/>
+    <span class="font-monospace fw-bold me-2">{{package}}</span> <a class="btn btn-secondary btn-sm" href="{%url 'workpackage_change' %}">Change year</a>
+</p>
 
-<h2>Assessment Team Staff</h2>
+<h3 class="mb-3">
+    Assessment Team staff
+</h3>
+<p>
+    These colleagues can access all assessment resources for the selected work package. <i>This should obviously
+    be restricted to relatively few staff.</i>
+</p>
+<p class="alert alert-info">
+    Assessment staff are deliberately <strong>not</strong> migrated during package migrations.
+</p>
 
-    <p>These colleagues can access all assessment resources for the selected work package. This should obviously
-    be restricted to relatively few staff. Assessment staff are deliberately <strong>not</strong> migrated
-    during package migrations.</p>
-
-    {%  if assessment_staff %}
-    <table border="1">
-      <tr>
-        <th>Staff Name</th><th>Delete</th>
-      </tr>
-      {% for item in assessment_staff %}
-      <tr class="{% cycle 'row1' 'row2' as rowcolours %}">
-        <td>{{ item.staff }}</td><td><a href="{% url "assessmentstaff_delete" item.pk %}">Delete</a></td>
-      </tr>
-      {%  endfor %}
+{% if assessment_staff %}
+<div class="table-responsive small">
+    <table class="table table-sm table-striped table-hover">
+        <thead>
+            <tr>
+                <th scope="col" class="col-11">Staff Name</th>
+                <th scope="col" class="col-1">Delete</th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            {% for item in assessment_staff %}
+            <tr>
+                <td class="col-11">
+                    {{ item.staff }}
+                </td>
+                <td class="col-1">
+                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url "assessmentstaff_delete" item.pk %}">
+                        Delete
+                    </a>
+                </td>
+            </tr>
+            {%  endfor %}
+        </tbody>
     </table>
-    {% else %}
-    <p>There are currently no Assessment Team members for this work package.</p>
-    {% endif %}
+</div>
+{% else %}
+<p class="mt-5">
+    There are currently no Assessment Team members for this work package.
+</p>
+{% endif %}
 
-<h2>Add Staff</h2>
+<h4 class="mt-5">
+    Add staff
+</h4>
+<p>
+    Use this to add a new member of the Assessment Team.
+</p>
 
-Click here to add a new member of the Assessment Team.
-
+<div class="border border-secondary-subtle rounded-3 p-3 mt-4">
     <form action="" method="post">
-    {% csrf_token %}
-    {{ form }}
-    <input type="submit" value="Submit" />
-    <input type="hidden" name="next" value="{{ request.META.HTTP_REFERER }}">
-
-</form>
+        {% csrf_token %}
+        {# Process hidden fields, we don't need to style them #}
+        {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+        {% endfor %}
+        {% for field in form.visible_fields %}
+        <div class="row mb-4">
+            <label for="{{ field.id_for_label }}"
+                   class="col-12 col-md-3 form-label">{{ field.label }}</label>
+            {% if field.field.widget.input_type == "select" %}
+                <div class="col-12 col-md-9">
+                    <select class="form-select" id="{{ field.id_for_label }}"
+                        {% for name, value in field.field.widget.attrs.items %}
+                        {% if value is not False %}{{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                        {% endfor %}
+                        name="{{ field.name }}"
+                        value="{% if field.value != None %}{{ field.value }}{% else %}{% endif %}"
+                        {% if field.field.widget.allow_multiple_selected %} MULTIPLE {% endif %}>
+                        {% for option in field.field.choices %}
+                        <option value="{{ option.0|escape }}"
+                            {# Interesting hack to get this comparison working properly #}
+                            {% if field.value is not None %}
+                            {% if option.0|stringformat:"s" == field.value|stringformat:"s" %} SELECTED
+                            {% elif option.0 != "" and option.0 in field.value %} SELECTED{% endif %}
+                            {% endif %}
+                            >{{ option.1|escape }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if field.field.widget.allow_multiple_selected %}
+                    <div class="form-text mt-2">
+                        Hold down <kbd>CTRL</kbd> or <kbd>CMD</kbd> to select multiple options
+                    </div>
+                    {% endif %}
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="wam-text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="col-12 col-md-8 form-text font-monospace">
+                Unknown field type: {{ field.field.widget.input_type }}
+                </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <div class="row mt-4 mb-3">
+            <div class="col-12">
+                <input class="btn btn-primary" type="submit" value="Submit" />
+            </div>
+        </div>
+    </form>
+</div>
 
 {% endblock content %}

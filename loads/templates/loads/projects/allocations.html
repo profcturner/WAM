@@ -1,49 +1,142 @@
-{% extends "loads/base_automatic.html" %} {% block content %}
+{% extends "loads/base_automatic.html" %}
+{% block content %}
 
-<h2>Manage Allocations for {{project}}</h2>
-
+<h3>Manage allocations</h3>
+<h5 class="font-monospace mb-5">
+    {{project}}
+</h5>
 
 <form method="post" action="">
-  {% csrf_token %}
-  <input type="submit" value="Submit" />
-  <table border="0" cellpadding="0" cellspacing="0">
-  {{ project_form.as_table }}
-  </table>
-  {{ formset.management_form }}
-  <table id="allocationForm" border="0" cellpadding="0" cellspacing="0">
-          <tbody>
-            <tr>
-              <th>Staff</th><th>Start Date</th><th>End Date</th><th>Hours Per Week</th>
-            </tr>
- 
-              {% for form in formset.forms %}
-              
-              <tr>
-                {% for hidden in form.hidden_fields %} {{ hidden }} {% endfor %}
-                 <td>{{ form.staff }} {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
-                   {% for error in form.staff.errors %} <span class="error_message">{{ error|escape }}</span> {% endfor %} </td>
-                 <td>{{ form.start }}
-                   {% for error in form.start.errors %} <span class="error_message">{{ error|escape }}</span> {% endfor %} </td>
-                 <td>{{ form.end }}
-                   {% for error in form.end.errors %} <span class="error_message">{{ error|escape }}</span> {% endfor %} </td>
-                 <td>{{ form.hours_per_week }}
-                   {% for error in form.hours_per_week.errors %} <span class="error_message">{{ error|escape }}</span> {% endfor %}
-                 </td>
-              </tr>
+    {% csrf_token %}
+    {# Process hidden fields, we don't need to style them #}
+    {% for hidden in project_form.hidden_fields %}
+        {{ hidden }}
+    {% endfor %}
+    <a class="btn btn-info d-print-none" data-bs-toggle="collapse" href="#activityForm" role="button" aria-controls="activityForm">
+        Project details
+    </a>
+    <h6 class="d-none d-print-block fw-bold">Project details</h6>
 
-              {% endfor %}
-              
-              {% if formset.non_form_errors %}
-              <tr><td colspan="4"><span class="error_message">
-                {% for error in formset.non_form_errors %}
-                  {{ error|escape }}
+    {# TODO We should probably leave the first form open if there are errors #}
+    {# This would require looping through the fields and adding the class    #}
+    {# "show" if a field with errors is encountered                          #}
+
+    <div class="border border-secondary-subtle rounded-3 p-3 mt-4 collapse" id="activityForm">
+        <input class="btn btn-primary mb-3" type="submit" value="Submit" />
+        {% for field in project_form.visible_fields %}
+            <div class="row mb-2">
+                <label for="{{ field.id_for_label }}"
+                       class="col-12 col-md-3 form-label">{{ field.label }}</label>
+            {% if field.field.widget.input_type == "text" or field.field.widget.input_type == "number" %}
+                <div class="col-12 col-md-9">
+                    <input type="{{ field.field.widget.input_type }}" class="form-control" id="{{ field.id_for_label }}"
+                           {% for name, value in field.field.widget.attrs.items %}
+                           {% if value is not False %} {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                           {% endfor %}
+                           name="{{ field.html_name }}"
+                           value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"{% if field.field.required %} required{% endif %} />
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="wam-text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% elif field.field.widget.input_type == "select" %}
+                <div class="col-12 col-md-9">
+                    <select class="form-select" id="{{ field.id_for_label }}"
+                        {% for name, value in field.field.widget.attrs.items %}
+                        {% if value is not False %}{{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                        {% endfor %}
+                        name="{{ field.name }}"
+                        value="{% if field.value != None %}{{ field.value }}{% else %}{% endif %}"
+                        {% if field.field.widget.allow_multiple_selected %} MULTIPLE {% endif %}>
+                        {% for option in field.field.choices %}
+                        <option value="{{ option.0|escape }}"{% if option.0 in field.value or option.0 == field.value %} selected{% endif %}>
+                            {{ option.1|escape }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="wam-text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="col-12 col-md-8 form-text font-monospace">
+                Unknown field type: {{ field.field.widget.input_type }}
+                </div>
+            {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    {{ formset.management_form }}
+
+    <div class="table-responsive small mt-4">
+        <table class="table table-sm table-striped table-hover" id="allocationForm">
+            <thead>
+                <tr>
+                    <th scope="col">Staff</th>
+                    <th scope="col">Start Date</th>
+                    <th scope="col">End Date</th>
+                    <th scope="col">Hours Per Week</th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+                {% for form in formset.forms %}
+                <tr>
+                    {% for hidden in form.hidden_fields %}
+                        {{ hidden }}
+                    {% endfor %}
+                    <td>
+                        {{ form.staff }} {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
+                        {% for error in form.staff.errors %}
+                        <div class="wam-text-danger small">{{ error|escape }}</div>
+                        {% endfor %} </td>
+                    <td>
+                        {{ form.start }}
+                        {% for error in form.start.errors %}
+                        <div class="wam-text-danger small">{{ error|escape }}</div>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {{ form.end }}
+                        {% for error in form.end.errors %}
+                        <div class="wam-text-danger small">{{ error|escape }}</div>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {{ form.hours_per_week }}
+                        {% for error in form.hours_per_week.errors %}
+                        <div class="wam-text-danger small">{{ error|escape }}</div>
+                        {% endfor %}
+                    </td>
+                </tr>
+
                 {% endfor %}
-              </span></td></tr>
-              {% endif %}
-          </tbody>
-      </table>
-      
-  <input type="submit" value="Submit" />
+
+                {% if formset.non_form_errors %}
+                <tr>
+                    <td class="wam-text-danger" colspan="4">
+                        {% for error in formset.non_form_errors %}
+                        {{ error|escape }}
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <input class="btn btn-primary mt-3 d-print-none" type="submit" value="Submit" />
+
 </form>
 
 

@@ -2,16 +2,16 @@
 
 {% block menu %}{% endblock %}
 
-<div class="container-fluid text-start my-5 py-2 px-3 h-100"
-     style="margin-top:100px !important;max-width:980px !important;">
-
+<div class="container-fluid text-start my-5 py-2 px-3 h-100" id="contentTopWAM">
     {% if messages %}
     <div id="messages">
-    {% for message in messages %}
-        <p class="message">{{ message }}</p>
-    {% endfor %}
+        {% for message in messages %}
+            <div class="alert {{ message.tags }}" role="alert">
+                {{ message }}
+            </div>
+        {% endfor %}
     </div>
-{% endif %}
+    {% endif %}
 
 {% block content %}{% endblock %}
 
