@@ -399,7 +399,8 @@ class WorkPackage(models.Model):
         ordering = ['name', '-startdate']
 
 class Campus(models.Model):
-    """This indicated the campus or site that a module is delivered at
+    """
+    This indicates the campus or site that a module is delivered at, or is associated with another entity
 
     :name:          the human readable name of the campus
     :system_name:   a name potentially used by internal systems
@@ -415,7 +416,7 @@ class Campus(models.Model):
     @staticmethod
     def get_or_create(system_name):
         """
-        Normally used to map a system name to an ID, or automatically create a missing faculty
+        Normally used to map a system name to an ID, or automatically create a missing campus
 
         This is normally called as a result of automatic authentication.
 
@@ -449,7 +450,8 @@ class Campus(models.Model):
 
 
 class Faculty(models.Model):
-    """This indicated the faculty a member of staff may be associated with
+    """
+    This indicates the faculty a member of staff or other entity may be associated with
 
     :name:          the human readable name of the campus
     :system_name:   a name potentially used by internal systems
@@ -499,7 +501,8 @@ class Faculty(models.Model):
 
 
 class School(models.Model):
-    """This indicated the school for a member of staff
+    """
+    This indicates the school for a member of staff or other entity
 
     :name:          the human readable name of the campus
     :system_name:   a name potentially used by internal systems
