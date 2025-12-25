@@ -7,7 +7,9 @@ from django.contrib.auth.models import User, Group
 
 from django.core.validators import validate_comma_separated_integer_list
 
-from WAM.settings import WAM_DEFAULT_ACTIVITY_TYPE
+from WAM.settings import (WAM_DEFAULT_ACTIVITY_TYPE, WAM_AUTO_CREATE_CAMPUS,
+                          WAM_AUTO_CREATE_FACULTY, WAM_AUTO_CREATE_SCHOOL, WAM_AUTO_CREATE_SCHOOL_GROUPS)
+
 
 import logging
 
@@ -396,6 +398,188 @@ class WorkPackage(models.Model):
     class Meta:
         ordering = ['name', '-startdate']
 
+class Campus(models.Model):
+    """
+    This indicates the campus or site that a module is delivered at, or is associated with another entity
+
+    :name:          the human readable name of the campus
+    :system_name:   a name potentially used by internal systems
+
+    """
+
+    name = models.CharField(max_length=100)
+    system_name = models.CharField(max_length=100, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    @staticmethod
+    def get_or_create(system_name):
+        """
+        Normally used to map a system name to an ID, or automatically create a missing campus
+
+        This is normally called as a result of automatic authentication.
+
+        :param system_name:     a name for the campus used by internal systems
+        :return: A Campus object, if it exists or is created, and None otherwise
+        """
+
+        # If it exists, just return it.
+        try:
+            logger.debug("checking for existence of campus with system name %s" % system_name)
+            campus = Campus.objects.get(system_name=system_name)
+            return campus
+        except Campus.DoesNotExist:
+            # Auto create if previously unseen, and WAM_AUTO_CREATE_CAMPUS setting is enabled
+            if WAM_AUTO_CREATE_CAMPUS:
+                logger.debug("campus does not exist, and configured to create with name %s" % system_name)
+                if not system_name:
+                    logger.debug("cannot create campus with name set to None")
+                    return None
+                else:
+                    campus = Campus.objects.create(system_name=system_name, name=system_name)
+                    logger.debug("campus created with name %s" % system_name)
+                return campus
+
+        # Last resort
+        return None
+
+    class Meta:
+        verbose_name_plural = "campuses"
+        ordering = ['name']
+
+
+class Faculty(models.Model):
+    """
+    This indicates the faculty a member of staff or other entity may be associated with
+
+    :name:          the human readable name of the campus
+    :system_name:   a name potentially used by internal systems
+
+    """
+
+    name = models.CharField(max_length=100)
+    system_name = models.CharField(max_length=100, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    @staticmethod
+    def get_or_create(system_name):
+        """
+        Normally used to map a system name to an ID, or automatically create a missing faculty
+
+        This is normally called as a result of automatic authentication.
+
+        :param system_name:     a name for the Faculty used by internal systems
+        :return: A Faculty object, if it exists or is created, and None otherwise
+        """
+
+        # If it exists, just return it.
+        try:
+            logger.debug("checking for existence of faculty with system name %s" % system_name)
+            faculty = Faculty.objects.get(system_name=system_name)
+            return faculty
+        except Faculty.DoesNotExist:
+            # Auto create if previously unseen, and WAM_AUTO_CREATE_FACULTY setting is enabled
+            if WAM_AUTO_CREATE_FACULTY:
+                logger.debug("faculty does not exist, and configured to create with name %s" % system_name)
+                if not system_name:
+                    logger.debug("cannot create faculty with name set to None")
+                    return None
+                else:
+                    faculty = Faculty.objects.create(system_name=system_name, name=system_name)
+                    logger.debug("faculty created with name %s" % system_name)
+                    return faculty
+
+        # Last resort
+        return None
+
+    class Meta:
+        verbose_name_plural = "faculties"
+        ordering = ['name']
+
+
+class School(models.Model):
+    """
+    This indicates the school for a member of staff or other entity
+
+    :name:          the human readable name of the campus
+    :system_name:   a name potentially used by internal systems
+    :faculty:       the faculty the School belongs to
+
+    """
+
+    name = models.CharField(max_length=100)
+    system_name = models.CharField(max_length=100, null=True, blank=True)
+    faculty = models.ForeignKey(Faculty, null=True, blank=True, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return self.name
+
+    @staticmethod
+    def get_or_create(system_name, faculty_pk=None):
+        """
+        Normally used to map a system name to an ID, or automatically create a missing faculty
+
+        This is normally called as a result of automatic authentication.
+
+        :param system_name:     a name for the School used by internal systems
+        :param faculty_pk:      the primary key of the faculty the School belongs to, if known
+        :return: A School object, if it exists or is created, and None otherwise
+        """
+
+        # If it exists, just return it.
+        try:
+            logger.debug("checking for existence of school with system name %s" % system_name)
+            school = School.objects.get(system_name=system_name)
+            return school
+        except School.DoesNotExist:
+            # Auto create if previously unseen, and WAM_AUTO_CREATE_SCHOOL setting is enabled
+            if WAM_AUTO_CREATE_SCHOOL:
+                logger.debug("school does not exist, and configured to create with name %s" % system_name)
+                if not system_name:
+                    logger.debug("cannot create school with name set to None")
+                    return None
+                else:
+                    school = School.objects.create(system_name=system_name, name=system_name, faculty_pk=faculty_pk)
+                    logger.debug("school created with name %s in faculty id %u" % (system_name, faculty_pk))
+                    return school
+
+        # Last resort
+        return None
+
+    def create_groups(self):
+        """
+        This creates Django user groups, if configured, and if they don't already exist.
+
+        :return: a tuple of Django user groups, if it exists, and None otherwise
+        """
+        if not WAM_AUTO_CREATE_SCHOOL_GROUPS:
+            return (None, None, None, None)
+
+        group_staff, created = Group.objects.get_or_create(name=f"{self.name} Staff")
+        if created:
+            logger.debug("auto created group %s" % group_staff)
+
+        group_academics, created = Group.objects.get_or_create(name=f"{self.name} Academic Staff")
+        if created:
+            logger.debug("auto created group %s" % group_academics)
+
+        group_admin, created = Group.objects.get_or_create(name=f"{self.name} Admin Staff")
+        if created:
+            logger.debug("auto created group %s" % group_admin)
+
+        group_externals, created = Group.objects.get_or_create(name=f"{self.name} External Examiners")
+        if created:
+            logger.debug("auto created group %s" % group_externals)
+
+        return (group_staff, group_academics, group_admin, group_externals)
+
+    class Meta:
+        verbose_name_plural = "schools"
+        ordering = ['name']
+
 
 class ExternalExaminer(models.Model):
     """Augments the Django user model with external examiner details
@@ -470,6 +654,10 @@ class Staff(models.Model):
     fte = models.PositiveSmallIntegerField(default=100)
     is_external = models.BooleanField(default=False)
     has_workload = models.BooleanField(default=True)
+    job_title = models.CharField(max_length=100, null=True, blank=True)
+    school = models.ForeignKey(School, null=True, on_delete=models.SET_NULL)
+    faculty = models.ForeignKey(Faculty, null=True, on_delete=models.SET_NULL)
+    campus = models.ForeignKey(Campus, null=True, on_delete=models.SET_NULL)
     package = models.ForeignKey(WorkPackage, null=True, on_delete=models.SET_NULL)
 
     objects = StaffManager()
@@ -841,19 +1029,6 @@ class ActivityGenerator(models.Model):
         return str(self.name) + " (" + str(self.package) + ")"
 
     class Meta:
-        ordering = ['name']
-
-
-class Campus(models.Model):
-    """This indicated the campus or site that a module is delivered at"""
-
-    name = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = "campuses"
         ordering = ['name']
 
 

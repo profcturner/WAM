@@ -54,3 +54,5 @@ WAM/local_settings.py
 django.log
 /WAM/local
 *THINKINGS.txt*
+*.key
+*.crt

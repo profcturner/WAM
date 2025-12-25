@@ -36,6 +36,16 @@ WAM_DEFAULT_ACTIVITY_TYPE = 1
 # https://github.com/profcturner/WAM/wiki/ADFS---Azure-Authentication
 WAM_ADFS_AUTH = False
 
+# The following settings are usually used with some form of external authentication as above
+# And if enabled, will create Campuses, Faculties and Schools for authenticated users belonging to unknown ones.
+# This allows WAM to automatically learn your University structure
+WAM_AUTO_CREATE_CAMPUS = True
+WAM_AUTO_CREATE_FACULTY = True
+WAM_AUTO_CREATE_SCHOOL = True
+
+# Automatically create School level "Groups"
+WAM_AUTO_CREATE_SCHOOL_GROUPS = True
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 DEBUG_TOOLBAR = False
