@@ -21,12 +21,14 @@ from .models import AssessmentStaff
 from .models import Body
 from .models import Campus
 from .models import Category
+from .models import Faculty
 from .models import Module
 from .models import ModuleSize
 from .models import ModuleStaff
 from .models import Programme
 from .models import Project
 from .models import ProjectStaff
+from .models import School
 from .models import Staff
 from .models import Task
 from .models import TaskCompletion
@@ -66,6 +68,16 @@ class AssessmentStateSignOffAdmin(admin.ModelAdmin):
     list_display = ('module', 'signed_by', 'assessment_state', 'created')
     list_filter = ('module__package__name',)
 
+
+class CampusAdmin(admin.ModelAdmin):
+    list_display = ('name', 'system_name')
+
+class FacultyAdmin(admin.ModelAdmin):
+    list_display = ('name', 'system_name')
+
+class SchoolAdmin(admin.ModelAdmin):
+    list_display = ('name', 'system_name', 'faculty')
+    list_filter = ('faculty',)
 
 class ModuleAdmin(admin.ModelAdmin):
     list_display = ('package', 'module_code', 'module_name', 'semester')
@@ -117,14 +129,16 @@ admin.site.register(AssessmentState)
 admin.site.register(AssessmentStateSignOff, AssessmentStateSignOffAdmin)
 admin.site.register(AssessmentStaff, AssessmentStaffAdmin)
 admin.site.register(Body)
-admin.site.register(Campus)
+admin.site.register(Campus, CampusAdmin)
 admin.site.register(Category)
+admin.site.register(Faculty, FacultyAdmin)
 admin.site.register(Module, ModuleAdmin)
 admin.site.register(ModuleStaff, ModuleStaffAdmin)
 admin.site.register(ModuleSize)
 admin.site.register(Programme, ProgrammeAdmin)
 admin.site.register(Project)
 admin.site.register(ProjectStaff)
+admin.site.register(School, SchoolAdmin)
 admin.site.register(Staff, StaffAdmin)
 admin.site.register(Task, TaskAdmin)
 admin.site.register(TaskCompletion, TaskCompletionAdmin)
