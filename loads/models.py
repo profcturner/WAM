@@ -518,14 +518,14 @@ class School(models.Model):
         return self.name
 
     @staticmethod
-    def get_or_create(system_name, faculty_pk=None):
+    def get_or_create(system_name, faculty=None):
         """
         Normally used to map a system name to an ID, or automatically create a missing faculty
 
         This is normally called as a result of automatic authentication.
 
         :param system_name:     a name for the School used by internal systems
-        :param faculty_pk:      the primary key of the faculty the School belongs to, if known
+        :param faculty:         the faculty the School belongs to, if known
         :return: A School object, if it exists or is created, and None otherwise
         """
 
@@ -542,8 +542,8 @@ class School(models.Model):
                     logger.debug("cannot create school with name set to None")
                     return None
                 else:
-                    school = School.objects.create(system_name=system_name, name=system_name, faculty_pk=faculty_pk)
-                    logger.debug("school created with name %s in faculty id %u" % (system_name, faculty_pk))
+                    school = School.objects.create(system_name=system_name, name=system_name, faculty=faculty)
+                    logger.debug("school created with name %s in faculty %s" % (system_name, faculty))
                     return school
 
         # Last resort
