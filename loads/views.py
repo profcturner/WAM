@@ -2107,6 +2107,16 @@ class DetailsProgrammeView(LoginRequiredMixin, DetailView):
     success_url = reverse_lazy('programmes_index')
     fields = ['programme_code', 'programme_name', 'examiners', 'directors']
 
+    def get_queryset(self):
+        try:
+            staff = Staff.objects.get(user=self.request.user)
+            package = staff.package
+        except Staff.DoesNotExist:
+            raise PermissionDenied("""Your user has no matching staff object.
+            This is likely to be because no account has been created for you.""")
+        else:
+            return Programme.objects.all().filter(package=package)
+
 
 class UpdateProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """View for editing a Programme"""
