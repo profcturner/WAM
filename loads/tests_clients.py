@@ -39,6 +39,9 @@ from .models import ProjectStaff
 from .models import WorkPackage
 
 from WAM.settings import LOGIN_URL
+from WAM.settings import WAM_ADFS_AUTH
+
+
 
 
 class UserClientTest(TestCase):
@@ -190,6 +193,10 @@ class UserClientTest(TestCase):
         """
 
         # Deliberately no login code here
+        if WAM_ADFS_AUTH:
+            login_url = "/oauth2/login"
+        else:
+            login_url = LOGIN_URL
 
         # Some views are expected to be ok.
         for url in ["/",
@@ -214,7 +221,7 @@ class UserClientTest(TestCase):
                     "/cadmin/assessment_staff/index/",
                     ]:
             print(f"Testing non authenticated user access: {url}", file=sys.stderr)
-            redirected_url = f"{reverse(LOGIN_URL)}?next={url}"
+            redirected_url = f"{login_url}?next={url}"
             response = self.client.get(url)
             self.assertRedirects(response, redirected_url, status_code=302, target_status_code=302)
 
