@@ -1,4 +1,5 @@
 # Standard Imports
+import sys
 from io import StringIO
 
 from django.core.exceptions import PermissionDenied
@@ -36,6 +37,11 @@ from .models import Programme
 from .models import Project
 from .models import ProjectStaff
 from .models import WorkPackage
+
+from WAM.settings import LOGIN_URL
+from WAM.settings import WAM_ADFS_AUTH
+
+
 
 
 class UserClientTest(TestCase):
@@ -179,6 +185,45 @@ class UserClientTest(TestCase):
         )
 
         task.targets.add(staff_staff)
+
+
+    def disabled__test_not_logged_in(self):
+        """
+        Some checks that unauthenticated users (and web crawlers) do not have access they should not have.
+        """
+
+        # Deliberately no login code here
+        if WAM_ADFS_AUTH:
+            login_url = "/oauth2/login"
+        else:
+            login_url = LOGIN_URL
+
+        # Some views are expected to be ok.
+        for url in ["/",
+                    "/external/"
+                    ]:
+            print(f"Testing non authenticated user access: {url}")
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+
+        for url in ["/loads/",
+                    "/loads/modules/",
+                    "/loads_charts/",
+                    "/activities/index/",
+                    "/generators/index/",
+                    "/tasks/index/",
+                    "/tasks/archived/index/",
+                    "/modules/index/",
+                    "/programmes/index/",
+                    #"/programmes/details/1" #TODO: 301 handling?
+                    "/projects/index/",
+                    "/cadmin/",
+                    "/cadmin/assessment_staff/index/",
+                    ]:
+            print(f"Testing non authenticated user access: {url}", file=sys.stderr)
+            redirected_url = f"{login_url}?next={url}"
+            response = self.client.get(url)
+            self.assertRedirects(response, redirected_url, status_code=302, target_status_code=302)
 
 
     def test_loads_no_workpackage(self):
