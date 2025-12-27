@@ -231,7 +231,7 @@ class UserClientTest(TestCase):
             redirected_url = f"{login_url}?next={url}"
             response = self.client.get(url)
             try:
-                self.assertRedirects(response, redirected_url, status_code=302, target_status_code=302)
+                self.assertRedirects(response, redirected_url, fetch_redirect_response=False, status_code=302, target_status_code=302)
             except AssertionError as e:
                 print(f"failed url was {url}")
                 raise
