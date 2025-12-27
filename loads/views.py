@@ -2144,9 +2144,13 @@ class ProgrammeList(LoginRequiredMixin, ListView):
             return Programme.objects.all().filter(package=package)
 
 
+ # Looks like decorators execute before mixins, so if you don't call the login decorator, the staff_only may fail
+@method_decorator(login_required, name='dispatch')
 @method_decorator(staff_only, name='dispatch')
 class ActivityListView(LoginRequiredMixin, ListView):
-    """Generic view for the Activities List"""
+    """
+    Generic view for the Activities List
+    """
     model = Activity
     context_object_name = 'activities'
 
