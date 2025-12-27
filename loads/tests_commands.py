@@ -1,5 +1,6 @@
 # Standard Imports
 from io import StringIO
+import logging
 
 from django.core.exceptions import PermissionDenied
 # Django specific Imports
@@ -39,6 +40,15 @@ from .models import WorkPackage
 
 
 class CommandsTestCase(TestCase):
+
+    def setUp(self):
+        # Logging is very noisy typically
+        logging.disable(logging.CRITICAL)
+
+    def tearDown(self):
+        # Put the logging back in place
+        logging.disable(logging.NOTSET)
+
     """Test Populate Database commands, which can fail due to schema changes"""
     def test_create_schema(self):
         """ Test creation of scheme through --add-core-config """

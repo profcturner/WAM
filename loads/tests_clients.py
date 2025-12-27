@@ -1,5 +1,5 @@
 # Standard Imports
-import sys
+import sys, logging
 from io import StringIO
 
 from django.core.exceptions import PermissionDenied
@@ -52,6 +52,9 @@ class UserClientTest(TestCase):
     """
 
     def setUp(self):
+        # Logging is very noisy typically
+        logging.disable(logging.CRITICAL)
+
         # Every test needs a client.
         self.client = Client()
 
@@ -186,8 +189,12 @@ class UserClientTest(TestCase):
 
         task.targets.add(staff_staff)
 
+    def tearDown(self):
+        # Put the logging back in place
+        logging.disable(logging.NOTSET)
 
-    def disabled__test_not_logged_in(self):
+
+    def test_not_logged_in(self):
         """
         Some checks that unauthenticated users (and web crawlers) do not have access they should not have.
         """
@@ -223,7 +230,11 @@ class UserClientTest(TestCase):
             print(f"Testing non authenticated user access: {url}", file=sys.stderr)
             redirected_url = f"{login_url}?next={url}"
             response = self.client.get(url)
-            self.assertRedirects(response, redirected_url, status_code=302, target_status_code=302)
+            try:
+                self.assertRedirects(response, redirected_url, status_code=302, target_status_code=302)
+            except AssertionError as e:
+                print(f"failed url was {url}")
+                raise
 
 
     def test_loads_no_workpackage(self):
