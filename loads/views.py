@@ -1936,7 +1936,7 @@ def workpackage_migrate(request):
 
 # Class based views
 
-class CreateTaskView(CreateView):
+class CreateTaskView(LoginRequiredMixin, CreateView):
     """View for creating a task"""
     model = Task
     success_url = reverse_lazy('tasks_index')
@@ -1969,7 +1969,7 @@ class CreateTaskView(CreateView):
         return form
 
 
-class UpdateTaskView(PermissionRequiredMixin, UpdateView):
+class UpdateTaskView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """View for creating a task"""
     permission_required = 'loads.change_task'
     model = Task
@@ -1998,7 +1998,7 @@ class UpdateTaskView(PermissionRequiredMixin, UpdateView):
     #    return super(UpdateTaskView, self).dispatch(request)
 
 
-class CreateModuleView(PermissionRequiredMixin, CreateView):
+class CreateModuleView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """View for creating a Module"""
     permission_required = 'loads.add_module'
     model = Module
@@ -2040,7 +2040,7 @@ class CreateModuleView(PermissionRequiredMixin, CreateView):
         return reverse('modules_details', kwargs={'module_id': self.object.pk})
 
 
-class UpdateModuleView(PermissionRequiredMixin, UpdateView):
+class UpdateModuleView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """View for editing a Module"""
     permission_required = 'loads.change_module'
     model = Module
@@ -2072,7 +2072,7 @@ class UpdateModuleView(PermissionRequiredMixin, UpdateView):
         return reverse('modules_details', kwargs={'module_id': self.object.pk})
 
 
-class CreateProgrammeView(PermissionRequiredMixin, CreateView):
+class CreateProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """View for creating a Programme"""
     permission_required = 'loads.add_programme'
     model = Programme
@@ -2101,14 +2101,14 @@ class CreateProgrammeView(PermissionRequiredMixin, CreateView):
         return response
 
 
-class DetailsProgrammeView(DetailView):
+class DetailsProgrammeView(LoginRequiredMixin, DetailView):
     """View for editing a Programme"""
     model = Programme
     success_url = reverse_lazy('programmes_index')
     fields = ['programme_code', 'programme_name', 'examiners', 'directors']
 
 
-class UpdateProgrammeView(PermissionRequiredMixin, UpdateView):
+class UpdateProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """View for editing a Programme"""
     permission_required = 'loads.change_programme'
     model = Programme
@@ -2158,7 +2158,7 @@ class ActivityListView(LoginRequiredMixin, ListView):
         return Activity.objects.all().filter(package=package).order_by("staff", "name")
 
 
-class CreateActivityView(PermissionRequiredMixin, CreateView):
+class CreateActivityView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """View for creating an Activity"""
     permission_required = 'loads.add_activity'
     model = Activity
@@ -2189,7 +2189,7 @@ class CreateActivityView(PermissionRequiredMixin, CreateView):
         return response
 
 
-class UpdateActivityView(PermissionRequiredMixin, UpdateView):
+class UpdateActivityView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """View for updating an Activity"""
     permission_required = 'loads.change_activity'
     model = Activity
