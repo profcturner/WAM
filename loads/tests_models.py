@@ -1,5 +1,6 @@
 # Standard Imports
 from io import StringIO
+import logging
 
 from django.core.exceptions import PermissionDenied
 # Django specific Imports
@@ -40,6 +41,9 @@ from .models import WorkPackage
 
 class WorkPackageMigrationTestCase(TestCase):
     def setUp(self):
+        # Logging is very noisy typically
+        logging.disable(logging.CRITICAL)
+
         # Create a workpackage
         package = WorkPackage.objects.create(name="source", startdate="2017-09-01", enddate="2018-08-31")
         destination_package = WorkPackage.objects.create(name="destination", startdate="2018-09-01",
@@ -178,6 +182,12 @@ class WorkPackageMigrationTestCase(TestCase):
         generator_module.targets.add(coordinator)
         generator_module.save()
         generator_module.generate_activities()
+
+
+    def tearDown(self):
+        # Put the logging back in place
+        logging.disable(logging.NOTSET)
+
 
     def test_package_migration_programmes(self):
         destination = WorkPackage.objects.get(name="destination")
