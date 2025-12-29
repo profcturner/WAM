@@ -103,7 +103,7 @@
 
     {% if combined_list %}
         {% if programme %}
-            <p class="text-info-emphasis">Only modules on the Programme <span class="fw-bold">{{ programme }}</span>
+            <p class="text-info-emphasis">Only modules on the programme <span class="fw-bold">{{ programme }}</span>
             {% if lead_programme %}
                 <i>and for which that is the lead programme</i>
             {% endif %}
@@ -172,8 +172,8 @@
 
 {% if not logged_in_staff.is_external %}
 <div class="mt-5 wam-hide-on-print">
-    <h4>Add Module</h4>
-    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'create module' %}">Click here to create a new Module</a>
+    <h4>Add module</h4>
+    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'create module' %}">Click here to create a new module</a>
 </div>
 {% endif %}
 {% endblock %}
