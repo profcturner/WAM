@@ -2,17 +2,18 @@
 
 {% if form.instance.pk %}
 <h3>
-    Update Task
+    Update task
 </h3>
 {% else %}
 <h3>
-    Create Task
+    Create task
 </h3>
-<p class="mt-3 mb-4">
-    This form allows the creation of new Tasks.<br />
-    These Tasks may be assigned to a mixture of specific members of staff, and groups of staff.
-    Please note that unless you have suitable permissions, you will only be able to assign tasks to yourself.
-</p>
+<div class="mt-3 mb-4">
+    <p>This form allows the creation of new tasks. These tasks may be assigned
+        to a mixture of specific members of staff, and groups of staff.</p>
+    <p><i>Please note that unless you have suitable permissions, you will only be
+        able to assign tasks to yourself.</i></p>
+</div>
 {% endif %}
 
 <div class="border border-secondary-subtle rounded-3 p-3 mb-3 mt-3">
