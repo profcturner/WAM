@@ -713,6 +713,9 @@ class Command(BaseCommand):
             while allocation_so_far < allocation_limit:
                 # Make a choice of how much in this slice
                 proportion = random.choice(proportion_choices)
+                # But scale it to a maximum of the limits above.
+                if allocation_so_far + proportion > max(allocation_limit_choices):
+                    proportion = max(allocation_limit_choices) - allocation_so_far
                 # And someone not allocated to this module
                 staff_member = random.choice([item for item in staff if item not in allocated_staff])
                 allocated_staff.append(staff_member)
