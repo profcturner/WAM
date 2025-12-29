@@ -11,7 +11,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
 
 # And some models
-from loads.models import Category, ExternalExaminer
+from loads.models import Category, ExternalExaminer, Activity
 from loads.models import ActivityType
 from loads.models import ModuleSize
 from loads.models import AssessmentResourceType
@@ -22,7 +22,10 @@ from loads.models import Campus
 from loads.models import Staff
 from loads.models import Programme
 from loads.models import Module
+from loads.models import ModuleStaff
 from loads.models import WorkPackage
+
+from WAM.settings import WAM_DEFAULT_ACTIVITY_TYPE
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -43,6 +46,12 @@ class Command(BaseCommand):
                             default=False,
                             help='Don\'t just add initial basics, but test data for testing and training')
 
+        parser.add_argument('--add-test-allocations',
+                            action='store_true',
+                            dest='add-test-allocations',
+                            default=False,
+                            help='Create some sample teaching allocation')
+
         parser.add_argument('--test-prefix',
                             dest='test-prefix',
                             default="TEST",
@@ -52,6 +61,7 @@ class Command(BaseCommand):
         # TODO needs some decent exception handling
         add_core_config = options['add-core-config']
         add_test_data = options['add-test-data']
+        add_test_allocations = options['add-test-allocations']
 
         logger.info("Populate Database management command invoked.", extra={'optione': options})
         self.stdout.write('Populating data into database')
@@ -61,6 +71,9 @@ class Command(BaseCommand):
 
         if add_test_data:
             self.populate_test_data(options)
+
+        if add_test_allocations:
+            self.create_module_allocations(options)
 
         if not (add_core_config or add_test_data):
             self.stdout.write('No option selected, use --help for more details')
@@ -638,3 +651,87 @@ class Command(BaseCommand):
 
             # Finally add the module to the lead_programme in the list of programmes
             module.programmes.add(module.lead_programme)
+
+
+    def create_module_allocations(self, options):
+        """
+        Create some allocations for the staff in the package, for about half the modules.
+
+        These will be somewhat random and will attempt to create some under and over allocations.
+
+        :param options: the main options into the command
+        """
+
+        test_prefix = options['test-prefix']
+        verbosity = options['verbosity']
+
+        # And now grab the Work Package
+        package_name = test_prefix + " Work Package"
+        package = WorkPackage.objects.get(name=package_name)
+
+        if not package:
+            message = "Cannot find Work Package {}, cannot make allocations".format(package_name)
+            logger.error(message)
+            self.stdout.write(message)
+            return
+
+        message = 'Creating module allocations for {}'.format(package)
+        logger.info(message)
+        if verbosity:
+            self.stdout.write(message)
+
+        default_activity_type = ActivityType.objects.get(pk=WAM_DEFAULT_ACTIVITY_TYPE)
+        if not default_activity_type:
+            message = 'No activity for WAM_DEFAULT_ACTIVITY_TYPE found for'
+            logger.error(message)
+            self.stdout.write(message)
+            return
+
+        # Get the modules in the package, and any staff currently configured for that package
+        modules = list(Module.objects.all().filter(package=package))
+        staff = list(Staff.objects.all().filter(package=package))
+        proportion_choices = [25, 30, 40, 50, 55, 75, 100]
+        allocation_limit_choices = [80, 100, 120]
+
+        # Let's create allocations for half of these (rounded)
+        modules_to_allocate = int(len(modules)/2)
+        logger.debug("attempt to allocate {} modules".format(modules_to_allocate))
+
+        allocated_modules = []
+        for i in range(modules_to_allocate):
+            # Grab a module not already picked
+            module = random.choice([item for item in modules if item not in allocated_modules])
+            if ModuleStaff.objects.filter(module=module).count():
+                logger.warning("Skipping already allocated module: {}".format(module))
+                continue
+
+            allocated_modules.append(module)
+
+            allocated_staff = []
+            allocation_so_far = 0
+            allocation_limit = random.choice(allocation_limit_choices)
+            while allocation_so_far < allocation_limit:
+                # Make a choice of how much in this slice
+                proportion = random.choice(proportion_choices)
+                # And someone not allocated to this module
+                staff_member = random.choice([item for item in staff if item not in allocated_staff])
+                allocated_staff.append(staff_member)
+
+                ModuleStaff.objects.create(
+                    module=module,
+                    staff=staff_member,
+                    package=package,
+                    activity_type=default_activity_type,
+                    contact_proportion=proportion,
+                    admin_proportion=proportion,
+                    assessment_proportion=proportion,
+                )
+                logger.info(".. allocated {}% to staff member {} on module {}".format(proportion, staff, module))
+                allocation_so_far += proportion
+
+            message = "allocations made to module {}".format(module)
+            logger.info(message)
+            if(verbosity):
+                self.stdout.write(message)
+
+
