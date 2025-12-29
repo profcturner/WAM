@@ -73,13 +73,13 @@
         </p>
     </div>
     {% else %}
-    <p>No allocations for this group at this time.</p>
+    <p class="text-info-emphasis">No allocations for this group at this time.</p>
     {% endif %}
   {% endfor %}
 </div>
 
 <div class="mt-4">
-  <h4>Overall Totals</h4>
+  <h4>Overall totals</h4>
     <p>
         {{ total_staff }} unique staff members are included in this data. <br />
         Total hours for all activities is {{ total|stringformat:".0f"|intcomma }} person hours.<br />
@@ -88,7 +88,7 @@
 </div>
   
 {% else %}
-  <p>No data for this work package at this time.</p>
+  <p class="text-info-emphasis">No data for this work package at this time.</p>
 {% endif %}
 
 {% endblock content %}
