@@ -24,6 +24,8 @@ from loads.models import Programme
 from loads.models import Module
 from loads.models import ModuleStaff
 from loads.models import WorkPackage
+from loads.models import ActivityGenerator
+from loads.models import Project
 
 from WAM.settings import WAM_DEFAULT_ACTIVITY_TYPE
 
@@ -81,6 +83,14 @@ class Command(BaseCommand):
         logger.info("Populate Database management command completed.")
         self.stdout.write('Complete.')
 
+
+    def get_test_group_name(self, options):
+        """
+        Helper method to get the test group name
+        :param options:
+        :return:
+        """
+        return options["test-prefix"] + " Group"
 
 
     @staticmethod
@@ -377,6 +387,9 @@ class Command(BaseCommand):
         # The Modules
         self.create_modules(package, options)
 
+        # The Generators
+        self.create_generators(package, options)
+
         return True
 
     def create_work_package(self, options):
@@ -386,7 +399,8 @@ class Command(BaseCommand):
         verbosity = options['verbosity']
 
         # Create a Group
-        group_name = test_prefix + " Group"
+        group_name = self.get_test_group_name(options)
+
         if verbosity:
             self.stdout.write('.. Creating User Group: {}'.format(group_name))
 
@@ -651,6 +665,49 @@ class Command(BaseCommand):
 
             # Finally add the module to the lead_programme in the list of programmes
             module.programmes.add(module.lead_programme)
+
+
+    def create_generators(self, package, options):
+        """
+        Create some generators for the test work package
+        :param package:
+        :param options:
+        :return:
+        """
+
+        test_prefix = options['test-prefix']
+        verbosity = options['verbosity']
+
+        test_group_name = self.get_test_group_name(options)
+
+        test_group = Group.objects.get(name=test_group_name)
+        if not test_group:
+            message = "Cannot find the test group"
+            self.stdout.write(self.style.ERROR(message))
+            logger.error(message)
+            return
+
+        research_activity = ActivityType.objects.get(name="Research Administration")
+        if not research_activity:
+            message = "Cannot find a research administration activity type"
+            self.stdout.write(self.style.ERROR(message))
+            logger.error(message)
+            return
+
+        research_generator = ActivityGenerator.objects.create(
+            name = "Research Tasks",
+            hours_percentage = ActivityGenerator.PERCENTAGE,
+            hours = 0,
+            percentage = 40,
+            semester = "1,2,3",
+            activity_type = research_activity,
+            package = package,
+        )
+
+        research_generator.groups.add(test_group)
+        research_generator.save()
+
+
 
 
     def create_module_allocations(self, options):
