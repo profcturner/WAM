@@ -40,6 +40,14 @@
   text-decoration: underline !important;
   text-underline-offset: 0.375em !important;
 }
+a.nav-link:active, .nav-link:active {
+    background-color: inherit !important;
+    color:inherit !important;
+}
+li.dropdown-item:active {
+    background-color: inherit !important;
+    color:inherit !important;
+}
 /* Somewhat less bloated bullets for "menu lists" */
 ul.wam-menu-list {
     list-style-position: outside;
