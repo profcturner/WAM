@@ -116,8 +116,8 @@ class Command(BaseCommand):
     def get_test_group_name(self, options):
         """
         Helper method to get the test group name
-        :param options:
-        :return:
+        :param options: the options received from the command line
+        :return: the test group name
         """
         return options["test-prefix"] + " Group"
 
@@ -146,6 +146,7 @@ class Command(BaseCommand):
 
         # We don't check anything else for now, maybe we should, but these items would be needed to have much else
         return False
+
 
     def populate_basic_config(self, options):
         """Add the basic configuration required to get going"""
@@ -184,6 +185,7 @@ class Command(BaseCommand):
 
         return True
 
+
     def add_categories_activities(self):
         """Add some basic Categories and ActivityTypes"""
 
@@ -199,10 +201,12 @@ class Command(BaseCommand):
         ActivityType.objects.create(name="Research Grant", category=research_category)
         ActivityType.objects.create(name="Teaching Administration", category=education_category)
 
+
     def add_campus(self):
         """Add a campus to be renames"""
 
         Campus.objects.create(name="Rename this Campus")
+
 
     def add_module_sizes(self):
         """Add some ModuleSize objects"""
@@ -214,6 +218,7 @@ class Command(BaseCommand):
         ModuleSize.objects.create(text='101 - 200', admin_scaling=1.3, assessment_scaling=1.3, order=5)
         ModuleSize.objects.create(text='200+', admin_scaling=1.4, assessment_scaling=1.4, order=6)
 
+
     def add_assessment_resource_types(self):
         """Add some sensible AssessmentResourceTypes"""
 
@@ -224,6 +229,7 @@ class Command(BaseCommand):
         AssessmentResourceType.objects.create(name="Moderation")
         AssessmentResourceType.objects.create(name="External Comment")
         AssessmentResourceType.objects.create(name="Comment")
+
 
     def add_assessment_state(self):
         """Add a basic AssessmentState workflow"""
@@ -362,7 +368,6 @@ class Command(BaseCommand):
         )
 
         # Now make links
-
         coordinator_final_state.next_states.add(initial_state)
 
         resubmission_external_state.next_states.add(external_not_ok_state)
@@ -384,6 +389,7 @@ class Command(BaseCommand):
 
         initial_state.next_states.add(moderated_ok_state)
         initial_state.next_states.add(moderated_not_ok_state)
+
 
     def populate_test_data(self, options):
         """Add users, modules and programmes etc."""
@@ -497,6 +503,7 @@ class Command(BaseCommand):
 
         return staff_names
 
+
     def create_staff(self, package, options):
         """Create the staff objects as above and add them to a WorkPackage"""
 
@@ -545,13 +552,13 @@ class Command(BaseCommand):
             staff.has_workload = True
             staff.save()
 
-
             # Add the user to a group as well
             group = random.choice(groups)
             group.user_set.add(user)
 
             # A different username for the next one
             username_number += 1
+
 
     def get_external_names(self):
         """Define names for external examiners"""
@@ -563,6 +570,7 @@ class Command(BaseCommand):
         ]
 
         return external_names
+
 
     def create_externals(self, package, options):
         """Create the external objects as above and set their WorkPackage"""
@@ -612,6 +620,7 @@ class Command(BaseCommand):
             # A different username for the next one
             username_number += 1
 
+
     def get_programme_names(self):
         """Some basic programmes"""
 
@@ -622,6 +631,7 @@ class Command(BaseCommand):
         ]
 
         return programme_names
+
 
     def create_programmes(self, package, options):
         """Create some programmes and add them to a package"""
@@ -640,6 +650,7 @@ class Command(BaseCommand):
             )
 
             programme.examiners.add(random.choice(externals))
+
 
     def get_module_names(self):
         """Some basic module names"""
@@ -660,6 +671,7 @@ class Command(BaseCommand):
         ]
 
         return module_names
+
 
     def create_modules(self, package, options):
         """Create the modules"""
@@ -697,6 +709,17 @@ class Command(BaseCommand):
             # Finally add the module to the lead_programme in the list of programmes
             module.programmes.add(module.lead_programme)
 
+    def get_generator_data(self):
+        """
+        Some generator data
+        """
+
+        generator_data = [
+            ("Research Tasks", ActivityGenerator.PERCENTAGE, 0, 40, "1,2,3")
+        ]
+
+        return generator_data
+
 
     def create_generators(self, package, options):
         """
@@ -725,18 +748,23 @@ class Command(BaseCommand):
             logger.error(message)
             return
 
-        research_generator = ActivityGenerator.objects.create(
-            name = "Research Tasks",
-            hours_percentage = ActivityGenerator.PERCENTAGE,
-            hours = 0,
-            percentage = 40,
-            semester = "1,2,3",
-            activity_type = research_activity,
-            package = package,
-        )
+        generator_data = self.get_generator_data()
+        for name, hours_percentage, hours, percentage, semesters in generator_data:
+            if verbosity:
+                self.stdout.write(".. Creating Generator {}".format(name))
+            generator = ActivityGenerator.objects.create(
+                name = name,
+                hours_percentage = hours_percentage,
+                hours = hours,
+                percentage = percentage,
+                semester = semesters,
+                activity_type = research_activity,
+                package = package,
+            )
 
-        research_generator.groups.add(test_group)
-        research_generator.save()
+            # Assign the whole group
+            generator.groups.add(test_group)
+            generator.save()
 
 
     def create_module_allocations(self, options):
@@ -818,7 +846,7 @@ class Command(BaseCommand):
                 logger.info(".. allocated {}% to staff member {} on module {}".format(proportion, staff, module))
                 allocation_so_far += proportion
 
-            message = "allocations made to module {}".format(module)
+            message = "Allocations made to module {}".format(module)
             logger.info(message)
             if(verbosity):
                 self.stdout.write(message)
@@ -839,8 +867,8 @@ class Command(BaseCommand):
              """
              Please ensure you have completed your PSR by the appropriate deadline""")
         ]
-
         return task_data
+
 
     def create_task_allocations(self, options):
         """
@@ -851,7 +879,6 @@ class Command(BaseCommand):
 
         test_prefix = options['test-prefix']
         verbosity = options['verbosity']
-
 
         # And now grab the group name
         group_name = self.get_test_group_name(options)
