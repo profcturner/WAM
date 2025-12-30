@@ -3,7 +3,7 @@
 
 import random
 import logging
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 
 from django.core.management.base import BaseCommand
@@ -28,6 +28,8 @@ from loads.models import Programme
 from loads.models import Project
 from loads.models import ProjectStaff
 from loads.models import Staff
+from loads.models import Task
+from loads.models import TaskCompletion
 from loads.models import WorkPackage
 
 from WAM.settings import WAM_DEFAULT_ACTIVITY_TYPE
@@ -61,7 +63,13 @@ class Command(BaseCommand):
                             action='store_true',
                             dest='add-test-project-allocations',
                             default=False,
-                            help='Create some sample teaching allocation')
+                            help='Create some sample project allocation')
+
+        parser.add_argument('--add-test-task-allocations',
+                            action='store_true',
+                            dest='add-test-task-allocations',
+                            default=False,
+                            help='Create some sample task allocation')
 
         parser.add_argument('--test-prefix',
                             dest='test-prefix',
@@ -74,6 +82,7 @@ class Command(BaseCommand):
         add_test_data = options['add-test-data']
         add_test_module_allocations = options['add-test-module-allocations']
         add_test_project_allocations = options['add-test-project-allocations']
+        add_test_task_allocations = options['add-test-task-allocations']
 
         logger.info("Populate Database management command invoked.", extra={'optione': options})
         self.stdout.write('Populating data into database')
@@ -90,7 +99,14 @@ class Command(BaseCommand):
         if add_test_project_allocations:
             self.create_project_allocations(options)
 
-        if not (add_core_config or add_test_data or add_test_module_allocations or add_test_project_allocations):
+        if add_test_task_allocations:
+            self.create_task_allocations(options)
+
+        if not (add_core_config or
+                add_test_data or
+                add_test_module_allocations or
+                add_test_project_allocations or
+                add_test_task_allocations):
             self.stdout.write('No option selected, use --help for more details')
 
         logger.info("Populate Database management command completed.")
@@ -405,6 +421,7 @@ class Command(BaseCommand):
 
         return True
 
+
     def create_work_package(self, options):
         """Create an test work package"""
 
@@ -450,6 +467,7 @@ class Command(BaseCommand):
         package.groups.add(group)
 
         return package
+
 
     def get_staff_names(self):
         """Return a list of tuples with some test staff names"""
@@ -806,6 +824,71 @@ class Command(BaseCommand):
                 self.stdout.write(message)
 
 
+    def get_tasks(self):
+        """
+        Some basic data for Tasks we shall create
+
+
+        :return:
+        """
+
+        task_data = [
+            ('Sign Sokovia Accords', """We are all required to sign the Sokovia Accords by the assigned deadline. See https://en.wikipedia.org/wiki/Features_of_the_Marvel_Cinematic_Universe#Sokovia_Accords for more details."""),
+            ('Set Exam Papers', """Please set your exam papers by the specified deadline"""),
+            ('Peer Support Review',
+             """
+             Please ensure you have completed your PSR by the appropriate deadline""")
+        ]
+
+        return task_data
+
+    def create_task_allocations(self, options):
+        """
+        Create some Tasks with some random targets from test data
+
+        :param options: the main options into the command
+        """
+
+        test_prefix = options['test-prefix']
+        verbosity = options['verbosity']
+
+
+        # And now grab the group name
+        group_name = self.get_test_group_name(options)
+        group = Group.objects.get(name=group_name)
+
+        if not group:
+            message = "Cannot find Group {}, cannot make tasks".format(group_name)
+            logger.error(message)
+            self.stdout.write(message)
+            return
+
+        message = 'Creating task allocations for {}'.format(group)
+        logger.info(message)
+        if verbosity:
+            self.stdout.write(message)
+
+        categories = Category.objects.all()
+        task_data = self.get_tasks()
+        deadline = datetime.now() + timedelta(days=6)
+
+        for name, details in task_data:
+            task = Task.objects.create(
+                name = name,
+                details = details,
+                category = random.choice(categories),
+                deadline = deadline,
+            )
+            deadline += timedelta(days=20)
+            task.groups.add(group)
+            task.save()
+
+        message = "allocations made to group {}".format(group)
+        logger.info(message)
+        if(verbosity):
+            self.stdout.write(message)
+
+
     def create_project_allocations(self, options):
         """
         Create a Body, a Project and some ProjectStaff allocations for testing purposes
@@ -887,5 +970,3 @@ class Command(BaseCommand):
         if(verbosity):
             self.stdout.write(message)
 
-
-    
