@@ -4,6 +4,7 @@
 import random
 import logging
 from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
 
 from django.core.management.base import BaseCommand
 
@@ -19,13 +20,15 @@ from loads.models import AssessmentState
 from loads.models import Campus
 
 # And the more detailed test data
-from loads.models import Staff
-from loads.models import Programme
+from loads.models import ActivityGenerator
+from loads.models import Body
 from loads.models import Module
 from loads.models import ModuleStaff
-from loads.models import WorkPackage
-from loads.models import ActivityGenerator
+from loads.models import Programme
 from loads.models import Project
+from loads.models import ProjectStaff
+from loads.models import Staff
+from loads.models import WorkPackage
 
 from WAM.settings import WAM_DEFAULT_ACTIVITY_TYPE
 
@@ -48,9 +51,15 @@ class Command(BaseCommand):
                             default=False,
                             help='Don\'t just add initial basics, but test data for testing and training')
 
-        parser.add_argument('--add-test-allocations',
+        parser.add_argument('--add-test-module-allocations',
                             action='store_true',
-                            dest='add-test-allocations',
+                            dest='add-test-module-allocations',
+                            default=False,
+                            help='Create some sample teaching allocation')
+
+        parser.add_argument('--add-test-project-allocations',
+                            action='store_true',
+                            dest='add-test-project-allocations',
                             default=False,
                             help='Create some sample teaching allocation')
 
@@ -63,7 +72,8 @@ class Command(BaseCommand):
         # TODO needs some decent exception handling
         add_core_config = options['add-core-config']
         add_test_data = options['add-test-data']
-        add_test_allocations = options['add-test-allocations']
+        add_test_module_allocations = options['add-test-module-allocations']
+        add_test_project_allocations = options['add-test-project-allocations']
 
         logger.info("Populate Database management command invoked.", extra={'optione': options})
         self.stdout.write('Populating data into database')
@@ -74,10 +84,13 @@ class Command(BaseCommand):
         if add_test_data:
             self.populate_test_data(options)
 
-        if add_test_allocations:
+        if add_test_module_allocations:
             self.create_module_allocations(options)
 
-        if not (add_core_config or add_test_data):
+        if add_test_project_allocations:
+            self.create_project_allocations(options)
+
+        if not (add_core_config or add_test_data or add_test_module_allocations or add_test_project_allocations):
             self.stdout.write('No option selected, use --help for more details')
 
         logger.info("Populate Database management command completed.")
@@ -669,10 +682,10 @@ class Command(BaseCommand):
 
     def create_generators(self, package, options):
         """
-        Create some generators for the test work package
-        :param package:
-        :param options:
-        :return:
+        Create some ActivityGenerators for the test work package
+
+        :param package:     the package created for test data
+        :param options:     the options for the management command
         """
 
         test_prefix = options['test-prefix']
@@ -706,8 +719,6 @@ class Command(BaseCommand):
 
         research_generator.groups.add(test_group)
         research_generator.save()
-
-
 
 
     def create_module_allocations(self, options):
@@ -771,8 +782,8 @@ class Command(BaseCommand):
                 # Make a choice of how much in this slice
                 proportion = random.choice(proportion_choices)
                 # But scale it to a maximum of the limits above.
-                if allocation_so_far + proportion > max(allocation_limit_choices):
-                    proportion = max(allocation_limit_choices) - allocation_so_far
+                if allocation_so_far + proportion > allocation_limit:
+                    proportion = allocation_limit - allocation_so_far
                 # And someone not allocated to this module
                 staff_member = random.choice([item for item in staff if item not in allocated_staff])
                 allocated_staff.append(staff_member)
@@ -795,3 +806,86 @@ class Command(BaseCommand):
                 self.stdout.write(message)
 
 
+    def create_project_allocations(self, options):
+        """
+        Create a Body, a Project and some ProjectStaff allocations for testing purposes
+
+        The Project should begin 6 months ago, and end 36 months in the future
+        Staff will be somewhat randomly allocated.
+
+        :param options: the main options into the command
+        """
+
+        test_prefix = options['test-prefix']
+        verbosity = options['verbosity']
+
+
+        # And now grab the Work Package
+        package_name = test_prefix + " Work Package"
+        package = WorkPackage.objects.get(name=package_name)
+
+        if not package:
+            message = "Cannot find Work Package {}, cannot make allocations".format(package_name)
+            logger.error(message)
+            self.stdout.write(message)
+            return
+
+        message = 'Creating project allocations for {}'.format(package)
+        logger.info(message)
+        if verbosity:
+            self.stdout.write(message)
+
+        research_activity = ActivityType.objects.get(name="Research Administration")
+        if not research_activity:
+            message = "Cannot find a research administration activity type"
+            self.stdout.write(self.style.ERROR(message))
+            logger.error(message)
+            return
+
+        try:
+            shield = Body.objects.get(name="S.H.I.E.L.D.")
+        except Body.DoesNotExist:
+            shield = Body.objects.create(
+                name="S.H.I.E.L.D.",
+                details="Earth Security Funding",
+            )
+
+        project_start = date.today() + relativedelta(months=-6)
+        project_end = date.today() + relativedelta(months=+36)
+
+        project = Project.objects.create(
+            name = "Watchtower Initiative, Low Earth Orbit",
+            start = project_start,
+            end = project_end,
+            body = shield,
+            activity_type = research_activity,
+        )
+
+        # Make some random project allocations
+        staff = list(Staff.objects.all().filter(package=package))
+        hours_per_week= [2, 3, 5, 10]
+
+        # Let's create allocations for five staff
+        staff_to_allocate = 5
+        logger.debug("attempt to allocate {} staff members to project".format(staff_to_allocate))
+
+        allocated_staff = []
+        for i in range(staff_to_allocate):
+            # Grab a module not already picked
+            staff_member = random.choice([item for item in staff if item not in allocated_staff])
+            ProjectStaff.objects.create(
+                project = project,
+                staff = staff_member,
+                start = project_start,
+                end = project_end,
+                hours_per_week = random.choice(hours_per_week),
+            )
+            allocated_staff.append(staff_member)
+
+        message = "allocations made to project {}".format(project)
+        logger.info(message)
+        if(verbosity):
+            self.stdout.write(message)
+
+
+    
