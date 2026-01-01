@@ -72,12 +72,15 @@ class AssessmentStateSignOffAdmin(admin.ModelAdmin):
 class CampusAdmin(admin.ModelAdmin):
     list_display = ('name', 'system_name')
 
+
 class FacultyAdmin(admin.ModelAdmin):
     list_display = ('name', 'system_name')
+
 
 class SchoolAdmin(admin.ModelAdmin):
     list_display = ('name', 'system_name', 'faculty')
     list_filter = ('faculty',)
+
 
 class ModuleAdmin(admin.ModelAdmin):
     list_display = ('package', 'module_code', 'module_name', 'semester')
@@ -90,6 +93,7 @@ class ProgrammeAdmin(admin.ModelAdmin):
 
 class StaffAdmin(admin.ModelAdmin):
     list_display = ('title', 'first_name', 'last_name', 'staff_number', 'fte', 'total_hours')
+    list_display_links = ('first_name', 'last_name', 'staff_number')
     list_filter = ('package', 'is_external', 'has_workload')
 
 
