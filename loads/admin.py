@@ -42,31 +42,41 @@ class ActivityAdmin(admin.ModelAdmin):
     list_display = ('package', 'name', 'module', 'staff', 'hours', 'percentage', 'semester', 'activity_type',
                     'is_allocated')
     list_filter = ('package', 'module', 'staff')
+    search_fields = ['module__module_code', 'module__module_name', 'name', 'staff__user__last_name', 'staff__user__first_name']
 
 
 class ActivitySetAdmin(admin.ModelAdmin):
     list_display = ('name', 'created')
     list_filter = ('generator', 'project')
+    search_fields = ['name', 'generator__name', 'project__name']
 
 
 class ActivityGeneratorAdmin(admin.ModelAdmin):
-    # list_display = ('name', 'created')
+    list_display = ('name', 'package')
     list_filter = ('package', 'activity_type')
+    search_fields = ['name']
 
 
 class AssessmentResourceAdmin(admin.ModelAdmin):
     list_display = ('name', 'module', 'owner', 'created')
     list_filter = ('module__package__name',)
+    search_fields = ['name', 'module__module_name', 'module__module_code']
 
 
 class AssessmentStaffAdmin(admin.ModelAdmin):
     list_display = ('package', 'staff')
     list_filter = ('package', 'staff')
+    search_fields = ['staff__user__last_name', 'staff__user__first_name']
 
 
 class AssessmentStateSignOffAdmin(admin.ModelAdmin):
     list_display = ('module', 'signed_by', 'assessment_state', 'created')
     list_filter = ('module__package__name',)
+    search_fields = ['module__module_code', 'module__module_name', 'signed_by__first_name', 'signed_by__last_name', 'signed_by__username']
+
+
+class BodyAdmin(admin.ModelAdmin):
+    search_fields = ['name']
 
 
 class CampusAdmin(admin.ModelAdmin):
@@ -80,6 +90,7 @@ class FacultyAdmin(admin.ModelAdmin):
 class SchoolAdmin(admin.ModelAdmin):
     list_display = ('name', 'system_name', 'faculty')
     list_filter = ('faculty',)
+    search_fields = ['name', 'system_name', 'faculty__name', 'faculty__system_name']
 
 
 class ModuleAdmin(admin.ModelAdmin):
@@ -108,15 +119,18 @@ class TaskAdmin(admin.ModelAdmin):
 
 class TaskCompletionAdmin(admin.ModelAdmin):
     list_display = ('task', 'staff', 'when', 'comment')
+    search_fields = ['task__name', 'staff__user__first_name', 'staff__user__last_name']
 
 
 class ModuleStaffAdmin(admin.ModelAdmin):
     list_display = ('package', 'module', 'staff', 'contact_proportion', 'admin_proportion', 'assessment_proportion')
     list_filter = ('package__name',)
+    search_fields = ['module__module_code', 'module__module_name', 'staff__user__last_name', 'staff__user__first_name']
 
 
 class WorkPackageAdmin(admin.ModelAdmin):
     list_display = ('name', 'startdate', 'enddate', 'draft', 'archive')
+    search_fields = ['name']
 
 
 # Define an inline admin descriptor for Staff model
@@ -136,7 +150,7 @@ admin.site.register(AssessmentResourceType)
 admin.site.register(AssessmentState)
 admin.site.register(AssessmentStateSignOff, AssessmentStateSignOffAdmin)
 admin.site.register(AssessmentStaff, AssessmentStaffAdmin)
-admin.site.register(Body)
+admin.site.register(Body, BodyAdmin)
 admin.site.register(Campus, CampusAdmin)
 admin.site.register(Category)
 admin.site.register(Faculty, FacultyAdmin)
