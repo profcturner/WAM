@@ -779,6 +779,13 @@ class Command(BaseCommand):
         test_prefix = options['test-prefix']
         verbosity = options['verbosity']
 
+        # Check some Staff exist
+        if not Staff.objects.count():
+            message = "Cannot find any staff in the package, did you mean to run --add-test-data first?"
+            self.stdout.write(self.style.ERROR(message))
+            logger.error(message)
+            return
+
         # And now grab the Work Package
         package_name = test_prefix + " Work Package"
         package = WorkPackage.objects.get(name=package_name)
@@ -880,6 +887,13 @@ class Command(BaseCommand):
         test_prefix = options['test-prefix']
         verbosity = options['verbosity']
 
+        # Check some Staff exist
+        if not Staff.objects.count():
+            message = "Cannot find any staff in the package, did you mean to run --add-test-data first?"
+            self.stdout.write(self.style.ERROR(message))
+            logger.error(message)
+            return
+
         # And now grab the group name
         group_name = self.get_test_group_name(options)
         group = Group.objects.get(name=group_name)
@@ -928,6 +942,13 @@ class Command(BaseCommand):
 
         test_prefix = options['test-prefix']
         verbosity = options['verbosity']
+
+        # Check some Staff exist
+        if not Staff.objects.count():
+            message = "Cannot find any staff in the package, did you mean to run --add-test-data first?"
+            self.stdout.write(self.style.ERROR(message))
+            logger.error(message)
+            return
 
 
         # And now grab the Work Package
