@@ -3,7 +3,8 @@
 
 import random
 import logging
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
+from dateutil.relativedelta import relativedelta
 
 from django.core.management.base import BaseCommand
 
@@ -11,7 +12,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
 
 # And some models
-from loads.models import Category, ExternalExaminer
+from loads.models import Category, ExternalExaminer, Activity
 from loads.models import ActivityType
 from loads.models import ModuleSize
 from loads.models import AssessmentResourceType
@@ -19,10 +20,19 @@ from loads.models import AssessmentState
 from loads.models import Campus
 
 # And the more detailed test data
-from loads.models import Staff
-from loads.models import Programme
+from loads.models import ActivityGenerator
+from loads.models import Body
 from loads.models import Module
+from loads.models import ModuleStaff
+from loads.models import Programme
+from loads.models import Project
+from loads.models import ProjectStaff
+from loads.models import Staff
+from loads.models import Task
+from loads.models import TaskCompletion
 from loads.models import WorkPackage
+
+from WAM.settings import WAM_DEFAULT_ACTIVITY_TYPE
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -43,6 +53,24 @@ class Command(BaseCommand):
                             default=False,
                             help='Don\'t just add initial basics, but test data for testing and training')
 
+        parser.add_argument('--add-test-module-allocations',
+                            action='store_true',
+                            dest='add-test-module-allocations',
+                            default=False,
+                            help='Create some sample teaching allocation')
+
+        parser.add_argument('--add-test-project-allocations',
+                            action='store_true',
+                            dest='add-test-project-allocations',
+                            default=False,
+                            help='Create some sample project allocation')
+
+        parser.add_argument('--add-test-task-allocations',
+                            action='store_true',
+                            dest='add-test-task-allocations',
+                            default=False,
+                            help='Create some sample task allocation')
+
         parser.add_argument('--test-prefix',
                             dest='test-prefix',
                             default="TEST",
@@ -52,6 +80,9 @@ class Command(BaseCommand):
         # TODO needs some decent exception handling
         add_core_config = options['add-core-config']
         add_test_data = options['add-test-data']
+        add_test_module_allocations = options['add-test-module-allocations']
+        add_test_project_allocations = options['add-test-project-allocations']
+        add_test_task_allocations = options['add-test-task-allocations']
 
         logger.info("Populate Database management command invoked.", extra={'optione': options})
         self.stdout.write('Populating data into database')
@@ -62,12 +93,33 @@ class Command(BaseCommand):
         if add_test_data:
             self.populate_test_data(options)
 
-        if not (add_core_config or add_test_data):
+        if add_test_module_allocations:
+            self.create_module_allocations(options)
+
+        if add_test_project_allocations:
+            self.create_project_allocations(options)
+
+        if add_test_task_allocations:
+            self.create_task_allocations(options)
+
+        if not (add_core_config or
+                add_test_data or
+                add_test_module_allocations or
+                add_test_project_allocations or
+                add_test_task_allocations):
             self.stdout.write('No option selected, use --help for more details')
 
         logger.info("Populate Database management command completed.")
         self.stdout.write('Complete.')
 
+
+    def get_test_group_name(self, options):
+        """
+        Helper method to get the test group name
+        :param options: the options received from the command line
+        :return: the test group name
+        """
+        return options["test-prefix"] + " Group"
 
 
     @staticmethod
@@ -94,6 +146,7 @@ class Command(BaseCommand):
 
         # We don't check anything else for now, maybe we should, but these items would be needed to have much else
         return False
+
 
     def populate_basic_config(self, options):
         """Add the basic configuration required to get going"""
@@ -132,12 +185,13 @@ class Command(BaseCommand):
 
         return True
 
+
     def add_categories_activities(self):
         """Add some basic Categories and ActivityTypes"""
 
-        admin_category = Category.objects.create(name="Administration", abbreviation="admin", colour="red")
-        research_category = Category.objects.create(name="Research and Impact", abbreviation="research", colour="green")
-        education_category = Category.objects.create(name="Learning and Teaching", abbreviation="education", colour="blue")
+        admin_category = Category.objects.create(name="Administration", abbreviation="admin", colour="#00007e")
+        research_category = Category.objects.create(name="Research and Impact", abbreviation="R&I", colour="#007e00")
+        education_category = Category.objects.create(name="Learning and Teaching", abbreviation="L&T", colour="#7e0000")
 
         ActivityType.objects.create(name="Lectures and Tutorials", category=education_category)
         ActivityType.objects.create(name="General Administration", category=admin_category)
@@ -147,10 +201,12 @@ class Command(BaseCommand):
         ActivityType.objects.create(name="Research Grant", category=research_category)
         ActivityType.objects.create(name="Teaching Administration", category=education_category)
 
+
     def add_campus(self):
         """Add a campus to be renames"""
 
         Campus.objects.create(name="Rename this Campus")
+
 
     def add_module_sizes(self):
         """Add some ModuleSize objects"""
@@ -162,6 +218,7 @@ class Command(BaseCommand):
         ModuleSize.objects.create(text='101 - 200', admin_scaling=1.3, assessment_scaling=1.3, order=5)
         ModuleSize.objects.create(text='200+', admin_scaling=1.4, assessment_scaling=1.4, order=6)
 
+
     def add_assessment_resource_types(self):
         """Add some sensible AssessmentResourceTypes"""
 
@@ -172,6 +229,7 @@ class Command(BaseCommand):
         AssessmentResourceType.objects.create(name="Moderation")
         AssessmentResourceType.objects.create(name="External Comment")
         AssessmentResourceType.objects.create(name="Comment")
+
 
     def add_assessment_state(self):
         """Add a basic AssessmentState workflow"""
@@ -310,7 +368,6 @@ class Command(BaseCommand):
         )
 
         # Now make links
-
         coordinator_final_state.next_states.add(initial_state)
 
         resubmission_external_state.next_states.add(external_not_ok_state)
@@ -332,6 +389,7 @@ class Command(BaseCommand):
 
         initial_state.next_states.add(moderated_ok_state)
         initial_state.next_states.add(moderated_not_ok_state)
+
 
     def populate_test_data(self, options):
         """Add users, modules and programmes etc."""
@@ -364,7 +422,11 @@ class Command(BaseCommand):
         # The Modules
         self.create_modules(package, options)
 
+        # The Generators
+        self.create_generators(package, options)
+
         return True
+
 
     def create_work_package(self, options):
         """Create an test work package"""
@@ -373,7 +435,8 @@ class Command(BaseCommand):
         verbosity = options['verbosity']
 
         # Create a Group
-        group_name = test_prefix + " Group"
+        group_name = self.get_test_group_name(options)
+
         if verbosity:
             self.stdout.write('.. Creating User Group: {}'.format(group_name))
 
@@ -411,6 +474,7 @@ class Command(BaseCommand):
 
         return package
 
+
     def get_staff_names(self):
         """Return a list of tuples with some test staff names"""
 
@@ -438,6 +502,7 @@ class Command(BaseCommand):
         ]
 
         return staff_names
+
 
     def create_staff(self, package, options):
         """Create the staff objects as above and add them to a WorkPackage"""
@@ -487,13 +552,13 @@ class Command(BaseCommand):
             staff.has_workload = True
             staff.save()
 
-
             # Add the user to a group as well
             group = random.choice(groups)
             group.user_set.add(user)
 
             # A different username for the next one
             username_number += 1
+
 
     def get_external_names(self):
         """Define names for external examiners"""
@@ -505,6 +570,7 @@ class Command(BaseCommand):
         ]
 
         return external_names
+
 
     def create_externals(self, package, options):
         """Create the external objects as above and set their WorkPackage"""
@@ -554,6 +620,7 @@ class Command(BaseCommand):
             # A different username for the next one
             username_number += 1
 
+
     def get_programme_names(self):
         """Some basic programmes"""
 
@@ -564,6 +631,7 @@ class Command(BaseCommand):
         ]
 
         return programme_names
+
 
     def create_programmes(self, package, options):
         """Create some programmes and add them to a package"""
@@ -582,6 +650,7 @@ class Command(BaseCommand):
             )
 
             programme.examiners.add(random.choice(externals))
+
 
     def get_module_names(self):
         """Some basic module names"""
@@ -602,6 +671,7 @@ class Command(BaseCommand):
         ]
 
         return module_names
+
 
     def create_modules(self, package, options):
         """Create the modules"""
@@ -638,3 +708,313 @@ class Command(BaseCommand):
 
             # Finally add the module to the lead_programme in the list of programmes
             module.programmes.add(module.lead_programme)
+
+    def get_generator_data(self):
+        """
+        Some generator data
+        """
+
+        generator_data = [
+            ("Research Tasks", ActivityGenerator.PERCENTAGE, 0, 40, "1,2,3")
+        ]
+
+        return generator_data
+
+
+    def create_generators(self, package, options):
+        """
+        Create some ActivityGenerators for the test work package
+
+        :param package:     the package created for test data
+        :param options:     the options for the management command
+        """
+
+        test_prefix = options['test-prefix']
+        verbosity = options['verbosity']
+
+        test_group_name = self.get_test_group_name(options)
+
+        test_group = Group.objects.get(name=test_group_name)
+        if not test_group:
+            message = "Cannot find the test group"
+            self.stdout.write(self.style.ERROR(message))
+            logger.error(message)
+            return
+
+        research_activity = ActivityType.objects.get(name="Research Administration")
+        if not research_activity:
+            message = "Cannot find a research administration activity type"
+            self.stdout.write(self.style.ERROR(message))
+            logger.error(message)
+            return
+
+        generator_data = self.get_generator_data()
+        for name, hours_percentage, hours, percentage, semesters in generator_data:
+            if verbosity:
+                self.stdout.write(".. Creating Generator {}".format(name))
+            generator = ActivityGenerator.objects.create(
+                name = name,
+                hours_percentage = hours_percentage,
+                hours = hours,
+                percentage = percentage,
+                semester = semesters,
+                activity_type = research_activity,
+                package = package,
+            )
+
+            # Assign the whole group
+            generator.groups.add(test_group)
+            generator.save()
+
+
+    def create_module_allocations(self, options):
+        """
+        Create some allocations for the staff in the package, for about half the modules.
+
+        These will be somewhat random and will attempt to create some under and over allocations.
+
+        :param options: the main options into the command
+        """
+
+        test_prefix = options['test-prefix']
+        verbosity = options['verbosity']
+
+        # Check some Staff exist
+        if not Staff.objects.count():
+            message = "Cannot find any staff in the package, did you mean to run --add-test-data first?"
+            self.stdout.write(self.style.ERROR(message))
+            logger.error(message)
+            return
+
+        # And now grab the Work Package
+        package_name = test_prefix + " Work Package"
+        package = WorkPackage.objects.get(name=package_name)
+
+        if not package:
+            message = "Cannot find Work Package {}, cannot make allocations".format(package_name)
+            logger.error(message)
+            self.stdout.write(message)
+            return
+
+        message = 'Creating module allocations for {}'.format(package)
+        logger.info(message)
+        if verbosity:
+            self.stdout.write(message)
+
+        default_activity_type = ActivityType.objects.get(pk=WAM_DEFAULT_ACTIVITY_TYPE)
+        if not default_activity_type:
+            message = 'No activity for WAM_DEFAULT_ACTIVITY_TYPE found for'
+            logger.error(message)
+            self.stdout.write(message)
+            return
+
+        # Get the modules in the package, and any staff currently configured for that package
+        modules = list(Module.objects.all().filter(package=package))
+        staff = list(Staff.objects.all().filter(package=package))
+        proportion_choices = [25, 30, 40, 50, 55, 75, 100]
+        allocation_limit_choices = [80, 100, 120]
+
+        # Let's create allocations for half of these (rounded)
+        modules_to_allocate = int(len(modules)/2)
+        logger.debug("attempt to allocate {} modules".format(modules_to_allocate))
+
+        allocated_modules = []
+        for i in range(modules_to_allocate):
+            # Grab a module not already picked
+            module = random.choice([item for item in modules if item not in allocated_modules])
+            if ModuleStaff.objects.filter(module=module).count():
+                logger.warning("Skipping already allocated module: {}".format(module))
+                continue
+
+            allocated_modules.append(module)
+
+            allocated_staff = []
+            allocation_so_far = 0
+            allocation_limit = random.choice(allocation_limit_choices)
+            while allocation_so_far < allocation_limit:
+                # Make a choice of how much in this slice
+                proportion = random.choice(proportion_choices)
+                # But scale it to a maximum of the limits above.
+                if allocation_so_far + proportion > allocation_limit:
+                    proportion = allocation_limit - allocation_so_far
+                # And someone not allocated to this module
+                staff_member = random.choice([item for item in staff if item not in allocated_staff])
+                allocated_staff.append(staff_member)
+
+                ModuleStaff.objects.create(
+                    module=module,
+                    staff=staff_member,
+                    package=package,
+                    activity_type=default_activity_type,
+                    contact_proportion=proportion,
+                    admin_proportion=proportion,
+                    assessment_proportion=proportion,
+                )
+                logger.info(".. allocated {}% to staff member {} on module {}".format(proportion, staff, module))
+                allocation_so_far += proportion
+
+            message = "Allocations made to module {}".format(module)
+            logger.info(message)
+            if(verbosity):
+                self.stdout.write(message)
+
+
+    def get_tasks(self):
+        """
+        Some basic data for Tasks we shall create
+
+
+        :return:
+        """
+
+        task_data = [
+            ('Sign Sokovia Accords', """We are all required to sign the Sokovia Accords by the assigned deadline. See https://en.wikipedia.org/wiki/Features_of_the_Marvel_Cinematic_Universe#Sokovia_Accords for more details."""),
+            ('Set Exam Papers', """Please set your exam papers by the specified deadline"""),
+            ('Peer Support Review',
+             """
+             Please ensure you have completed your PSR by the appropriate deadline""")
+        ]
+        return task_data
+
+
+    def create_task_allocations(self, options):
+        """
+        Create some Tasks with some random targets from test data
+
+        :param options: the main options into the command
+        """
+
+        test_prefix = options['test-prefix']
+        verbosity = options['verbosity']
+
+        # Check some Staff exist
+        if not Staff.objects.count():
+            message = "Cannot find any staff in the package, did you mean to run --add-test-data first?"
+            self.stdout.write(self.style.ERROR(message))
+            logger.error(message)
+            return
+
+        # And now grab the group name
+        group_name = self.get_test_group_name(options)
+        group = Group.objects.get(name=group_name)
+
+        if not group:
+            message = "Cannot find Group {}, cannot make tasks".format(group_name)
+            logger.error(message)
+            self.stdout.write(message)
+            return
+
+        message = 'Creating task allocations for {}'.format(group)
+        logger.info(message)
+        if verbosity:
+            self.stdout.write(message)
+
+        categories = Category.objects.all()
+        task_data = self.get_tasks()
+        deadline = datetime.now() + timedelta(days=6)
+
+        for name, details in task_data:
+            task = Task.objects.create(
+                name = name,
+                details = details,
+                category = random.choice(categories),
+                deadline = deadline,
+            )
+            deadline += timedelta(days=20)
+            task.groups.add(group)
+            task.save()
+
+        message = "allocations made to group {}".format(group)
+        logger.info(message)
+        if(verbosity):
+            self.stdout.write(message)
+
+
+    def create_project_allocations(self, options):
+        """
+        Create a Body, a Project and some ProjectStaff allocations for testing purposes
+
+        The Project should begin 6 months ago, and end 36 months in the future
+        Staff will be somewhat randomly allocated.
+
+        :param options: the main options into the command
+        """
+
+        test_prefix = options['test-prefix']
+        verbosity = options['verbosity']
+
+        # Check some Staff exist
+        if not Staff.objects.count():
+            message = "Cannot find any staff in the package, did you mean to run --add-test-data first?"
+            self.stdout.write(self.style.ERROR(message))
+            logger.error(message)
+            return
+
+
+        # And now grab the Work Package
+        package_name = test_prefix + " Work Package"
+        package = WorkPackage.objects.get(name=package_name)
+
+        if not package:
+            message = "Cannot find Work Package {}, cannot make allocations".format(package_name)
+            logger.error(message)
+            self.stdout.write(message)
+            return
+
+        message = 'Creating project allocations for {}'.format(package)
+        logger.info(message)
+        if verbosity:
+            self.stdout.write(message)
+
+        research_activity = ActivityType.objects.get(name="Research Administration")
+        if not research_activity:
+            message = "Cannot find a research administration activity type"
+            self.stdout.write(self.style.ERROR(message))
+            logger.error(message)
+            return
+
+        try:
+            shield = Body.objects.get(name="S.H.I.E.L.D.")
+        except Body.DoesNotExist:
+            shield = Body.objects.create(
+                name="S.H.I.E.L.D.",
+                details="Earth Security Funding",
+            )
+
+        project_start = date.today() + relativedelta(months=-6)
+        project_end = date.today() + relativedelta(months=+36)
+
+        project = Project.objects.create(
+            name = "Watchtower Initiative, Low Earth Orbit",
+            start = project_start,
+            end = project_end,
+            body = shield,
+            activity_type = research_activity,
+        )
+
+        # Make some random project allocations
+        staff = list(Staff.objects.all().filter(package=package))
+        hours_per_week= [2, 3, 5, 10]
+
+        # Let's create allocations for five staff
+        staff_to_allocate = 5
+        logger.debug("attempt to allocate {} staff members to project".format(staff_to_allocate))
+
+        allocated_staff = []
+        for i in range(staff_to_allocate):
+            # Grab a module not already picked
+            staff_member = random.choice([item for item in staff if item not in allocated_staff])
+            ProjectStaff.objects.create(
+                project = project,
+                staff = staff_member,
+                start = project_start,
+                end = project_end,
+                hours_per_week = random.choice(hours_per_week),
+            )
+            allocated_staff.append(staff_member)
+
+        message = "allocations made to project {}".format(project)
+        logger.info(message)
+        if(verbosity):
+            self.stdout.write(message)
+
