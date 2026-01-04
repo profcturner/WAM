@@ -85,21 +85,25 @@ class SchoolAdmin(admin.ModelAdmin):
 class ModuleAdmin(admin.ModelAdmin):
     list_display = ('package', 'module_code', 'module_name', 'semester')
     list_filter = ('package', 'semester')
+    search_fields = ['module_code','module_name']
 
 
 class ProgrammeAdmin(admin.ModelAdmin):
     list_filter = ('package',)
+    search_fields = ['programme_code', 'programme_name']
 
 
 class StaffAdmin(admin.ModelAdmin):
     list_display = ('title', 'first_name', 'last_name', 'staff_number', 'fte', 'total_hours')
     list_display_links = ('first_name', 'last_name', 'staff_number')
     list_filter = ('package', 'is_external', 'has_workload','faculty','school')
+    search_fields = ['staff_number', 'user__first_name', 'user__last_name']
 
 
 class TaskAdmin(admin.ModelAdmin):
     list_display = ('name', 'category', 'deadline')
     list_filter = ('archive', 'category')
+    search_fields = ['name']
 
 
 class TaskCompletionAdmin(admin.ModelAdmin):
