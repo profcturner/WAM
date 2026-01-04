@@ -84,7 +84,7 @@
 </div>
 
 <div class="mt-5">
-    <h4 class="mb-3">Loads by Modules {% if valid_semesters %}<span class="small">(restricted to those in Semester{{valid_semesters_length_plaralise}} {% for semester in valid_semesters %}{% if forloop.first %}{% else %}{% if forloop.last %} and {% else %}, {% endif %}{% endif %}{{semester}}{% endfor %})</span>{% endif %}</h4>
+    <h4 class="mb-3">Loads by modules {% if valid_semesters %}<span class="small">(restricted to those in semester{{valid_semesters_length_plaralise}} {% for semester in valid_semesters %}{% if forloop.first %}{% else %}{% if forloop.last %} and {% else %}, {% endif %}{% endif %}{{semester}}{% endfor %})</span>{% endif %}</h4>
 
     <style>
         .table > tbody > tr.row-odd > * {

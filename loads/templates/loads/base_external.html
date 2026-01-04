@@ -28,6 +28,7 @@
             {# The max-height should, however, remain as to not disrupt the layout, etc #}
             <img src="{% static 'logos/WAM_logo.png' %}"
                  style="max-height: 48px" title="Workload and Assessment Modeller" alt="WAM" />
+            {# <pre>|{{ request.resolver_match.view_name }}|</pre> #}
         </a>
         <div class="offcanvas offcanvas-start" id="navbarWAM" tabindex="-1">
             {# I'm guessing these can be dynamically generated based on which modules are active, etc #}
@@ -44,19 +45,19 @@
                        title="click to access section: Home">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {% active request tasks_index %}" href="{% url 'tasks_index' %}"
+                    <a class="nav-link{% if request.resolver_match.view_name|slice:":5" == "tasks" or request.resolver_match.view_name == "create task" %} active fw-bold{% endif %}" href="{% url 'tasks_index' %}"
                        title="click to access section: Tasks">Tasks</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-decoration-none {% active request external_modules_index %}" href="{% url 'external_modules_index' semesters="" %}"
+                    <a class="nav-link{% if request.resolver_match.view_name|slice:":17" == "external_modules_" or request.resolver_match.view_name == "modules_details" or request.resolver_match.view_name == "staff_module_allocation" or request.resolver_match.view_name == "module_staff_allocation" %} active fw-bold{% endif %}" href="{% url 'external_modules_index' semesters="" %}"
                        title="click to access section: Modules">Modules</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-decoration-none {% active request programmes_index %}" href="{% url 'programmes_index' %}"
+                    <a class="nav-link{% if request.resolver_match.view_name|slice:":11" == "programmes_" or request.resolver_match.view_name == "view programme" %} active fw-bold{% endif %}" href="{% url 'programmes_index' %}"
                        title="click to access section: Programmes">Programmes</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-decoration-none {% active request generators_index %}" href="https://github.com/profcturner/WAM/wiki"
+                    <a class="nav-link" href="https://github.com/profcturner/WAM/wiki"
                        target="_blank" title="click to access section: Help">Help</a>
                 </li>
                 {% if wam_adfs_auth %}{# This code provides oauth logout where required #}

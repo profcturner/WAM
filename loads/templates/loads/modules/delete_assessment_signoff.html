@@ -2,25 +2,21 @@
 
 {% block content %}
 
-
-{% if signoff.module.package.in_the_past %}
-<h1><span style="color:red">Warning: The Work Package for this item is in the Past.</span></h1>
-<p><span style="color:red">You should not be deleting resources unless they are a correction.</span></p>
-{% endif %}
-
-<h2>Delete Assessment Sign-off</h2>
+<h3 class="my-3">Delete assessment sign-off</h3>
 
 <p>
-    Please confirm that you wish to delete the assessment sign-off below. Assessment sign-offs are a
-    vital part of the quality assurance governance of WAM, providing an important audit trail. You should
-    not delete this sign-off unless it was mistakenly made, or against your institutional policy. <br />
-
-    This cannot be undone.
+    Please confirm that you wish to delete the assessment sign-off below.
+    Assessment sign-offs are a vital part of the quality assurance governance
+    of WAM, providing an important audit trail. You should not delete this
+    sign-off unless it was mistakenly made, or against your institutional policy.
+    <br />
+    <br />
+    <span class="text-warning-emphasis fw-bold">This cannot be undone.</span>
 </p>
 
-<h3>Sign-off details</h3>
+<h4 class="mt-5">Sign-off details</h4>
 
-<div class="mt-4">
+<div class="my-4 p-4 border rounded-3">
     <div class="row mb-2">
         <div class="col-12 col-md-3 fw-bold">
           Module code
@@ -39,7 +35,7 @@
     </div>
     <div class="row mb-2">
         <div class="col-12 col-md-3 fw-bold">
-            Assessment State
+            Assessment state
         </div>
         <div class="col-9 font-monospace">
             {{ signoff.assessment_state }}
@@ -71,10 +67,11 @@
     </div>
 </div>
 
-<h3>Are you Sure? This cannot be undone.</h3>
-    <p>
-    <a href="{% url 'delete_assessment_sign_off' signoff.id "/confirm" %}">Confirm</a> |
-    <a href="{% url 'modules_details' signoff.module.id %}">Cancel</a>
+<div class="mt-5">
+    <h5 class="fw-bold">Are you sure? This cannot be undone!</h5>
+    <p class="mt-3">
+        <a class="btn btn-warning me-4" role="button" href="{% url 'delete_assessment_sign_off' signoff.id "/confirm" %}">Confirm</a>
+        <a class="btn btn-primary" role="button" href="{% url 'modules_details' signoff.module.id %}">Cancel</a>
     </p>
-
+</div>
 {% endblock content %}

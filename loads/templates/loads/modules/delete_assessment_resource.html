@@ -2,15 +2,27 @@
 
 {% block content %}
 
+<h3 class="my-3">Delete assessment resource</h3>
+<h4 class="text-info-emphasis font-monospace">({{ resource.module }})</h4>
+
 {% if resource.module.package.in_the_past %}
-<h1><span style="color:red">Warning: The Work Package for this item is in the Past.</span></h1>
-<p><span style="color:red">You should not be deleting resources unless they are a correction.</span></p>
+<div class="border border-2 border-danger p-4 pb-3 rounded-3 mt-4 mb-4">
+    <p class="fw-bold">Warning: The Work Package for this item is in the past!</p>
+    <p>You should not be deleting resources unless they are a correction.</p>
+</div>
 {% endif %}
 
-<h2>Delete Assessment Resource for {{ resource.module }}</h2>
+<div class="mt-5">
+    <p>
+        You are deleting <span class="font-monospace">"{{ resource }}"</span>
+    </p>
+    <p class="fw-bold">
+        This cannot be undone. Are you sure?
+    </p>
 
-    <p>You are deleting {{ resource }}, this cannot be undone. Are you sure?</p>
-
-    <p><a href="{% url 'delete_assessment_resource' resource.id "/confirm" %}">Confirm</a> | <a href="{% url 'modules_details' resource.module.id %}">Cancel</a></p>
-
+    <p class="mt-5">
+        <a class="btn btn-warning me-4" role="button" href="{% url 'delete_assessment_resource' resource.id "/confirm" %}">Confirm</a>
+        <a class="btn btn-primary" role="button" href="{% url 'modules_details' resource.module.id %}">Cancel</a>
+    </p>
+</div>
 {% endblock content %}

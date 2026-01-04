@@ -1,11 +1,11 @@
 {% extends "loads/base_automatic.html" %} {% block content %}
 
-<h4>Details for Programme {{ programme.programme_name }}</h4>
+<h4>Details for programme {{ programme.programme_name }}</h4>
 
 <div class="mt-4">
     <div class="row mb-2">
         <div class="col-12 col-md-3 fw-bold">
-          Programme Code
+          Programme code
         </div>
         <div class="col-9 font-monospace">
             {{ programme.programme_code }}
@@ -21,7 +21,7 @@
     </div>
     <div class="row mb-2">
         <div class="col-12 col-md-3 fw-bold">
-            Programme Directors
+            Programme directors
         </div>
         <div class="col-9 font-monospace">
             {% for director in programme.directors.all %}
@@ -31,7 +31,7 @@
     </div>
     <div class="row mb-2">
         <div class="col-12 col-md-3 fw-bold">
-            External Examiners
+            External examiners
         </div>
         <div class="col-9 font-monospace">
             {% for examiner in programme.examiners.all %}
