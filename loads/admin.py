@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Importing some extra stuff to allow us to extend User
 
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 
 # Register your models here.
@@ -105,9 +105,9 @@ class ProgrammeAdmin(admin.ModelAdmin):
 
 
 class StaffAdmin(admin.ModelAdmin):
-    list_display = ('title', 'first_name', 'last_name', 'staff_number', 'fte', 'total_hours')
+    list_display = ('title', 'first_name', 'last_name', 'staff_number', 'fte', 'has_workload', 'is_external')
     list_display_links = ('first_name', 'last_name', 'staff_number')
-    list_filter = ('package', 'is_external', 'has_workload','faculty','school')
+    list_filter = ('faculty', 'school', 'is_external', 'has_workload', 'package')
     search_fields = ['staff_number', 'user__first_name', 'user__last_name']
 
 
@@ -141,6 +141,11 @@ class StaffInline(admin.StackedInline):
     verbose_name_plural = 'staff'
 
 
+# Define a new User admin
+class UserAdmin(BaseUserAdmin):
+    inlines = [StaffInline]
+
+
 admin.site.register(Activity, ActivityAdmin)
 admin.site.register(ActivityGenerator, ActivityGeneratorAdmin)
 admin.site.register(ActivitySet, ActivitySetAdmin)
@@ -168,6 +173,6 @@ admin.site.register(Resource)
 admin.site.register(WorkPackage, WorkPackageAdmin)
 
 # Re-register UserAdmin
-# See https://docs.djangoproject.com/en/1.8/topics/auth/customizing/#extending-user
+# See https://docs.djangoproject.com/en/6.0/topics/auth/customizing/#extending-user
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
