@@ -105,7 +105,7 @@ class ProgrammeAdmin(admin.ModelAdmin):
 
 
 class StaffAdmin(admin.ModelAdmin):
-    list_display = ('title', 'first_name', 'last_name', 'staff_number', 'fte', 'total_hours')
+    list_display = ('title', 'first_name', 'last_name', 'staff_number', 'fte', 'has_workload', 'is_external')
     list_display_links = ('first_name', 'last_name', 'staff_number')
     list_filter = ('faculty', 'school', 'is_external', 'has_workload', 'package')
     search_fields = ['staff_number', 'user__first_name', 'user__last_name']
