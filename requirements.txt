@@ -2,5 +2,4 @@
 # TODO: we might want to add version information in here.
 django
 django-utils
-dateutil
-
+python-dateutil
