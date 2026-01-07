@@ -53,6 +53,7 @@ from .forms import StaffCreationForm
 from .forms import ExternalExaminerCreationForm
 from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
+from .forms import DateInput
 
 from WAM.settings import WAM_VERSION, WAM_ADMIN_CONTACT_EMAIL, WAM_ADMIN_CONTACT_NAME
 
@@ -1761,6 +1762,7 @@ def projects_details(request, project_id):
     # Get a formset with only the choosable fields
     ProjectStaffFormSet = modelformset_factory(ProjectStaff,  # formset=BaseModuleStaffByStaffFormSet,
                                                fields=('staff', 'start', 'end', 'hours_per_week'),
+                                               widgets={'start' : DateInput(), 'end' : DateInput(),},
                                                can_delete=True)
 
     if request.method == "POST":
