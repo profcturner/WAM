@@ -23,6 +23,11 @@ from WAM.settings import WAM_STAFF_REGEX, WAM_EXTERNAL_REGEX
 
 # Forms that are custom forms not based on a Model
 
+class DateInput(forms.DateInput):
+    """A form to help select an HTML5 Date Widget"""
+    input_type = 'date'
+
+
 class MigrateWorkPackageForm(forms.Form):
     """This form allows for material in one Work Package to another"""
     # TODO: Still really ugly, and needs some validation for impossible combinations
@@ -152,6 +157,7 @@ class ProjectForm(ModelForm):
     class Meta:
         model = Project
         fields = ['name', 'activity_type', 'body', 'start', 'end']
+        widgets = {'start': DateInput, 'end': DateInput}
 
 
 class AssessmentStateSignOffForm(ModelForm):

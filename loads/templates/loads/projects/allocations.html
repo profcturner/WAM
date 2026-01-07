@@ -27,7 +27,7 @@
             <div class="row mb-2">
                 <label for="{{ field.id_for_label }}"
                        class="col-12 col-md-3 form-label">{{ field.label }}</label>
-            {% if field.field.widget.input_type == "text" or field.field.widget.input_type == "number" %}
+            {% if field.field.widget.input_type == "text" or field.field.widget.input_type == "number" or field.field.widget.input_type == "date" %}
                 <div class="col-12 col-md-9">
                     <input type="{{ field.field.widget.input_type }}" class="form-control" id="{{ field.id_for_label }}"
                            {% for name, value in field.field.widget.attrs.items %}
