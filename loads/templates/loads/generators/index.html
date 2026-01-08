@@ -47,9 +47,9 @@
     <table class="table table-sm table-striped table-hover">
         <thead>
             <tr>
-                <th scope="col">Generator Name</th>
-                <th scope="col">Activity Type</th>
-                <th scope="col" class="wam-hide-on-print">Generate Activities</th>
+                <th scope="col">Generator name</th>
+                <th scope="col">Activity type</th>
+                <th scope="col" class="text-center wam-hide-on-print">Generate activities</th>
             </tr>
         </thead>
         <tbody class="table-group-divider">
@@ -57,7 +57,9 @@
             <tr>
                 <th>{{ generator.name }}</th>
                 <td>{{ generator.activity_type }}</td>
-                <td class="wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'generators_generate_activities' generator.id %}">Generate Activities</a></td>
+                <td class="text-center wam-hide-on-print">
+                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'generators_generate_activities' generator.id %}">Generate</a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
