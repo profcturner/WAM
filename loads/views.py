@@ -14,7 +14,7 @@ from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMix
 from django.core.exceptions import PermissionDenied
 
 # Class Views
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 
 # Permission decorators
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
@@ -2180,6 +2180,7 @@ class ActivityListView(LoginRequiredMixin, ListView):
     """
     model = Activity
     context_object_name = 'activities'
+    #TODO: Need more thought before paginate_by = 20
 
     def get_queryset(self):
         # Work out the correct package and the staff within in
@@ -2261,3 +2262,25 @@ class UpdateActivityView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         self.object.package = package
         response = super(UpdateActivityView, self).form_valid(form)
         return response
+
+
+class DeleteActivityView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    """View for deleting an Activity"""
+    permission_required = 'loads.delete_activity'
+    model = Activity
+    success_url = reverse_lazy('activities_index')
+
+    def dispatch(self, request, *args, **kwargs):
+        # Check this Activity is the business of the logged in user
+        activity = self.get_object()
+
+        try:
+            staff = Staff.objects.get(user=self.request.user)
+        except Staff.DoesNotExist:
+            raise PermissionDenied("""Your user has no matching staff object.""")
+
+        if not request.user.is_superuser:
+            if activity.package not in staff.get_all_packages(include_modules=True):
+                raise PermissionDenied("""Sorry, this activity is not in your workpackages.""")
+
+        return super().dispatch(request, *args, **kwargs)

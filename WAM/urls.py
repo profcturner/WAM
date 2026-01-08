@@ -35,6 +35,7 @@ from loads.views import UpdateTaskView
 from loads.views import ActivityListView
 from loads.views import CreateActivityView
 from loads.views import UpdateActivityView
+from loads.views import DeleteActivityView
 
 from WAM.settings import WAM_ADMIN_CONTACT_NAME, WAM_ADMIN_CONTACT_EMAIL
 
@@ -58,6 +59,7 @@ urlpatterns = [
     re_path(r'^activities/index/$', ActivityListView.as_view(), name='activities_index'),
     re_path(r'^activities/create/$', CreateActivityView.as_view(), name='create activity'),
     re_path(r'^activities/update/(?P<pk>[0-9]+)$', UpdateActivityView.as_view(), name='update activity'),
+    re_path(r'^activities/delete/(?P<pk>[0-9]+)$', DeleteActivityView.as_view(), name='delete activity'),
     re_path(r'^external/$', views.external_index, name='external_index'),
     re_path(r'^external/modules/index/(?P<semesters>[0-9,]*)$', views.external_modules_index,
             name='external_modules_index'),
