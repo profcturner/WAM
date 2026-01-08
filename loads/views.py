@@ -2279,8 +2279,16 @@ class DeleteActivityView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
         except Staff.DoesNotExist:
             raise PermissionDenied("""Your user has no matching staff object.""")
 
+        if request.method == "POST":
+            action_verb = "confirming"
+        else:
+            action_verb = "seeking to"
+        logger.warning("[%s] %s deleting activity %s for staff %s in package %s" %
+                       (request.user, action_verb, activity, activity.staff, activity.package))
+
         if not request.user.is_superuser:
             if activity.package not in staff.get_all_packages(include_modules=True):
+                logger.warning("[%s] permission denied, activity not in workpackages." % request.user)
                 raise PermissionDenied("""Sorry, this activity is not in your workpackages.""")
 
         return super().dispatch(request, *args, **kwargs)
