@@ -22,7 +22,7 @@ from .decorators import staff_only, external_only, admin_only
 from django.utils.decorators import method_decorator
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template import loader
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User, Group, Permission
 
 from .models import ActivityGenerator, Category
 from .models import AssessmentResource
@@ -964,9 +964,18 @@ def create_staff_user(request):
     if request.method == 'POST':
         form = StaffCreationForm(request.POST)
         if form.is_valid():
-            form.save()
             new_username = form.cleaned_data['username']
+            groups = form.cleaned_data['groups']
 
+            for group in groups:
+                permissions = group.permissions.all()
+                logger.debug("[%s] checking group %s with %u permissions" % (request.user, group, permissions.count()))
+                if permissions.count() > 0:
+                    logger.critical(
+                        "[%s] cannot add group %s with built in permissions" % (request.user, group))
+                    raise PermissionDenied(f"Cannot add group '{group.name}' as it has built in permissions")
+
+            form.save()
             messages.success(request, 'Account created successfully')
 
             logger.info("[%s] (admin) created a staff user %s" % (request.user, new_username), extra={'form': form})

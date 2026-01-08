@@ -655,9 +655,9 @@ class Staff(models.Model):
     is_external = models.BooleanField(default=False)
     has_workload = models.BooleanField(default=True)
     job_title = models.CharField(max_length=100, null=True, blank=True)
-    school = models.ForeignKey(School, null=True, on_delete=models.SET_NULL)
-    faculty = models.ForeignKey(Faculty, null=True, on_delete=models.SET_NULL)
-    campus = models.ForeignKey(Campus, null=True, on_delete=models.SET_NULL)
+    school = models.ForeignKey(School, null=True, blank=True, on_delete=models.SET_NULL)
+    faculty = models.ForeignKey(Faculty, null=True, blank=True, on_delete=models.SET_NULL)
+    campus = models.ForeignKey(Campus, null=True, blank=True, on_delete=models.SET_NULL)
     package = models.ForeignKey(WorkPackage, null=True, on_delete=models.SET_NULL)
 
     objects = StaffManager()
