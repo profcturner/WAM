@@ -44,6 +44,7 @@ from .forms import AssessmentResourceForm
 from .forms import AssessmentStaffForm
 from .forms import AssessmentStateSignOffForm
 from .forms import LoadsByModulesForm
+from .forms import TaskForm
 from .forms import TaskCompletionForm
 from .forms import StaffWorkPackageForm
 from .forms import MigrateWorkPackageForm
@@ -53,6 +54,8 @@ from .forms import StaffCreationForm
 from .forms import ExternalExaminerCreationForm
 from .forms import BaseModuleStaffByModuleFormSet
 from .forms import BaseModuleStaffByStaffFormSet
+from .forms import DateInput
+from .forms import DateTimeInput
 
 from WAM.settings import WAM_VERSION, WAM_ADMIN_CONTACT_EMAIL, WAM_ADMIN_CONTACT_NAME
 
@@ -1761,6 +1764,7 @@ def projects_details(request, project_id):
     # Get a formset with only the choosable fields
     ProjectStaffFormSet = modelformset_factory(ProjectStaff,  # formset=BaseModuleStaffByStaffFormSet,
                                                fields=('staff', 'start', 'end', 'hours_per_week'),
+                                               widgets={'start' : DateInput(), 'end' : DateInput(),},
                                                can_delete=True)
 
     if request.method == "POST":
@@ -1942,7 +1946,7 @@ class CreateTaskView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('tasks_index')
     fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups']
 
-    def get_form(self, form_class=None):
+    def get_form(self, form_class=TaskForm):
         """
         We need to restrict form querysets
         """

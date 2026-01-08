@@ -43,7 +43,7 @@
                         </div>
                     {% endif %}
                 </div>
-            {% elif field.field.widget.input_type == "text" or field.field.widget.input_type == "number" %}
+            {% elif field.field.widget.input_type == "text" or field.field.widget.input_type == "number" or field.field.widget.input_type == "datetime-local" %}
                 <div class="col-12 col-md-9">
                     <input type="{{ field.field.widget.input_type }}" class="form-control" id="{{ field.id_for_label }}"
                            {% for name, value in field.field.widget.attrs.items %}
