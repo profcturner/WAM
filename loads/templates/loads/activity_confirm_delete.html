@@ -1,0 +1,32 @@
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
+
+<h3 class="my-3">Delete custom activity</h3>
+<h4 class="text-info-emphasis font-monospace">({{ object}})</h4>
+
+{% if object.package.in_the_past %}
+<div class="border border-2 border-danger p-4 pb-3 rounded-3 mt-4 mb-4">
+    <p class="fw-bold">Warning: The Work Package for this item is in the past!</p>
+    <p>You should not be deleting past activities unless they are a correction.</p>
+</div>
+{% endif %}
+
+<div class="mt-5">
+    <p>
+        You are deleting <span class="font-monospace">"{{ object }}"</span>
+        {% if object.staff %}, which is currently allocated to <span class="font-monospace">"{{ object.staff }}"</span>{% endif %}
+    </p>
+    <p class="fw-bold">
+        This cannot be undone. Are you sure?
+    </p>
+
+    <form method="post">{% csrf_token %}
+        {{ form }}
+        <p class="mt-5">
+            <input type="submit" class="btn btn-warning me-4" role="button" value="Confirm">
+            <a class="btn btn-primary" role="button" href="{% url 'activities_index' %}">Cancel</a>
+        </p>
+    </form>
+</div>
+{% endblock content %}

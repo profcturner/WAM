@@ -85,12 +85,12 @@
                        title="click to access section: Programmes">Programmes</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link{% if request.resolver_match.view_name|slice:":9" == "projects_" %} active fw-bold{% endif %}" href="{% url 'projects_index' %}"
-                       title="click to access section: Projects">Projects</a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link{% if request.resolver_match.view_name|slice:":11" == "generators_" %} active fw-bold{% endif %}" href="{% url 'generators_index' %}"
                        title="click to access section: Generators">Generators</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link{% if request.resolver_match.view_name|slice:":9" == "projects_" %} active fw-bold{% endif %}" href="{% url 'projects_index' %}"
+                       title="click to access section: Projects">Projects</a>
                 </li>
                 <li class="nav-item">
                     {# This can never be an "active" menu choice #}
