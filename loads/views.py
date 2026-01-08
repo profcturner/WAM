@@ -1699,6 +1699,7 @@ def generators_index(request):
     template = loader.get_template('loads/generators/index.html')
     context = {
         'generators': generators,
+        'package': staff.package,
     }
     return HttpResponse(template.render(context, request))
 
@@ -2157,6 +2158,18 @@ class ProgrammeList(LoginRequiredMixin, ListView):
         else:
             return Programme.objects.all().filter(package=package)
 
+    def get_context_data(self, **kwargs):
+        """Adds the workpackage into the context"""
+
+        context = super().get_context_data(**kwargs)
+        try:
+            staff = Staff.objects.get(user=self.request.user)
+        except Staff.DoesNotExist:
+            raise PermissionDenied("""Your user has no matching staff object.""")
+        context['package'] = staff.package
+
+        return context
+
 
  # Looks like decorators execute before mixins, so if you don't call the login decorator, the staff_only may fail
 @method_decorator(login_required, name='dispatch')
@@ -2174,6 +2187,18 @@ class ActivityListView(LoginRequiredMixin, ListView):
         package = staff.package
 
         return Activity.objects.all().filter(package=package).order_by("staff", "name")
+
+    def get_context_data(self, **kwargs):
+        """Adds the workpackage into the context"""
+
+        context = super().get_context_data(**kwargs)
+        try:
+            staff = Staff.objects.get(user=self.request.user)
+        except Staff.DoesNotExist:
+            raise PermissionDenied("""Your user has no matching staff object.""")
+        context['package'] = staff.package
+
+        return context
 
 
 class CreateActivityView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):

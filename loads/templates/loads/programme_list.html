@@ -1,6 +1,30 @@
 {% extends "loads/base_automatic.html" %} {% block content %}
 
-{# <p>Selected Work Package : {{package}} <a href="{%url 'workpackage_change' %}">(Change Package)</a></p> #}
+<p class="mb-3">
+    Selected year:<br/>
+    <span class="font-monospace fw-bold me-2">{{package}}</span> <a class="btn btn-secondary btn-sm wam-hide-on-print" href="{%url 'workpackage_change' %}?next={{ request.path|urlencode }}">Change year</a>
+</p>
+
+{% if package.draft and package.in_the_future and package.in_the_past %}
+<div class="border border-2 border-danger p-3 rounded-3 mb-5">
+    <h6 class="fw-bold">!! Please note these exceptions <i class="fw-normal small">(hover for more information)</i></h6>
+    <div class="d-flex">
+        {% if package.draft %}
+        <div class="badge text-bg-danger me-2"
+             title="This is a DRAFT allocation and may be incomplete.">Draft allocation</div>
+        {% endif %}
+        {% if package.in_the_past %}
+        <div class="badge text-bg-danger me-2"
+             title="The currently selected Work Package is in the Past! You probably want to change the year above.">Past work package</div>
+        {% endif %}
+        {% if package.in_the_future %}
+        <div class="badge text-bg-danger me-2"
+             title="The currently selected Work Package is in the Future">Future work package</div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 
 <h3 class="my-3">Programmes</h3>
 
