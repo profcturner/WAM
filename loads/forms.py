@@ -25,12 +25,12 @@ from WAM.settings import WAM_STAFF_REGEX, WAM_EXTERNAL_REGEX
 # Forms that are custom forms not based on a Model
 
 class DateInput(forms.DateInput):
-    """A form to help select an HTML5 Date Widget"""
+    """An override for DateInput that can be used as a field widget to help select an HTML5 date picker"""
     input_type = 'date'
 
 
 class DateTimeInput(forms.DateTimeInput):
-    """A form to help select an HTML5 DateTime Widget"""
+    """An override for DateTimeInput that can be used as a field widget to help select an HTML5 datetime picker"""
     input_type = 'datetime-local'
 
 
