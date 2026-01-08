@@ -56,7 +56,7 @@
                     <a class="nav-link dropdown-toggle{% if request.resolver_match.view_name|slice:":5" == "loads" %} active fw-bold{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Loads
                     </a>
-                    <ul class="dropdown-menu">
+                    <ul class="dropdown-menu bg-body-secondary">
                         <li class="dropdown-item small"><a class="nav-link" href="{% url 'loads' %}">Loads by staff</a></li>
                         <li class="dropdown-item small"><a class="nav-link" href="{% url 'loads_modules' semesters='' %}">Loads by modules</a></li>
                         <li><hr class="dropdown-divider"></li>
@@ -67,7 +67,7 @@
                     <a class="nav-link dropdown-toggle{% if request.resolver_match.view_name|slice:":5" == "tasks" or request.resolver_match.view_name == "archived_tasks_index" or request.resolver_match.view_name == "create task" %} active fw-bold{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Tasks
                     </a>
-                    <ul class="dropdown-menu">
+                    <ul class="dropdown-menu bg-body-secondary">
                         <li class="dropdown-item small"><a class="nav-link" href="{% url 'tasks_index' %}">Active tasks</a></li>
                         <li class="dropdown-item small"><a class="nav-link" href="{% url 'archived_tasks_index' %}">Archived tasks</a></li>
                     </ul>
