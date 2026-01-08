@@ -25,27 +25,88 @@ from WAM.settings import WAM_STAFF_REGEX, WAM_EXTERNAL_REGEX
 # Forms that are custom forms not based on a Model
 
 class DateInput(forms.DateInput):
-    """A form to help select an HTML5 Date Widget"""
+    """An override for DateInput that can be used as a field widget to help select an HTML5 date picker"""
     input_type = 'date'
 
 
 class DateTimeInput(forms.DateTimeInput):
-    """A form to help select an HTML5 DateTime Widget"""
+    """An override for DateTimeInput that can be used as a field widget to help select an HTML5 datetime picker"""
     input_type = 'datetime-local'
 
 
 class MigrateWorkPackageForm(forms.Form):
-    """This form allows for material in one Work Package to another"""
-    # TODO: Still really ugly, and needs some validation for impossible combinations
+    """This form allows for material in one Work Package to be copied (with new keys as needed) to another"""
+
     source_package = forms.ModelChoiceField(queryset=WorkPackage.objects.all())
     destination_package = forms.ModelChoiceField(queryset=WorkPackage.objects.all())
     copy_programmes = forms.BooleanField(required=False, initial=True)
     copy_modules = forms.BooleanField(required=False, initial=True)
-    copy_modulestaff = forms.BooleanField(required=False, initial=True, label="Copy Module Allocations")
-    copy_activities_modules = forms.BooleanField(required=False, initial=True, label="Copy Module Activities")
-    copy_activities_generated = forms.BooleanField(required=False, initial=True, label="Copy Generated Activities")
-    copy_activities_custom = forms.BooleanField(required=False, initial=True, label="Copy Custom Activities")
+    copy_modulestaff = forms.BooleanField(required=False, initial=True, label="Copy module allocations")
+    copy_activities_modules = forms.BooleanField(required=False, initial=True, label="Copy module activities")
+    copy_activities_generated = forms.BooleanField(required=False, initial=True, label="Copy generated activities")
+    copy_activities_custom = forms.BooleanField(required=False, initial=True, label="Copy custom activities")
     generate_projects = forms.BooleanField(required=False, initial=True)
+
+    def clean_source_package(self):
+        """Check the source package is valid"""
+        try:
+            source_package = self.cleaned_data['source_package']
+        except KeyError:
+            raise forms.ValidationError('Must select a source WorkPackage')
+
+        return source_package
+
+    def clean_destination_package(self):
+        """Check the destination package is valid"""
+        try:
+            destination_package = self.cleaned_data['destination_package']
+        except KeyError:
+            raise forms.ValidationError('Must select a destination WorkPackage')
+
+        source_package = self.cleaned_data['source_package']
+        if source_package == destination_package:
+            raise ValidationError("Source and destination package cannot be the same package")
+
+        return destination_package
+
+    def clean_copy_modules(self):
+        """Check that copy programmes is also selected"""
+        try:
+            copy_modules = self.cleaned_data['copy_modules']
+            copy_programmes = self.cleaned_data['copy_programmes']
+        except KeyError:
+            raise forms.ValidationError('missing form fields')
+
+        if copy_modules and not copy_programmes:
+            raise forms.ValidationError('To copy modules you must also copy programmes')
+
+        return copy_modules
+
+    def clean_copy_modulestaff(self):
+        """Check that copy_modules is also selected"""
+        try:
+            copy_modules = self.cleaned_data['copy_modules']
+            copy_modulestaff = self.cleaned_data['copy_modulestaff']
+        except KeyError:
+            raise forms.ValidationError('missing form fields')
+
+        if copy_modulestaff and not copy_modules:
+            raise forms.ValidationError('To copy modules allocations you must also copy modules')
+
+        return copy_modulestaff
+
+    def clean_copy_activities_modules(self):
+        """Check that copy_modules is also selected"""
+        try:
+            copy_modules = self.cleaned_data['copy_modules']
+            copy_activities_modules = self.cleaned_data['copy_activities_modules']
+        except KeyError:
+            raise forms.ValidationError('missing form fields')
+
+        if copy_activities_modules and not copy_modules:
+            raise forms.ValidationError('To copy modules activities you must also copy modules')
+
+        return copy_activities_modules
 
 
 class LoadsByModulesForm(forms.Form):
