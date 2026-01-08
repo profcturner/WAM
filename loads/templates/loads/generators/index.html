@@ -7,7 +7,7 @@
     <span class="font-monospace fw-bold me-2">{{package}}</span> <a class="btn btn-secondary btn-sm wam-hide-on-print" href="{%url 'workpackage_change' %}?next={{ request.path|urlencode }}">Change year</a>
 </p>
 
-{% if package.draft and package.in_the_future and package.in_the_past %}
+{% if package.draft or package.in_the_future or package.in_the_past %}
 <div class="border border-2 border-danger p-3 rounded-3 mb-5">
     <h6 class="fw-bold">!! Please note these exceptions <i class="fw-normal small">(hover for more information)</i></h6>
     <div class="d-flex">
@@ -47,9 +47,9 @@
     <table class="table table-sm table-striped table-hover">
         <thead>
             <tr>
-                <th scope="col">Generator Name</th>
-                <th scope="col">Activity Type</th>
-                <th scope="col" class="wam-hide-on-print">Generate Activities</th>
+                <th scope="col">Generator name</th>
+                <th scope="col">Activity type</th>
+                <th scope="col" class="text-center wam-hide-on-print">Generate activities</th>
             </tr>
         </thead>
         <tbody class="table-group-divider">
@@ -57,7 +57,9 @@
             <tr>
                 <th>{{ generator.name }}</th>
                 <td>{{ generator.activity_type }}</td>
-                <td class="wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'generators_generate_activities' generator.id %}">Generate Activities</a></td>
+                <td class="text-center wam-hide-on-print">
+                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'generators_generate_activities' generator.id %}">Generate</a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
