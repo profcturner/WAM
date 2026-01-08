@@ -10,10 +10,11 @@ from django.contrib.auth.models import User, Group
 from django.db import transaction
 from django.core.exceptions import ValidationError
 
-from .models import AssessmentResource
+from .models import AssessmentResource, Task
 from .models import AssessmentStaff
 from .models import AssessmentStateSignOff
 from .models import Staff
+from .models import Task
 from .models import TaskCompletion
 from .models import Programme
 from .models import Project
@@ -26,6 +27,11 @@ from WAM.settings import WAM_STAFF_REGEX, WAM_EXTERNAL_REGEX
 class DateInput(forms.DateInput):
     """A form to help select an HTML5 Date Widget"""
     input_type = 'date'
+
+
+class DateTimeInput(forms.DateTimeInput):
+    """A form to help select an HTML5 DateTime Widget"""
+    input_type = 'datetime-local'
 
 
 class MigrateWorkPackageForm(forms.Form):
@@ -142,6 +148,15 @@ class StaffWorkPackageForm(ModelForm):
         model = Staff
         # Only one field is on the form, the rest are passed in before
         fields = ['package']
+
+
+class TaskForm(ModelForm):
+    """Form for creating or editing tasks"""
+
+    class Meta:
+        model = Task
+        fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups']
+        widgets = {'deadline': DateTimeInput}
 
 
 class TaskCompletionForm(ModelForm):
