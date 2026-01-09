@@ -412,6 +412,9 @@ class WorkPackageMigrationTestCase(TestCase):
 
 class AssessmentResourceTestCase(TestCase):
     def setUp(self):
+        # Logging is very noisy typically
+        logging.disable(logging.CRITICAL)
+
         # Create a workpackage
         package = WorkPackage.objects.create(name="test", startdate="2017-09-01", enddate="2018-08-31")
 
@@ -510,6 +513,10 @@ class AssessmentResourceTestCase(TestCase):
             owner=resource_owner,
             resource_type=resource_type)
 
+    def tearDown(self):
+        # Put the logging back in place
+        logging.disable(logging.NOTSET)
+
     def test_resource_coordinator_permissions(self):
         user = User.objects.get(username="academicA")
         coordinator = Staff.objects.get(user__username="academicA")
@@ -595,9 +602,15 @@ class AssessmentResourceTestCase(TestCase):
 
 
 class UserCreationTestCase(TestCase):
+    """Tests for user creation functionality"""
+    
     def setUp(self):
-        # Nothing needed yet
-        pass
+        # Logging is very noisy typically
+        logging.disable(logging.CRITICAL)
+
+    def tearDown(self):
+        # Put the logging back in place
+        logging.disable(logging.NOTSET)
 
     def test_superuser_creates_staff(self):
         # Create a superuser
