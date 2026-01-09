@@ -73,9 +73,15 @@
             </div>
         {% endfor %}
         <div class="row mt-4 mb-2 d-print-none">
-            <div class="col-12">
+            <div class="col-9">
                 <input class="btn btn-primary" type="submit" value="Submit" />
+                <a class="btn btn-primary" role="button" href="{% url 'programmes_index' %}">Cancel</a>
             </div>
+            {% if form.instance.pk %}
+            <div class="col-3">
+                <a class="btn btn-danger" role="button" href="{% url 'delete programme' form.instance.pk %}">Delete programme</a>
+            </div>
+            {% endif %}
         </div>
     </form>
 </div>

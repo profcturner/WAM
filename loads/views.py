@@ -2273,7 +2273,7 @@ class DeleteProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, DeleteVie
         else:
             action_verb = "seeking to delete"
         logger.warning("[%s] %s programme %s in package %s" %
-                       (request.user, action_verb, programme, module.package))
+                       (request.user, action_verb, programme, programme.package))
 
         if not request.user.is_superuser:
             if programme.package not in staff.get_all_packages(include_hidden=True):
