@@ -140,7 +140,7 @@
                         {% if action_possible %}
                         </strong>
                         {% endif %}
-                        ({{ signoff.created }})
+                        <span class="small" title="{{ signoff.created }}"><br/>({{ signoff.created|date:"SHORT_DATETIME_FORMAT" }})</small>
                     </td>
                     {% else %}
                     {# No sign off, look for a resource instead #}
