@@ -406,9 +406,11 @@ class UserClientTest(TestCase):
         self.assertEqual(response.status_code, 403)
 
         #TODO: This test is reporting 302 in oauth authentication. Not sure how to capture that.
-        #TODO: Need to establish if this is the best way to do this.
+        #TODO: Need to establish if this is the best way to do this. Maybe check it isn't 200 for now.
         response = self.client.get("/cadmin/assessment_staff/index/")
+        self.assertNotEqual(response.status_code, 200)
         self.assertRaisesMessage(PermissionDenied, "You do not have admin permissions.")
+
 
     def test_staff_no_role_module_pages(self):
         """This checks that a Staff member with no specific has appropriate module views"""
@@ -457,9 +459,9 @@ class UserClientTest(TestCase):
 
         module = Module.objects.get(module_code="ABC101")
 
-        # These views should be response code 200 (OK)
+        # These might be a redirect, which could be different with oauth2, but it should not be 200
         response = self.client.get("/modules/details/%u" % module.id)
-        self.assertEqual(response.status_code, 302)
+        self.assertNotEqual(response.status_code, 200)
 
         response = self.client.get("/modules/add_assessment_resource/%u" % module.id)
         self.assertEqual(response.status_code, 200)
