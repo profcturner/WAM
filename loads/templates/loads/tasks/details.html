@@ -111,7 +111,7 @@
                     {{ target }}
                 </td>
                 <td class="col-3 font-monospace">
-                    {{ completion.when }}
+                    <span title="{{ completion.when }}">{{ completion.when|date:"SHORT_DATETIME_FORMAT" }}</span>
                 </td>
                 <td class="col-4">
                     {{ completion.comment }}

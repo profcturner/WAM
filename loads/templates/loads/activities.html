@@ -3,7 +3,7 @@
 {% block content %}
 
 <h4 class="my-3">
-    Activity breakdown for {{staff}}<span class="small wam-hide-on-print"> (<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'staff_module_allocation' package.id staff.id %}">Edit</a>)</span>
+    Activity breakdown for {{staff}}<span class="small wam-hide-on-print"><a class="btn btn-sm btn-secondary ms-2" role="button" href="{% url 'staff_module_allocation' package.id staff.id %}">Edit</a></span>
 </h4>
 <p class="my-3">
     Selected Work Package:<br/>

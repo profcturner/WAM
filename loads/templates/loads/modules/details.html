@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h4>Details for module {{ module.name }}{% if logged_in_staff and not logged_in_staff.is_external %}<span class="small wam-hide-on-print"> (<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-1" href="{% url 'update module' module.pk %}">Edit</a>)</span>{% endif %}</h4>
+<h4>Details for module {{ module.name }}{% if logged_in_staff and not logged_in_staff.is_external %}<span class="small wam-hide-on-print"><a class="btn btn-sm btn-secondary ms-1" role="button" href="{% url 'update module' module.pk %}">Edit</a></span>{% endif %}</h4>
 
 <div class="mt-4">
     <div class="row mb-2">
@@ -154,7 +154,7 @@
     <p>
         <span class="text-info-emphasis">No allocations of staff recorded for this module</span>
         {% if logged_in_staff and not logged_in_staff.is_external %}
-        <span class="wam-hide-on-print">(<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'module_staff_allocation' package.id module.id %}">Edit</a>)</span>
+        <span class="small wam-hide-on-print"><a class="btn btn-sm btn-secondary ms-1" role="button" href="{% url 'module_staff_allocation' package.id module.id %}">Edit</a></span>
         {% endif %}
     </p>
     {% endif %}
@@ -212,23 +212,28 @@
     <div class="card mt-4 px-3 pt-3 border border-secondary rounded-3">
 
     {% if signoff %}
-        <div class="row text-bg-info">
-            <div class="col-5">
-                <span class="fw-bold small">
-                    {{ signoff.assessment_state }}
-                </span>
+        <div class="row">
+            <div class="col-6 small">
+                <span class="text-info-emphasis fw-bold">{{ signoff.assessment_state }}</span>
+                <br/>
+                <span class="text-secondary-emphasis" title="{{ signoff.created }}">[{{ signoff.created|date:"SHORT_DATETIME_FORMAT" }}]</span>
             </div>
-            <div class="col-4 small">
+            <div class="col-4 text-info-emphasis small">
                 {% if signoff.signed_by.first_name or signoff.signed_by.last_name %}
                     by {{ signoff.signed_by.first_name }} {{ signoff.signed_by.last_name }}
                 {% endif %}
             </div>
-            <div class="col small">
-                on {{ signoff.created }}
+            {# if forloop.first #}
+            {# This won't work since we may have a resource without signoff #}
+            <div class="col-2 wam-hide-on-print p-0 pe-2 text-end">
+                <a class="btn btn-sm btn-warning" role="button" href="{% url 'delete_assessment_sign_off' signoff.id %}">
+                    delete
+                </a>
             </div>
+            {# endif #}
         </div>
-        <div class="row pt-3">
-            <div class="col small">
+        <div class="row pt-3 pb-2">
+            <div class="col-12 small">
                 {{ signoff.notes }}
             </div>
         </div>
@@ -255,7 +260,7 @@
                                 <td class="w-25">{{ resource.resource_type }}</td>
                                 <td class="w-25">{{ resource.name }}</td>
                                 <td>{{ resource.owner }}</td>
-                                <td>{{ resource.created }}</td>
+                                <td><span title="{{ resource.created }}">{{ resource.created|date:"SHORT_DATETIME_FORMAT" }}</span></td>
                                 <td class="wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'download_assessment_resource' resource.id %}">View</a></td>
                                 <td class="wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'delete_assessment_resource' resource.id %}">Delete</a></td>
                             </tr>
