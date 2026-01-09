@@ -20,7 +20,7 @@
             {% for task, urgent, overdue in combined_list_incomplete %}
             <tr>
                 <td class="col-4">{{ task.name }}</td>
-                <td class="col-3 font-monospace">{{ task.deadline }}&nbsp;</td>
+                <td class="col-3 font-monospace"><span title="{{ task.deadline }}">{{ task.deadline|date:"SHORT_DATETIME_FORMAT" }}&nbsp;</span></td>
                 <td class="col-3">{{ task.deadline|timeuntil }}</td>
                 <td class="col-1">
                     {% if overdue %}
@@ -67,7 +67,7 @@
             {% for task, when in combined_list_complete %}
             <tr>
                 <td class="col-4">{{ task.name }}</td>
-                <td class="col-3 font-monospace">{{ task.deadline }}&nbsp;</td>
+                <td class="col-3 font-monospace"><span title="{{ task.deadline }}">{{ task.deadline|date:"SHORT_DATETIME_FORMAT" }}</span>&nbsp;</td>
                 <td class="col-3">{{ task.deadline|timeuntil }}</td>
                 <td class="col-2">{{ task.when }}</td>
             </tr>
