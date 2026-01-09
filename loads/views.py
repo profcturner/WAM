@@ -48,6 +48,7 @@ from .forms import TaskForm
 from .forms import TaskCompletionForm
 from .forms import StaffWorkPackageForm
 from .forms import MigrateWorkPackageForm
+from .forms import ModuleForm
 from .forms import ModulesIndexForm
 from .forms import ProjectForm
 from .forms import StaffCreationForm
@@ -2058,11 +2059,9 @@ class UpdateModuleView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """View for editing a Module"""
     permission_required = 'loads.change_module'
     model = Module
-    fields = ['module_code', 'module_name', 'campus', 'size', 'semester', 'contact_hours', 'admin_hours',
-              'assessment_hours',
-              'coordinator', 'moderators', 'programmes', 'lead_programme']
 
-    def get_form(self, form_class=None):
+
+    def get_form(self, form_class=ModuleForm):
         """We need to restrict form querysets"""
         form = super(UpdateModuleView, self).get_form(form_class)
 
