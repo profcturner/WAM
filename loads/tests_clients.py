@@ -410,7 +410,7 @@ class UserClientTest(TestCase):
         response = self.client.get("/cadmin/assessment_staff/index/")
         self.assertRaisesMessage(PermissionDenied, "You do not have admin permissions.")
 
-    def test_staff_norole_module_pages(self):
+    def test_staff_no_role_module_pages(self):
         """This checks that a Staff member with no specific has appropriate module views"""
 
         # Log the User in
@@ -424,6 +424,42 @@ class UserClientTest(TestCase):
         # These views should be response code 200 (OK)
         response = self.client.get("/modules/details/%u" % module.id)
         self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/modules/add_assessment_resource/%u" % module.id)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/modules/add_assessment_sign_off/%u" % module.id)
+        self.assertEqual(response.status_code, 200)
+
+        # These views should be response code 404 (Not Found)
+        response = self.client.get("/modules/details/9999")
+        self.assertEqual(response.status_code, 404)
+
+        # These views should be response code 403 (Forbidden)
+        response = self.client.get("/modules/create/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/modules/update/%u" % module.id)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/modules/delete/%u" % module.id)
+        self.assertEqual(response.status_code, 403)
+
+
+    def test_external_module_pages(self):
+        """This checks that a Staff member with no specific has appropriate module views"""
+
+        # Log the User in
+        user = User.objects.get(username='external')
+        staff = Staff.objects.get(user=user)
+        # force_login bypasses potential custom authentication back ends
+        self.client.force_login(user)
+
+        module = Module.objects.get(module_code="ABC101")
+
+        # These views should be response code 200 (OK)
+        response = self.client.get("/modules/details/%u" % module.id)
+        self.assertEqual(response.status_code, 302)
 
         response = self.client.get("/modules/add_assessment_resource/%u" % module.id)
         self.assertEqual(response.status_code, 200)
