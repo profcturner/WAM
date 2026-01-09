@@ -57,10 +57,10 @@
     <table class="table table-sm table-striped table-hover">
         <thead>
             <tr>
-                <th class="col-4">Task name</th>
+                <th class="col-3">Task name</th>
                 <th class="col-3">Deadline</th>
-                <th class="col-3">Time left</th>
-                <th class="col-2">Completed</th>
+                <th class="col-2">Time left</th>
+                <th class="col-3 text-end me-1">Completed</th>
             </tr>
         </thead>
         <tbody class="table-group-divider">
@@ -68,8 +68,8 @@
             <tr>
                 <td class="col-4">{{ task.name }}</td>
                 <td class="col-3 font-monospace"><span title="{{ task.deadline }}">{{ task.deadline|date:"SHORT_DATETIME_FORMAT" }}</span>&nbsp;</td>
-                <td class="col-3">{{ task.deadline|timeuntil }}</td>
-                <td class="col-2">{{ task.when }}</td>
+                <td class="col-2">{{ task.deadline|timeuntil }}</td>
+                <td class="col-3 text-end me-1"><span title="{{ when }}">{{ when|date:"SHORT_DATETIME_FORMAT" }}</span></td>
             </tr>
             {% endfor %}
         </tbody>
