@@ -36,6 +36,8 @@ from loads.views import ActivityListView
 from loads.views import CreateActivityView
 from loads.views import UpdateActivityView
 from loads.views import DeleteActivityView
+from loads.views import DeleteModuleView
+from loads.views import DeleteProgrammeView
 
 from WAM.settings import WAM_ADMIN_CONTACT_NAME, WAM_ADMIN_CONTACT_EMAIL
 
@@ -81,6 +83,7 @@ urlpatterns = [
     re_path(r'^tasks/bystaff/(?P<staff_id>[0-9]+)$', views.tasks_bystaff, name='tasks_bystaff'),
     re_path(r'^modules/index/(?P<semesters>[0-9,]*)$', views.modules_index, name='modules_index'),
     re_path(r'^modules/details/(?P<module_id>[0-9]+)$', views.modules_details, name='modules_details'),
+    re_path(r'^modules/delete/(?P<pk>[0-9]+)$', DeleteModuleView.as_view(), name='delete module'),
     re_path(r'^modules/add_assessment_resource/(?P<module_id>[0-9]+)$', views.add_assessment_resource,
             name='add_assessment_resource'),
     re_path(r'^modules/download_assessment_resource/(?P<resource_id>[0-9]+)$', views.download_assessment_resource,
@@ -99,6 +102,7 @@ urlpatterns = [
     re_path(r'^programmes/create/$', CreateProgrammeView.as_view(), name='create programme'),
     re_path(r'^programmes/update/(?P<pk>[0-9]+)$', UpdateProgrammeView.as_view(), name='update programme'),
     re_path(r'^programmes/details/(?P<pk>[0-9]+)$', DetailsProgrammeView.as_view(), name='view programme'),
+    re_path(r'^programmes/delete/(?P<pk>[0-9]+)$', DeleteProgrammeView.as_view(), name='delete programme'),
     re_path(r'^projects/index/$', views.projects_index, name='projects_index'),
     re_path(r'^projects/detail/(?P<project_id>[0-9]+)$', views.projects_details, name='projects_details'),
     re_path(r'^projects/generate_activities/(?P<project_id>[0-9]+)$', views.projects_generate_activities,

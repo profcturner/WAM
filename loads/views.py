@@ -2086,6 +2086,72 @@ class UpdateModuleView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
         return reverse('modules_details', kwargs={'module_id': self.object.pk})
 
 
+@method_decorator(staff_only, name='dispatch')
+class DeleteModuleView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    """
+    View for deleting a Module
+
+    There are a number of import Models that will delete on Cascade from this so checks and warnings are important.
+    """
+    permission_required = 'loads.delete_module'
+    model = Module
+    success_url = reverse_lazy('modules_index')
+
+    def dispatch(self, request, *args, **kwargs):
+        # Check this Activity is the business of the logged in user
+        programme = self.get_object()
+
+        try:
+            staff = Staff.objects.get(user=self.request.user)
+        except Staff.DoesNotExist:
+            raise PermissionDenied("""Your user has no matching staff object.""")
+
+        if request.method == "POST":
+            action_verb = "confirming deletion of"
+        else:
+            action_verb = "seeking to delete"
+
+        logger.warning("[%s] %s module %s in package %s" %
+                       (request.user, action_verb, module, module.package))
+
+        if not request.user.is_superuser:
+            if module.package not in staff.get_all_packages(include_hidden=True):
+                logger.warning("[%s] permission denied, module not in workpackages." % request.user)
+                raise PermissionDenied("""Sorry, this module is not in your workpackages.""")
+
+        if self.get_assessment_resources().count():
+            if request.user.is_superuser:
+                # Superusers can do this, but we will want to warn them in the template!
+                logger.critical("[%s] module has associated assessments!" % request.user)
+            else:
+                logger.warning("[%s] permission denied, module has assessments." % request.user)
+                raise PermissionDenied("""Sorry, this module has an associated assessment history.""")
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_module_allocations(self):
+        """Get ModuleStaff allocations for this module"""
+        return ModuleStaff.objects.all().filter(module=self.get_object())
+
+    def get_custom_activities(self):
+        """Get custom activities for this module"""
+        return Activity.objects.all().filter(module=self.get_object())
+
+    def get_assessment_resources(self):
+        """Get assessment resources for this module"""
+        return AssessmentResource.objects.all().filter(module=self.get_object())
+
+    def get_context_data(self, **kwargs):
+        """Check for important data that would be deleted alongside"""
+        context = super().get_context_data(**kwargs)
+
+        context['module_allocations'] = self.get_module_allocations()
+        context['custom_activities'] = self.get_custom_activities()
+        context['assessment_resources'] = self.get_assessment_resources()
+
+        return context
+
+
 class CreateProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """View for creating a Programme"""
     permission_required = 'loads.add_programme'
@@ -2178,6 +2244,43 @@ class ProgrammeList(LoginRequiredMixin, ListView):
         context['package'] = staff.package
 
         return context
+
+
+@method_decorator(staff_only, name='dispatch')
+class DeleteProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    """
+    View for deleting a Programme
+
+    This feels like it should be higher risk that deleting a Module, but actually this
+    won't create deletion cascades as most linkages are to Modules.
+
+    """
+    permission_required = 'loads.delete_programme'
+    model = Programme
+    success_url = reverse_lazy('programmes_index')
+
+    def dispatch(self, request, *args, **kwargs):
+        # Check this Activity is the business of the logged in user
+        programme = self.get_object()
+
+        try:
+            staff = Staff.objects.get(user=self.request.user)
+        except Staff.DoesNotExist:
+            raise PermissionDenied("""Your user has no matching staff object.""")
+
+        if request.method == "POST":
+            action_verb = "confirming deletion of"
+        else:
+            action_verb = "seeking to delete"
+        logger.warning("[%s] %s programme %s in package %s" %
+                       (request.user, action_verb, programme, module.package))
+
+        if not request.user.is_superuser:
+            if programme.package not in staff.get_all_packages(include_hidden=True):
+                logger.warning("[%s] permission denied, programme not in workpackages." % request.user)
+                raise PermissionDenied("""Sorry, this activity is not in your workpackages.""")
+
+        return super().dispatch(request, *args, **kwargs)
 
 
  # Looks like decorators execute before mixins, so if you don't call the login decorator, the staff_only may fail
@@ -2288,8 +2391,16 @@ class DeleteActivityView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
         except Staff.DoesNotExist:
             raise PermissionDenied("""Your user has no matching staff object.""")
 
+        if request.method == "POST":
+            action_verb = "confirming deletion of"
+        else:
+            action_verb = "seeking to delete"
+        logger.warning("[%s] %s activity %s for staff %s in package %s" %
+                       (request.user, action_verb, activity, activity.staff, activity.package))
+
         if not request.user.is_superuser:
             if activity.package not in staff.get_all_packages(include_modules=True):
+                logger.warning("[%s] permission denied, activity not in workpackages." % request.user)
                 raise PermissionDenied("""Sorry, this activity is not in your workpackages.""")
 
         return super().dispatch(request, *args, **kwargs)

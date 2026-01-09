@@ -1374,7 +1374,7 @@ class AssessmentResource(models.Model):
     """
 
     name = models.CharField(max_length=200)
-    details = models.TextField(blank=True)
+    details = models.TextField(blank=True, null=True)
     resource = models.FileField(upload_to='assessments/%Y/%m/%d/')
     module = models.ForeignKey(Module, on_delete=models.CASCADE)
     resource_type = models.ForeignKey(AssessmentResourceType, on_delete=models.CASCADE)
