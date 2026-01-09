@@ -2099,7 +2099,7 @@ class DeleteModuleView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
 
     def dispatch(self, request, *args, **kwargs):
         # Check this Activity is the business of the logged in user
-        programme = self.get_object()
+        module = self.get_object()
 
         try:
             staff = Staff.objects.get(user=self.request.user)
