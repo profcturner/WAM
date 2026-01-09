@@ -184,7 +184,7 @@ class UserClientTest(TestCase):
             name="test",
             category=category,
             details="A simple test task",
-            deadline="2050-01-01 00:00:00",
+            deadline="2050-01-01 00:00:00Z",
         )
 
         task.targets.add(staff_staff)
@@ -209,7 +209,7 @@ class UserClientTest(TestCase):
         for url in ["/",
                     "/external/"
                     ]:
-            print(f"Testing non authenticated user access: {url}")
+            #print(f"Testing non authenticated user access: {url}")
             response = self.client.get(url)
             self.assertEqual(response.status_code, 200)
 
@@ -222,12 +222,11 @@ class UserClientTest(TestCase):
                     "/tasks/archived/index/",
                     "/modules/index/",
                     "/programmes/index/",
-                    #"/programmes/details/1" #TODO: 301 handling?
                     "/projects/index/",
                     "/cadmin/",
                     "/cadmin/assessment_staff/index/",
                     ]:
-            print(f"Testing non authenticated user access: {url}", file=sys.stderr)
+            #print(f"Testing non authenticated user access: {url}", file=sys.stderr)
             redirected_url = f"{login_url}?next={url}"
             response = self.client.get(url)
             try:
@@ -407,9 +406,117 @@ class UserClientTest(TestCase):
         self.assertEqual(response.status_code, 403)
 
         #TODO: This test is reporting 302 in oauth authentication. Not sure how to capture that.
-        #TODO: Need to establish if this is the best way to do this.
+        #TODO: Need to establish if this is the best way to do this. Maybe check it isn't 200 for now.
         response = self.client.get("/cadmin/assessment_staff/index/")
+        self.assertNotEqual(response.status_code, 200)
         self.assertRaisesMessage(PermissionDenied, "You do not have admin permissions.")
+
+
+    def test_staff_no_role_module_pages(self):
+        """This checks that a Staff member with no specific has appropriate module views"""
+
+        # Log the User in
+        user = User.objects.get(username='user')
+        staff = Staff.objects.get(user=user)
+        # force_login bypasses potential custom authentication back ends
+        self.client.force_login(user)
+
+        module = Module.objects.get(module_code="ABC101")
+
+        # These views should be response code 200 (OK)
+        response = self.client.get("/modules/details/%u" % module.id)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/modules/add_assessment_resource/%u" % module.id)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/modules/add_assessment_sign_off/%u" % module.id)
+        self.assertEqual(response.status_code, 200)
+
+        # These views should be response code 404 (Not Found)
+        response = self.client.get("/modules/details/9999")
+        self.assertEqual(response.status_code, 404)
+
+        # These views should be response code 403 (Forbidden)
+        response = self.client.get("/modules/create/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/modules/update/%u" % module.id)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/modules/delete/%u" % module.id)
+        self.assertEqual(response.status_code, 403)
+
+
+    def test_external_module_pages(self):
+        """This checks that a Staff member with no specific has appropriate module views"""
+
+        # Log the User in
+        user = User.objects.get(username='external')
+        staff = Staff.objects.get(user=user)
+        # force_login bypasses potential custom authentication back ends
+        self.client.force_login(user)
+
+        module = Module.objects.get(module_code="ABC101")
+
+        # These might be a redirect, which could be different with oauth2, but it should not be 200
+        response = self.client.get("/modules/details/%u" % module.id)
+        self.assertNotEqual(response.status_code, 200)
+
+        response = self.client.get("/modules/add_assessment_resource/%u" % module.id)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/modules/add_assessment_sign_off/%u" % module.id)
+        self.assertEqual(response.status_code, 200)
+
+        # These views should be response code 404 (Not Found)
+        response = self.client.get("/modules/details/9999")
+        self.assertEqual(response.status_code, 404)
+
+        # These views should be response code 403 (Forbidden)
+        response = self.client.get("/modules/create/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/modules/update/%u" % module.id)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/modules/delete/%u" % module.id)
+        self.assertEqual(response.status_code, 403)
+
+
+    def test_superuser_module_pages(self):
+        """This checks that a Staff member with no specific has appropriate module views"""
+
+        # Log the User in
+        user = User.objects.get(username='admin')
+        staff = Staff.objects.get(user=user)
+        # force_login bypasses potential custom authentication back ends
+        self.client.force_login(user)
+
+        module = Module.objects.get(module_code="ABC101")
+
+        # These views should be response code 200 (OK)
+        response = self.client.get("/modules/details/%u" % module.id)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/modules/add_assessment_resource/%u" % module.id)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/modules/add_assessment_sign_off/%u" % module.id)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/modules/create/")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/modules/update/%u" % module.id)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/modules/delete/%u" % module.id)
+        self.assertEqual(response.status_code, 200)
+
+        # These views should be response code 404 (Not Found)
+        response = self.client.get("/modules/details/9999")
+        self.assertEqual(response.status_code, 404)
 
 
     def test_staff_task_pages(self):

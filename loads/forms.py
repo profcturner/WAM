@@ -10,7 +10,7 @@ from django.contrib.auth.models import User, Group
 from django.db import transaction
 from django.core.exceptions import ValidationError
 
-from .models import AssessmentResource, Task
+from .models import AssessmentResource, Task, Module
 from .models import AssessmentStaff
 from .models import AssessmentStateSignOff
 from .models import Staff
@@ -200,6 +200,16 @@ class AssessmentResourceForm(ModelForm):
         model = AssessmentResource
         # A number of fields are automatically handled
         fields = ['name', 'details', 'resource_type', 'resource']
+
+
+class ModuleForm(ModelForm):
+    """Form for creating or editing modules"""
+
+    class Meta:
+        model = Module
+        fields = ['module_code', 'module_name', 'campus', 'credits', 'size', 'semester', 'contact_hours', 'admin_hours',
+                  'assessment_hours', 'coordinator', 'moderators', 'programmes', 'lead_programme', 'details']
+        widgets = {'details': forms.TextInput}
 
 
 class StaffWorkPackageForm(ModelForm):

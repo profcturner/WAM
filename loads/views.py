@@ -48,6 +48,7 @@ from .forms import TaskForm
 from .forms import TaskCompletionForm
 from .forms import StaffWorkPackageForm
 from .forms import MigrateWorkPackageForm
+from .forms import ModuleForm
 from .forms import ModulesIndexForm
 from .forms import ProjectForm
 from .forms import StaffCreationForm
@@ -2058,11 +2059,9 @@ class UpdateModuleView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """View for editing a Module"""
     permission_required = 'loads.change_module'
     model = Module
-    fields = ['module_code', 'module_name', 'campus', 'size', 'semester', 'contact_hours', 'admin_hours',
-              'assessment_hours',
-              'coordinator', 'moderators', 'programmes', 'lead_programme']
 
-    def get_form(self, form_class=None):
+
+    def get_form(self, form_class=ModuleForm):
         """We need to restrict form querysets"""
         form = super(UpdateModuleView, self).get_form(form_class)
 
@@ -2099,7 +2098,7 @@ class DeleteModuleView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
 
     def dispatch(self, request, *args, **kwargs):
         # Check this Activity is the business of the logged in user
-        programme = self.get_object()
+        module = self.get_object()
 
         try:
             staff = Staff.objects.get(user=self.request.user)
@@ -2273,7 +2272,7 @@ class DeleteProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, DeleteVie
         else:
             action_verb = "seeking to delete"
         logger.warning("[%s] %s programme %s in package %s" %
-                       (request.user, action_verb, programme, module.package))
+                       (request.user, action_verb, programme, programme.package))
 
         if not request.user.is_superuser:
             if programme.package not in staff.get_all_packages(include_hidden=True):
