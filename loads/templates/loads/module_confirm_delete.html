@@ -20,16 +20,38 @@
     <p>
         Normally, modules are only deleted when you are pruning discontinued modules from a new rolled over allocation.
     </p>
+    {% if module_allocations or custom_activities or assessment_resources %}
+    <div class="border border-2 border-danger p-3 rounded-3 mb-5">
+    <h6 class="fw-bold">!! Please note these exceptions <i class="fw-normal small">(hover for more information)</i></h6>
+    <div class="d-flex">
+        {% if module_allocations %}
+        <div class="badge text-bg-danger me-2"
+             title="This module has assigned teaching allocations.">Teaching Allocations</div>
+        {% endif %}
+        {% if custom_activities %}
+        <div class="badge text-bg-danger me-2"
+             title="This module has custom activities">Custom Activities</div>
+        {% endif %}
+        {% if assessment_resources %}
+        <div class="badge text-bg-danger me-2"
+             title="The module has assessment history.">Assessment History</div>
+        {% endif %}
+    </div>
+    <div class="fw-bold">
+            <br />Deleting modules will also delete <strong>all</strong> related module allocations,
+            custom activities and module assessment histories.
+    </div>
+</div>
+    {% endif %}
     <p class="fw-bold">
-        This cannot be undone. Deleting modules will also delete <strong>all</strong> related module allocations,
-        custom activities and module assessment histories. Are you sure?
+        This cannot be undone. Are you sure?
     </p>
 
     <form method="post">{% csrf_token %}
         {{ form }}
         <p class="mt-5">
             <input type="submit" class="btn btn-warning me-4" role="button" value="Confirm">
-            <a class="btn btn-primary" role="button" href="{% url 'modules_index'}">Cancel</a>
+            <a class="btn btn-primary" role="button" href="{% url 'modules_index' "1,2,3" %}">Cancel</a>
         </p>
     </form>
 </div>
