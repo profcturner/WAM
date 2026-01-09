@@ -603,7 +603,7 @@ class AssessmentResourceTestCase(TestCase):
 
 class UserCreationTestCase(TestCase):
     """Tests for user creation functionality"""
-    
+
     def setUp(self):
         # Logging is very noisy typically
         logging.disable(logging.CRITICAL)
