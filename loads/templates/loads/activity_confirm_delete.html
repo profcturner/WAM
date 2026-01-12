@@ -23,7 +23,7 @@
 
     <form method="post">{% csrf_token %}
         {{ form }}
-        <p class="mt-4">
+        <p class="mt-3">
             <input type="submit" class="btn btn-warning me-4" role="button" value="Confirm">
             <a class="btn btn-primary" role="button" href="{% url 'activities_index' %}">Cancel</a>
         </p>
