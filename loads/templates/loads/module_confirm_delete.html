@@ -37,22 +37,26 @@
              title="The module has assessment history.">Assessment History</div>
         {% endif %}
     </div>
-    <div class="fw-bold">
-            <br />Deleting modules will also delete <strong>all</strong> related module allocations,
-            custom activities and module assessment histories.
+    <div class="fw-bold mt-4">
+        Deleting modules will also delete <u>all</u> related module allocations,
+        custom activities and module assessment histories.
     </div>
-</div>
     {% endif %}
-    <p class="fw-bold">
-        This cannot be undone. Are you sure?
-    </p>
+</div>
 
-    <form method="post">{% csrf_token %}
-        {{ form }}
-        <p class="mt-5">
-            <input type="submit" class="btn btn-warning me-4" role="button" value="Confirm">
-            <a class="btn btn-primary" role="button" href="{% url 'modules_index' "1,2,3" %}">Cancel</a>
-        </p>
-    </form>
+<div class="mt-5">
+    <p class="mt-5 fw-bold">
+        This cannot be undone! Are you sure?
+    </p>
+    <p>
+        <form method="post">
+            {{ form }}
+            {% csrf_token %}
+            <p class="mt-3">
+                <input type="submit" class="btn btn-warning me-4" role="button" value="Confirm" />
+                <a class="btn btn-primary" role="button" href="{% url 'modules_index' "1,2,3" %}">Cancel</a>
+            </p>
+        </form>
+    </p>
 </div>
 {% endblock content %}
