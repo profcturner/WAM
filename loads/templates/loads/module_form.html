@@ -72,13 +72,13 @@
             {% endif %}
         </div>
         {% endfor %}
-        <div class="row mt-4 mb-3">
-            <div class="col-9">
-                <input class="btn btn-primary" type="submit" value="Submit" />
-                <a class="btn btn-primary" role="button" href="{% url 'modules_index' "1,2,3" %}">Cancel</a>
+        <div class="row mt-4 mb-3 d-print-none">
+            <div class="col-6 col-md-9">
+                <input class="btn btn-primary me-2" type="submit" value="Submit" />
+                <a class="btn btn-secondary" role="button" href="{% url 'modules_index' "1,2,3" %}">Cancel</a>
             </div>
             {% if form.instance.pk %}
-            <div class="col-3">
+            <div class="col-6 col-md-3 text-end">
                 <a class="btn btn-danger" role="button" href="{% url 'delete module' form.instance.pk %}">Delete module</a>
             </div>
             {% endif %}
