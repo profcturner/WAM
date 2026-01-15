@@ -17,6 +17,7 @@
 {# TODO: Needs work due to formset widget being used #}
 
 <div class="border border-secondary-subtle rounded-3 p-3 mb-3 mt-4">
+    {{ formset.media }}
     <form id="allocationForm" method="post" action="">
         {% csrf_token %}
         <input class="btn btn-primary mt-2 mb-4" type="submit" value="Submit" />

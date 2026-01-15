@@ -3,6 +3,7 @@ import re
 from django import forms
 from django.forms import ModelForm
 from django.forms import BaseModelFormSet
+from fancy_formset import FancyModelFormSet
 
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import User, Group
@@ -462,7 +463,7 @@ class ExternalExaminerCreationForm(forms.Form):
         return user
 
 
-class BaseModuleStaffByStaffFormSet(BaseModelFormSet):
+class BaseModuleStaffByStaffFormSet(FancyModelFormSet):
     def clean(self):
         """
         Adds validation to check that no two links have the same anchor or URL
@@ -514,7 +515,7 @@ class BaseModuleStaffByStaffFormSet(BaseModelFormSet):
                 )
 
 
-class BaseModuleStaffByModuleFormSet(BaseModelFormSet):
+class BaseModuleStaffByModuleFormSet(FancyModelFormSet):
     def clean(self):
         """
         Adds validation to check that no two links have the same anchor or URL
