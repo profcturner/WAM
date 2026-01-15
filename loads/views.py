@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, render
 from django.http import Http404
 from django.urls import reverse, reverse_lazy
 from django.forms import modelformset_factory
+from fancy_formset import FancyModelFormSet, FancyInlineFormSet
 from django.contrib import messages
 from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -1773,7 +1774,7 @@ def projects_details(request, project_id):
     package = user_staff.package
 
     # Get a formset with only the choosable fields
-    ProjectStaffFormSet = modelformset_factory(ProjectStaff,   formset=FancyFormSet,
+    ProjectStaffFormSet = modelformset_factory(ProjectStaff,   formset=FancyModelFormSet,
                                                fields=('staff', 'start', 'end', 'hours_per_week'),
                                                widgets={'start' : DateInput(), 'end' : DateInput(),},
                                                can_delete=True)
