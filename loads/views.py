@@ -1773,7 +1773,7 @@ def projects_details(request, project_id):
     package = user_staff.package
 
     # Get a formset with only the choosable fields
-    ProjectStaffFormSet = modelformset_factory(ProjectStaff,  # formset=BaseModuleStaffByStaffFormSet,
+    ProjectStaffFormSet = modelformset_factory(ProjectStaff,   formset=FancyFormSet,
                                                fields=('staff', 'start', 'end', 'hours_per_week'),
                                                widgets={'start' : DateInput(), 'end' : DateInput(),},
                                                can_delete=True)
