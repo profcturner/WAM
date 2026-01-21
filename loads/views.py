@@ -2400,7 +2400,7 @@ class DeleteActivityView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
                        (request.user, action_verb, activity, activity.staff, activity.package))
 
         if not request.user.is_superuser:
-            if activity.package not in staff.get_all_packages(include_modules=True):
+            if activity.package not in staff.get_all_packages(include_hidden=True):
                 logger.warning("[%s] permission denied, activity not in workpackages." % request.user)
                 raise PermissionDenied("""Sorry, this activity is not in your workpackages.""")
 
