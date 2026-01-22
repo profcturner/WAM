@@ -78,6 +78,44 @@
     </div>
 
     {{ formset.media }}
+    <div class="border border-secondary rounded-3 p-3 mt-5">
+        <div class="bg-body" data-formset="{{ formset.prefix }}">
+            {{ formset.management_form }}
+            <fieldset class="bg-body wam-fieldset" style="display: none">
+                <div class="wam-formset-grid">
+                    {{ formset.empty_form.as_div }}
+                </div>
+            </fieldset>
+            {% for form in formset %}
+                {% if forloop.first %}
+                    <div class="wam-formset-grid">
+                        {% for field in form.visible_fields %}
+                            {% if field.field.widget.input_type == "checkbox" %}
+                            <div></div>
+                            {% else %}
+                            <div class="text-wrap small mb-2 me-1">
+                            {{ field.label }}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            <fieldset class="bg-body wam-fieldset">
+                <div class="wam-formset-grid">
+                    {{ form.as_div }}
+                </div>
+            </fieldset>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>{{ formset.fancy_init }}</script>
+
+    {# Old formset here #}
+
+    {% comment %}
+
+    {{ formset.media }}
     {{ formset.management_form }}
 
     <div class="table-responsive small mt-4">
@@ -135,6 +173,7 @@
             </tbody>
         </table>
     </div>
+    {% endcomment %}
 
     <input class="btn btn-primary mt-3 d-print-none" type="submit" value="Submit" />
 
@@ -143,6 +182,8 @@
 
 {% load static %}
 
+{# Old formset here #}
+{% comment %}
 <!-- Include formset plugin - including jQuery dependency -->
 <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 <script src="{% static 'loads/jquery.formset.js' %}"></script>
@@ -151,6 +192,7 @@ $(function() {
     $('#allocationForm tbody tr').formset();
 })
 </script>
+{% endcomment %}
 
 
 {% endblock content %}

@@ -4,6 +4,45 @@
 <h3 class="mt-3">Manage Allocations for {{staff}}</h3>
 <h5 class="font-monospace mb-5">{{package}}</h5>
 
+{{ formset.media }}
+<div class="border border-secondary rounded-3 p-3">
+    <form method="POST">
+        {% csrf_token %}
+        <div class="bg-body" data-formset="{{ formset.prefix }}">
+            {{ formset.management_form }}
+            <fieldset class="bg-body wam-fieldset" style="display: none">
+                <div class="wam-formset-grid">
+                    {{ formset.empty_form.as_div }}
+                </div>
+            </fieldset>
+            {% for form in formset %}
+                {% if forloop.first %}
+                    <div class="wam-formset-grid">
+                        {% for field in form.visible_fields %}
+                            {% if field.field.widget.input_type == "checkbox" %}
+                            <div></div>
+                            {% else %}
+                            <div class="text-wrap small mb-2 me-1">
+                            {{ field.label }}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            <fieldset class="bg-body wam-fieldset">
+                <div class="wam-formset-grid">
+                    {{ form.as_div }}
+                </div>
+            </fieldset>
+            {% endfor %}
+        </div>
+        <button class="btn btn-primary" type="submit">Save</button>
+    </form>
+</div>
+
+<script>{{ formset.fancy_init }}</script>
+
+{% comment %}
 <div class="table-responsive small mt-5">
     <form id="allocationForm" method="post" action="">
         {% csrf_token %}
@@ -64,7 +103,6 @@
     </form>
 </div>
 
-
 {% load static %}
 
 <!-- Include formset plugin - including jQuery dependency -->
@@ -75,6 +113,8 @@
         $('#allocationForm tbody tr').formset();
     })
 </script>
+{% endcomment %}
 
+{% load static %}
 
 {% endblock content %}
