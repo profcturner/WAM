@@ -62,6 +62,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.admindocs',
     'django.contrib.humanize',
+    'fancy_formset',
     'loads'
 )
 
