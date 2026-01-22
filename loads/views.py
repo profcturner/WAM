@@ -1800,7 +1800,7 @@ def projects_details(request, project_id):
             # Now do a real save
             formset.save(commit=True)
             logger.info("[%s] (admin) edited the details for project %s" % (request.user, project),
-                         extra={'form': form})
+                         extra={'formset': formset})
 
             # redirect to the activites page
             # TODO this might just be a different package from this one, note.
@@ -1813,7 +1813,7 @@ def projects_details(request, project_id):
         for form in formset:
             form.fields['staff'].queryset = package.get_all_staff()
         logger.info("[%s] (admin) opened the details for project %s" % (request.user, project),
-                    extra={'form': form})
+                    extra={'formset': formset})
 
     return render(request, 'loads/projects/allocations.html',
                   {'project': project, 'project_form': project_form, 'formset': formset})
