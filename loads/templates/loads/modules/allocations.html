@@ -26,6 +26,19 @@
                 </div>
             </fieldset>
             {% for form in formset %}
+                {% if forloop.first %}
+                    <div class="wam-formset-grid">
+                        {% for field in form.visible_fields %}
+                            {% if field.field.widget.input_type == "checkbox" %}
+                            <div></div>
+                            {% else %}
+                            <div class="text-wrap small mb-2 me-1">
+                            {{ field.label }}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
             <fieldset class="bg-body wam-fieldset">
                 <div class="wam-formset-grid">
                     {{ form.as_div }}
