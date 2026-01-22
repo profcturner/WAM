@@ -1161,7 +1161,7 @@ def module_staff_allocation(request, module_id, package_id):
                 allocation.package = package
             # Now do a real save
             formset.save(commit=True)
-            logger.info("[%s] adjusted the module allocation for module %s" % (request.user, module), extra={'form': form})
+            logger.info("[%s] adjusted the module allocation for module %s" % (request.user, module), extra={'formset': formset})
 
             # redirect to the activites page
             # TODO this might just be a different package from this one, note.
@@ -1174,7 +1174,7 @@ def module_staff_allocation(request, module_id, package_id):
         # Again, only allow staff members in the package
         for form in formset:
             form.fields['staff'].queryset = package.get_all_staff()
-        logger.info("[%s] opened the form for the module allocation for module %s" % (request.user, module), extra={'form': form})
+        logger.info("[%s] opened the form for the module allocation for module %s" % (request.user, module), extra={'formset': formset})
 
     return render(request, 'loads/modules/allocations.html', {'module': module, 'package': package, 'formset': formset})
 
@@ -1678,7 +1678,7 @@ def staff_module_allocation(request, staff_id, package_id):
             # Now do a real save
             formset.save(commit=True)
             logger.info("[%s] edited the module allocation for %s on package %s" %
-                        (request.user, staff, package), extra={'form': form})
+                        (request.user, staff, package), extra={'formset': formset})
 
             # redirect to the activites page
             # TODO this might just be a different package from this one, note.
@@ -1690,6 +1690,8 @@ def staff_module_allocation(request, staff_id, package_id):
         # Again, only allow modules in the package
         for form in formset:
             form.fields['module'].queryset = Module.objects.filter(package=package)
+        logger.info("[%s] examining the module allocation for %s on package %s" %
+                    (request.user, staff, package), extra={'formset': formset})
 
     return render(request, 'loads/staff/allocations.html', {'staff': staff, 'package': package, 'formset': formset})
 
@@ -2399,7 +2401,7 @@ class DeleteActivityView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
                        (request.user, action_verb, activity, activity.staff, activity.package))
 
         if not request.user.is_superuser:
-            if activity.package not in staff.get_all_packages(include_modules=True):
+            if activity.package not in staff.get_all_packages(include_hidden=True):
                 logger.warning("[%s] permission denied, activity not in workpackages." % request.user)
                 raise PermissionDenied("""Sorry, this activity is not in your workpackages.""")
 
