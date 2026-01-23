@@ -1787,16 +1787,34 @@ def projects_details(request, project_id):
             request.POST, request.FILES,
             queryset=ProjectStaff.objects.filter(project=project),
         )
+        # Save the Project Form itself if valid
         if project_form.is_valid():
             project_form.save()
 
+        # A loop for debugging before validity checks
+        for form in formset:
+            logger.debug("[%s] (admin) formset: project %s, form %s" % (request.user, project, form))
+
         if formset.is_valid():
             formset.save(commit=False)
+
+            logger.debug("[%s] (admin) formset processing" % (request.user,))
             for form in formset:
                 # Some fields are missing, so don't do a full save yet
                 allocation = form.save(commit=False)
                 # Fix the fields
                 allocation.project = project
+                logger.debug("[%s] (admin) adding project allocation %s, staff %s" % (request.user,
+                                                                             project,
+                                                                             form.cleaned_data.get("staff")))
+
+            for allocation in formset.deleted_objects:
+                logger.debug("[%s] (admin) deleting project allocation %s, staff %s" % (request.user,
+                                                                             allocation.project,
+                                                                             allocation.staff))
+                allocation.delete()
+
+
             # Now do a real save
             formset.save(commit=True)
             logger.info("[%s] (admin) edited the details for project %s" % (request.user, project),
@@ -1807,6 +1825,9 @@ def projects_details(request, project_id):
 
             url = reverse('projects_index')
             return HttpResponseRedirect(url)
+        else:
+            logger.debug("[%s] (admin) formset errors %s" % (request.user, formset.errors),
+                        extra={'formset': formset})
     else:
         project_form = ProjectForm(instance=project)
         formset = ProjectStaffFormSet(queryset=ProjectStaff.objects.filter(project=project))
