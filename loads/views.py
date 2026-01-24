@@ -1136,31 +1136,55 @@ def module_staff_allocation(request, module_id, package_id):
         logger.info("[%s] user has no permissions to alter allocations" % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
-    # Get a formset with only the choosable fields
-    allocation_form_set = modelformset_factory(ModuleStaff, formset=BaseModuleStaffByModuleFormSet,
-                                             fields=('staff', 'contact_proportion', 'admin_proportion',
-                                                     'assessment_proportion'),
-                                             can_delete=True)
+    # Create a formset with only the choosable fields, and the information to populate the others
+    allocation_formset_factory = modelformset_factory(ModuleStaff,
+                                                      formset=BaseModuleStaffByModuleFormSet,
+                                                      fields=('staff',
+                                                              'contact_proportion',
+                                                              'admin_proportion',
+                                                              'assessment_proportion'),
+                                                      can_delete=True)
 
     if request.method == "POST":
-        formset = allocation_form_set(
-            request.POST, request.FILES,
-            queryset=ModuleStaff.objects.filter(package=package).filter(module=module).order_by(
-                'staff__user__last_name')
-        )
+        # Processing the form post submit, get the formset first
+        formset = allocation_formset_factory(request.POST, request.FILES,
+                                             queryset=ModuleStaff.objects.filter(module=module).order_by(
+                                                 'staff__user__last_name'))
+
+        logger.debug("[%s] inbound POST %s" % (request.user, request.POST))
+        logger.debug("[%s] allocation formset details" % request.user)
+        logger.debug("[%s] %u forms before validation" % (request.user, len(formset.forms)))
+        logger.debug("[%s] %u deleted forms before validation" % (request.user, len(formset.deleted_forms)))
+
+
         # We need to tweak the queryset to only allow staff in the package
-        for form in formset:
-            form.fields['staff'].queryset = package.get_all_staff()
+        #for form in formset:
+        #    form.fields['staff'].queryset = package.get_all_staff()
         if formset.is_valid():
+
             formset.save(commit=False)
+
+            """
+            for index in range(len(formset.forms)):
+                logger.debug("Editing form %u", index)
+                formset.forms[index].cleaned_data['module'] = module
+                formset.forms[index].cleaned_data['package'] = package
+            """
+
             for form in formset:
-                # Some fields are missing, so don't do a full save yet
+                form.save(commit=False)
+
                 allocation = form.save(commit=False)
-                # Fix the fields
                 allocation.module = module
                 allocation.package = package
-            # Now do a real save
+                allocation.save()
+                logger.info("[%s] saved allocation %u", request.user, allocation.id)
             formset.save(commit=True)
+
+            for allocation in formset.deleted_objects:
+                logger.info("[%s] deleted allocation %u", request.user, allocation.id)
+                allocation.delete()
+
             logger.info("[%s] adjusted the module allocation for module %s" % (request.user, module), extra={'formset': formset})
 
             # redirect to the activites page
@@ -1169,11 +1193,11 @@ def module_staff_allocation(request, module_id, package_id):
             url = reverse('modules_details', args=[module_id])
             return HttpResponseRedirect(url)
     else:
-        formset = allocation_form_set(queryset=ModuleStaff.objects.filter(package=package).filter(module=module).order_by(
+        formset = allocation_formset_factory(queryset=ModuleStaff.objects.filter(module=module).order_by(
             'staff__user__last_name'))
         # Again, only allow staff members in the package
-        for form in formset:
-            form.fields['staff'].queryset = package.get_all_staff()
+        #for form in formset:
+        #    form.fields['staff'].queryset = package.get_all_staff()
         logger.info("[%s] opened the form for the module allocation for module %s" % (request.user, module), extra={'formset': formset})
 
     return render(request, 'loads/modules/allocations.html', {'module': module, 'package': package, 'formset': formset})
