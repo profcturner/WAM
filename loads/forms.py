@@ -464,11 +464,14 @@ class ExternalExaminerCreationForm(forms.Form):
 
 
 class BaseModuleStaffByStaffFormSet(FancyModelFormSet):
+    """ Enables altering teaching allocation for a member of staff from staff views """
+
     def clean(self):
         """
-        Adds validation to check that no two links have the same anchor or URL
-        and that all links have both an anchor and URL.
+        Adds validation to check that no module is in the list twice, or that combined percentages exceed 100
         """
+
+        # Don't validate the whole formset (yet) if individual forms have issues
         if any(self.errors):
             return
 
@@ -508,19 +511,23 @@ class BaseModuleStaffByStaffFormSet(FancyModelFormSet):
                         code='invalid_assessment_proportion'
                     )
 
-            if duplicates:
-                raise forms.ValidationError(
-                    'Modules should not appear more than once.',
-                    code='duplicate_modules'
-                )
+        if duplicates:
+            raise forms.ValidationError(
+                'Modules should not appear more than once.',
+                code='duplicate_modules'
+            )
 
 
 class BaseModuleStaffByModuleFormSet(FancyModelFormSet):
+    """ Enables altering teaching allocation for a module from module views """
+
     def clean(self):
         """
-        Adds validation to check that no two links have the same anchor or URL
-        and that all links have both an anchor and URL.
+        Adds overall validation to check that no staff member is in the list twice,
+        or that combined percentages exceed 100
         """
+
+        # Don't validate the whole formset (yet) if individual forms have issues
         if any(self.errors):
             return
 
@@ -567,23 +574,26 @@ class BaseModuleStaffByModuleFormSet(FancyModelFormSet):
                         code='invalid_assessment_proportion'
                     )
 
-            if duplicates:
-                raise forms.ValidationError(
-                    'Staff members should not appear more than once.',
-                    code='duplicate_staff'
-                )
-            if contact_total > 100:
-                raise forms.ValidationError(
-                    'Contact proportions are over 100%',
-                    code='invalid_contact_total'
-                )
-            if admin_total > 100:
-                raise forms.ValidationError(
-                    'Admin proportions are over 100%',
-                    code='invalid_contact_total'
-                )
-            if assessment_total > 100:
-                raise forms.ValidationError(
-                    'Assessment proportions are over 100%',
-                    code='invalid_contact_total'
-                )
+        if duplicates:
+            raise forms.ValidationError(
+                'Staff members should not appear more than once.',
+                code='duplicate_staff'
+            )
+
+        if contact_total > 100:
+            raise forms.ValidationError(
+                'Contact proportions are over 100%',
+                code='invalid_contact_total'
+            )
+
+        if admin_total > 100:
+            raise forms.ValidationError(
+                'Admin proportions are over 100%',
+                code='invalid_contact_total'
+            )
+
+        if assessment_total > 100:
+            raise forms.ValidationError(
+                'Assessment proportions are over 100%',
+                code='invalid_contact_total'
+            )
