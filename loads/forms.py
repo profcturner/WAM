@@ -129,6 +129,13 @@ class LoadsByModulesForm(forms.Form):
     )
 
 
+class LoadChartsForm(forms.Form):
+    """ This exposes some options for load charts views """
+
+    show_90_110 = forms.BooleanField(required=False, initial=False, help_text='Show 90% and 110% boundaries')
+    sort_by_load = forms.BooleanField(required=False, initial=True)
+
+
 class ModulesIndexForm(forms.Form):
     """This prompts for comma separated semesters used for some restrictions"""
     semesters = forms.CharField(

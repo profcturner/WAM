@@ -46,6 +46,7 @@ from .forms import AssessmentStaffForm
 from .forms import AssessmentStateSignOffForm
 from .forms import BaseProjectStaffFormSet
 from .forms import LoadsByModulesForm
+from .forms import LoadChartsForm
 from .forms import TaskForm
 from .forms import TaskCompletionForm
 from .forms import StaffWorkPackageForm
@@ -408,11 +409,27 @@ def loads_by_staff_chart(request):
             return HttpResponseRedirect(url)
 
     logger.info("[%s] loads by staff chart viewed" % request.user, extra={'package': package})
-    # We will likely want these to be configurable
+
     # By default, we will sort lists by highest to lowest workload (if False, alphabetically)
-    sort_lists = True
-    # By default, we will add lines at 90% and 100%
+    sort_by_load = True
+    # By default, we will not add lines at 90% and 100%
     show_90_110 = False
+
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request
+        form = LoadChartsForm(request.POST)
+
+        # check whether it's valid:
+        if form.is_valid():
+            sort_by_load = form.cleaned_data['sort_by_load']
+            show_90_110 = form.cleaned_data['show_90_110']
+
+    # if a GET (or any other method) we'll create a form from the current logged in user
+    else:
+        form = LoadChartsForm()
+
+
     #TODO: This is still pretty much built in as True by assumption in some of the code below
     scale_fte = True
 
@@ -501,7 +518,7 @@ def loads_by_staff_chart(request):
             group_allocated_average = group_total / group_allocated_staff
 
         # We want to sort with the most loaded staff at the top, using scaled hours to compensate for FTE
-        if sort_lists:
+        if sort_by_load:
             group_list = sorted(group_list, key=lambda item : item[4], reverse=True)
 
         group_data.append(
@@ -514,7 +531,8 @@ def loads_by_staff_chart(request):
 
     template = loader.get_template('loads/loads_charts.html')
     context = {
-        'sort_lists': sort_lists,
+        'form': form,
+        'sort_by_load': sort_by_load,
         'show_90_110': show_90_110,
         'group_data': group_data,
         'total': total,
