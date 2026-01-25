@@ -106,6 +106,13 @@
                 </div>
             </fieldset>
             {% endfor %}
+            {% if formset.non_form_errors %}
+            <div class="text-bg-danger">
+                {% for error in formset.non_form_errors %}
+                    {{ error|escape }}
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
     </div>
 
