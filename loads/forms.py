@@ -597,3 +597,39 @@ class BaseModuleStaffByModuleFormSet(FancyModelFormSet):
                 'Assessment proportions are over 100%',
                 code='invalid_contact_total'
             )
+
+
+class BaseProjectStaffFormSet(FancyModelFormSet):
+    """ Enables altering project allocations """
+
+    def clean(self):
+        """
+        Adds overall validation to check that no staff member is in the list twice
+        """
+
+        # Don't validate the whole formset (yet) if individual forms have issues
+        if any(self.errors):
+            return
+
+        staff_members = []
+
+        duplicates = False
+
+        for form in self.forms:
+            # If the form is deleted, don't validate, its data is about to be nuked
+            if form in self.deleted_forms:
+                continue
+
+            if form.cleaned_data:
+                staff = form.cleaned_data['staff']
+
+                if staff in staff_members:
+                    duplicates = True
+                staff_members.append(staff)
+
+        if duplicates:
+            raise forms.ValidationError(
+                'Staff members should not appear more than once.',
+                code='duplicate_staff'
+            )
+
