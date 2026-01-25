@@ -44,6 +44,7 @@ from .models import WorkPackage
 from .forms import AssessmentResourceForm
 from .forms import AssessmentStaffForm
 from .forms import AssessmentStateSignOffForm
+from .forms import BaseProjectStaffFormSet
 from .forms import LoadsByModulesForm
 from .forms import TaskForm
 from .forms import TaskCompletionForm
@@ -1152,40 +1153,26 @@ def module_staff_allocation(request, module_id, package_id):
                                                  'staff__user__last_name'))
 
         logger.debug("[%s] inbound POST %s" % (request.user, request.POST))
-        logger.debug("[%s] allocation formset details" % request.user)
         logger.debug("[%s] %u forms before validation" % (request.user, len(formset.forms)))
         logger.debug("[%s] %u deleted forms before validation" % (request.user, len(formset.deleted_forms)))
 
-
         # We need to tweak the queryset to only allow staff in the package
-        #for form in formset:
-        #    form.fields['staff'].queryset = package.get_all_staff()
+        for form in formset:
+            form.fields['staff'].queryset = package.get_all_staff()
+
         if formset.is_valid():
-
             formset.save(commit=False)
-
-            """
-            for index in range(len(formset.forms)):
-                logger.debug("Editing form %u", index)
-                formset.forms[index].cleaned_data['module'] = module
-                formset.forms[index].cleaned_data['package'] = package
-            """
-
             for form in formset:
-                form.save(commit=False)
-
+                # Some fields are missing, so don't do a full save yet
                 allocation = form.save(commit=False)
+                # Fix the fields
                 allocation.module = module
                 allocation.package = package
-                allocation.save()
-                logger.info("[%s] saved allocation %u", request.user, allocation.id)
+                logger.info("[%s] allocation for %s processed", request.user, allocation.staff)
+            # Now do a real save
             formset.save(commit=True)
-
-            for allocation in formset.deleted_objects:
-                logger.info("[%s] deleted allocation %u", request.user, allocation.id)
-                allocation.delete()
-
-            logger.info("[%s] adjusted the module allocation for module %s" % (request.user, module), extra={'formset': formset})
+            logger.info("[%s] adjusted the module allocation for module %s" % (request.user, module),
+                        extra={'formset': formset})
 
             # redirect to the activites page
             # TODO this might just be a different package from this one, note.
@@ -1688,6 +1675,11 @@ def staff_module_allocation(request, staff_id, package_id):
             request.POST, request.FILES,
             queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff)
         )
+
+        logger.debug("[%s] inbound POST %s" % (request.user, request.POST))
+        logger.debug("[%s] %u forms before validation" % (request.user, len(formset.forms)))
+        logger.debug("[%s] %u deleted forms before validation" % (request.user, len(formset.deleted_forms)))
+
         # We need to tweak the queryset to only allow modules in the package
         for form in formset:
             form.fields['module'].queryset = Module.objects.filter(package=package)
@@ -1800,7 +1792,7 @@ def projects_details(request, project_id):
     package = user_staff.package
 
     # Get a formset with only the choosable fields
-    ProjectStaffFormSet = modelformset_factory(ProjectStaff,   formset=FancyModelFormSet,
+    ProjectStaffFormSet = modelformset_factory(ProjectStaff,  formset=BaseProjectStaffFormSet,
                                                fields=('staff', 'start', 'end', 'hours_per_week'),
                                                widgets={'start' : DateInput(), 'end' : DateInput(),},
                                                can_delete=True)
@@ -1811,6 +1803,11 @@ def projects_details(request, project_id):
             request.POST, request.FILES,
             queryset=ProjectStaff.objects.filter(project=project),
         )
+
+        logger.debug("[%s] inbound POST %s" % (request.user, request.POST))
+        logger.debug("[%s] %u forms before validation" % (request.user, len(formset.forms)))
+        logger.debug("[%s] %u deleted forms before validation" % (request.user, len(formset.deleted_forms)))
+
         # Save the Project Form itself if valid
         if project_form.is_valid():
             project_form.save()
@@ -1828,7 +1825,7 @@ def projects_details(request, project_id):
                 allocation = form.save(commit=False)
                 # Fix the fields
                 allocation.project = project
-                logger.debug("[%s] (admin) adding project allocation %s, staff %s" % (request.user,
+                logger.debug("[%s] (admin) processing project allocation %s, staff %s" % (request.user,
                                                                              project,
                                                                              form.cleaned_data.get("staff")))
 
