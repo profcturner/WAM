@@ -1137,6 +1137,17 @@ def module_staff_allocation(request, module_id, package_id):
         logger.info("[%s] user has no permissions to alter allocations" % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
+    # We usually want to restrict the staff to select to the package, but best honour the possibility
+    # that there are staff not in, or no longer in the package, so add them too.
+    package_staff_qs = package.get_all_staff()
+    module_staff_ids = ModuleStaff.objects.filter(module=module).values_list('staff_id', flat=True)
+    module_staff_qs = Staff.objects.filter(pk__in=module_staff_ids)
+
+    # There can be challenges directly adding to package_staff, especially with some DB layers so
+    package_pks = [s.pk for s in package_staff_qs]
+    combined_pks = set(package_pks) | set(module_staff_ids)
+    combined_staff_qs = Staff.objects.filter(pk__in=combined_pks).distinct().order_by('user__last_name')
+
     # Create a formset with only the choosable fields, and the information to populate the others
     allocation_formset_factory = modelformset_factory(ModuleStaff,
                                                       formset=BaseModuleStaffByModuleFormSet,
@@ -1158,7 +1169,7 @@ def module_staff_allocation(request, module_id, package_id):
 
         # We need to tweak the queryset to only allow staff in the package
         for form in formset:
-            form.fields['staff'].queryset = package.get_all_staff()
+            form.fields['staff'].queryset = combined_staff_qs
 
         if formset.is_valid():
             formset.save(commit=False)
@@ -1183,8 +1194,8 @@ def module_staff_allocation(request, module_id, package_id):
         formset = allocation_formset_factory(queryset=ModuleStaff.objects.filter(module=module).order_by(
             'staff__user__last_name'))
         # Again, only allow staff members in the package
-        #for form in formset:
-        #    form.fields['staff'].queryset = package.get_all_staff()
+        for form in formset:
+            form.fields['staff'].queryset = combined_staff_qs
         logger.info("[%s] opened the form for the module allocation for module %s" % (request.user, module), extra={'formset': formset})
 
     return render(request, 'loads/modules/allocations.html', {'module': module, 'package': package, 'formset': formset})
