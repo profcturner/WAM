@@ -36,7 +36,7 @@
             </fieldset>
             {% endfor %}
             {% if formset.non_form_errors %}
-            <div class="text-bg-danger">
+            <div class="text-bg-danger my-3 p-2">
                 {% for error in formset.non_form_errors %}
                     {{ error|escape }}
                 {% endfor %}
