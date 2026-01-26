@@ -790,6 +790,29 @@ class Staff(models.Model):
 
         return packages
 
+    def get_all_staff_in_all_packages(self, include_hidden=False):
+        """
+        Get all the staff in all the packages that are relevant for a staff member
+
+        This is usually used to restrict a Staff queryset to sensible lists
+        """
+
+        #TODO: probably want to enable this after more testing if this function but it will just add orphans?
+        #if self.user.is_superuser:
+        #    return Staff.objects.all()
+
+        # Get all the packages the staff member has access first
+        all_packages = self.get_all_packages(include_hidden=include_hidden)
+
+        # Get all the groups pointed to by all of those packages
+        target_groups = Group.objects.filter(workpackage__in=all_packages).distinct()
+
+        # These are user objects
+        users_by_groups = User.objects.all().filter(groups__in=target_groups).distinct().order_by('last_name')
+        # Get the matching staff objects
+        staff = Staff.objects.all().filter(user__in=users_by_groups).distinct().order_by('user__last_name')
+        return staff
+
     def get_examined_programmes(self):
         examined_programmes = Programme.objects.all().filter(examiners=self).distinct()
         return examined_programmes

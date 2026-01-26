@@ -756,3 +756,101 @@ class UserCreationTestCase(TestCase):
 
         # Check the invalid user is disabled
         self.assertFalse(invalid_user.is_active)
+
+
+class StaffTestCase(TestCase):
+    """Tests for specific model creation functionality"""
+
+    @override_settings(WAM_STAFF_REGEX=None)
+    @override_settings(WAM_EXTERNAL_REGEX=None)
+    def setUp(self):
+        # Logging is very noisy typically
+        logging.disable(logging.CRITICAL)
+
+        # Create a workpackage
+        packageA = WorkPackage.objects.create(name="A", startdate="2017-09-01", enddate="2018-08-31")
+        packageB = WorkPackage.objects.create(name="B", startdate="2017-09-01", enddate="2018-08-31")
+
+        # Create three groups
+        groupA = Group.objects.create(name="A")
+        groupB1 = Group.objects.create(name="B1")
+        groupB2 = Group.objects.create(name="B2")
+        groupC = Group.objects.create(name="C")
+
+        # Package A has one group, B has 2, the last group is "orphaned"
+        packageA.groups.add(groupA)
+        packageB.groups.add(groupB1)
+        packageB.groups.add(groupB2)
+
+        packageA.save()
+        packageB.save()
+
+        # Create some Users
+        userA_1 = User.objects.create(username="A_1", password="test")
+        userA_2 = User.objects.create(username="A_2", password="test")
+        userB1_1 = User.objects.create(username="B1_1", password="test")
+        userB2_1 = User.objects.create(username="B2_1", password="test")
+        userC = User.objects.create(username="C", password="test")
+
+        userA_1.groups.add(groupA)
+        userA_2.groups.add(groupA)
+        userB1_1.groups.add(groupB1)
+        userB2_1.groups.add(groupB2)
+        userC.groups.add(groupC)
+
+    def tearDown(self):
+        # Put the logging back in place
+        logging.disable(logging.NOTSET)
+
+    def test_staff_all_in_package(self):
+        userA_1 = User.objects.get(username="A_1")
+        userA_2 = User.objects.get(username="A_2")
+        userB1_1 = User.objects.get(username="B1_1")
+        userB2_1 = User.objects.get(username="B2_1")
+        userC = User.objects.get(username="C")
+
+        staffA_1 = Staff.objects.get(user=userA_1)
+        staffA_2 = Staff.objects.get(user=userA_2)
+        staffB1_1 = Staff.objects.get(user=userB1_1)
+        staffB2_1 = Staff.objects.get(user=userB2_1)
+        staffC = Staff.objects.get(user=userC)
+
+        # A_1 should see one package, and two people in it
+        self.assertEqual(len(staffA_1.get_all_packages()), 1)
+        self.assertEqual(len(staffA_1.get_all_staff_in_all_packages()), 2)
+
+        # B_1 should see one package, and two people in it (in two separate groups)
+        self.assertEqual(len(staffB1_1.get_all_packages()), 1)
+        self.assertEqual(len(staffB1_1.get_all_staff_in_all_packages()), 2)
+
+        # C should see nothing
+        self.assertEqual(len(staffC.get_all_packages()), 0)
+        self.assertEqual(len(staffC.get_all_staff_in_all_packages()), 0)
+
+        # Now add A_1 into group B1
+        groupB1 = Group.objects.get(name="B1")
+        userA_1.groups.add(groupB1)
+        # Now A_1 should see two package, and four people in them
+        self.assertEqual(len(staffA_1.get_all_packages()), 2)
+        self.assertEqual(len(staffA_1.get_all_staff_in_all_packages()), 4)
+
+        # Now hide package B
+        packageB = WorkPackage.objects.get(name="B")
+        packageB.hidden = True
+        packageB.save()
+
+        # Now A_1 should see one package, and two people in them if we don't include hidden
+        self.assertEqual(len(staffA_1.get_all_packages(include_hidden=False)), 1)
+        self.assertEqual(len(staffA_1.get_all_staff_in_all_packages(include_hidden=False)), 2)
+        # Now A_1 should see two package, and four people in them if we do
+        self.assertEqual(len(staffA_1.get_all_packages(include_hidden=True)), 2)
+        self.assertEqual(len(staffA_1.get_all_staff_in_all_packages(include_hidden=True)), 4)
+
+        user = User.objects.create_superuser(username="superuser", password="")
+        # Try to get the matching staff object
+        staff = Staff.objects.get(user=user)
+
+        # A Superuser should see all of these people (and doesn't see the orphan, or themselves)
+        self.assertEqual(len(staff.get_all_packages()), 2)
+        self.assertEqual(len(staff.get_all_staff_in_all_packages()), 4)
+

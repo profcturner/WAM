@@ -1199,11 +1199,12 @@ def module_staff_allocation(request, module_id, package_id):
         if formset.is_valid():
             formset.save(commit=False)
             for form in formset:
-                # Some fields are missing, so don't do a full save yet
-                allocation = form.save(commit=False)
-                # Fix the fields
-                allocation.module = module
-                allocation.package = package
+                if form not in formset.deleted_forms:
+                    # Some fields are missing, so don't do a full save yet
+                    allocation = form.save(commit=False)
+                    # Fix the fields
+                    allocation.module = module
+                    allocation.package = package
                 logger.info("[%s] allocation for %s processed", request.user, allocation.staff)
             # Now do a real save
             formset.save(commit=True)
@@ -1725,11 +1726,12 @@ def staff_module_allocation(request, staff_id, package_id):
         if formset.is_valid():
             formset.save(commit=False)
             for form in formset:
-                # Some fields are missing, so don't do a full save yet
-                allocation = form.save(commit=False)
-                # Fix the fields
-                allocation.staff = staff
-                allocation.package = package
+                if form not in formset.deleted_forms:
+                    # Some fields are missing, so don't do a full save yet
+                    allocation = form.save(commit=False)
+                    # Fix the fields
+                    allocation.staff = staff
+                    allocation.package = package
             # Now do a real save
             formset.save(commit=True)
             logger.info("[%s] edited the module allocation for %s on package %s" %
@@ -1824,16 +1826,17 @@ def projects_details(request, project_id):
     """Allows a Project and allocated staff to be edited"""
 
     # Fetch the staff user associated with the person requesting
-    user_staff = get_object_or_404(Staff, user=request.user)
+    staff = get_object_or_404(Staff, user=request.user)
 
     # And the project we are going to act on
     project = get_object_or_404(Project, pk=project_id)
-    package = user_staff.package
+    package = staff.package
 
     # We usually want to restrict the staff to select to the package, but best honour the possibility
     # that there are staff not in, or no longer in the package, so add them too.
     # Some Database layers can't combine the querysets, because of the existing ordering, so we need the ids
-    package_staff_qs = package.get_all_staff()
+    # TODO: maybe add this to the model layer, something like Staff::AugmentQuerySet(A, B)
+    package_staff_qs = staff.get_all_staff_in_all_packages(include_hidden="True")
     package_staff_pks = package_staff_qs.values_list('pk', flat=True)
     logger.debug("[%s] creating query set: package staff pks: %s" % (request.user, package_staff_pks))
     project_staff_pks = ProjectStaff.objects.filter(project=project).values_list('staff_id', flat=True)
@@ -1863,35 +1866,20 @@ def projects_details(request, project_id):
         if project_form.is_valid():
             project_form.save()
 
-        # Restrain querysets as we did for GET for validation checks.
-        for form in formset:
-            # Get a sane list of staff to pick from.
+        if formset.is_valid():
             formset.form.base_fields['staff'].queryset = combined_staff_qs
-            for form in formset:
-                form.fields['staff'].queryset = combined_staff_qs
             formset.empty_form.fields['staff'].queryset = combined_staff_qs
 
-
-        if formset.is_valid():
             formset.save(commit=False)
-
-            logger.debug("[%s] (admin) formset processing" % (request.user,))
             for form in formset:
-                # Some fields are missing, so don't do a full save yet
-                allocation = form.save(commit=False)
-                # Fix the fields
-                allocation.project = project
-                logger.debug("[%s] (admin) processing project allocation %s, staff %s" % (request.user,
-                                                                             project,
-                                                                             form.cleaned_data.get("staff")))
+                # Get a sane list of staff to pick from.
+                form.fields['staff'].queryset = combined_staff_qs
 
-            for allocation in formset.deleted_objects:
-                logger.debug("[%s] (admin) deleting project allocation %s, staff %s" % (request.user,
-                                                                             allocation.project,
-                                                                             allocation.staff))
-                allocation.delete()
-
-
+                # Some fields are missing, so don't do a full save yet, don't do this on delete items
+                if form not in formset.deleted_forms:
+                    allocation = form.save(commit=False)
+                    # Fix the fields
+                    allocation.project = project
             # Now do a real save
             formset.save(commit=True)
             logger.info("[%s] (admin) edited the details for project %s" % (request.user, project),
