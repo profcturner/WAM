@@ -1157,14 +1157,15 @@ def module_staff_allocation(request, module_id, package_id):
 
     # We usually want to restrict the staff to select to the package, but best honour the possibility
     # that there are staff not in, or no longer in the package, so add them too.
+    # Some Database layers can't combine the querysets, because of the existing ordering, so we need the ids
     package_staff_qs = package.get_all_staff()
-    module_staff_ids = ModuleStaff.objects.filter(module=module).values_list('staff_id', flat=True)
-    module_staff_qs = Staff.objects.filter(pk__in=module_staff_ids)
-
-    # There can be challenges directly adding to package_staff, especially with some DB layers so
-    package_pks = [s.pk for s in package_staff_qs]
-    combined_pks = set(package_pks) | set(module_staff_ids)
+    package_staff_pks = package_staff_qs.values_list('pk', flat=True)
+    logger.debug("[%s] creating query set: package staff pks: %s" % (request.user, package_staff_pks))
+    module_staff_pks = ModuleStaff.objects.filter(module=module).values_list('staff_id', flat=True)
+    logger.debug("[%s] creating query set: module staff pks: %s" % (request.user, module_staff_pks))
+    combined_pks = set(package_staff_pks) | set(module_staff_pks)
     combined_staff_qs = Staff.objects.filter(pk__in=combined_pks).distinct().order_by('user__last_name')
+    logger.debug("[%s] creating query set: combined_staff_qs: %s" % (request.user, combined_staff_qs))
 
     # Create a formset with only the choosable fields, and the information to populate the others
     allocation_formset_factory = modelformset_factory(ModuleStaff,
@@ -1176,6 +1177,9 @@ def module_staff_allocation(request, module_id, package_id):
                                                       can_delete=True)
 
     if request.method == "POST":
+        initial = [
+            {"staff": combined_staff_qs.values()},
+        ]
         # Processing the form post submit, get the formset first
         formset = allocation_formset_factory(request.POST, request.FILES,
                                              queryset=ModuleStaff.objects.filter(module=module).order_by(
@@ -1185,9 +1189,12 @@ def module_staff_allocation(request, module_id, package_id):
         logger.debug("[%s] %u forms before validation" % (request.user, len(formset.forms)))
         logger.debug("[%s] %u deleted forms before validation" % (request.user, len(formset.deleted_forms)))
 
+        # Unfortunately if we don't restruct the query set in additional places fancy_formset messes it up
+        formset.form.base_fields['staff'].queryset = combined_staff_qs
         # We need to tweak the queryset to only allow staff in the package
         for form in formset:
             form.fields['staff'].queryset = combined_staff_qs
+        formset.empty_form.fields['staff'].queryset = combined_staff_qs
 
         if formset.is_valid():
             formset.save(commit=False)
@@ -1211,9 +1218,12 @@ def module_staff_allocation(request, module_id, package_id):
     else:
         formset = allocation_formset_factory(queryset=ModuleStaff.objects.filter(module=module).order_by(
             'staff__user__last_name'))
-        # Again, only allow staff members in the package
+        # Again, only allow staff members in the package plus a few others.
+        logger.debug("[%s] creating query set: combined_staff_qs: %s" % (request.user, combined_staff_qs))
+        formset.form.base_fields['staff'].queryset = combined_staff_qs
         for form in formset:
             form.fields['staff'].queryset = combined_staff_qs
+        formset.empty_form.fields['staff'].queryset = combined_staff_qs
         logger.info("[%s] opened the form for the module allocation for module %s" % (request.user, module), extra={'formset': formset})
 
     return render(request, 'loads/modules/allocations.html', {'module': module, 'package': package, 'formset': formset})
@@ -1820,6 +1830,18 @@ def projects_details(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     package = user_staff.package
 
+    # We usually want to restrict the staff to select to the package, but best honour the possibility
+    # that there are staff not in, or no longer in the package, so add them too.
+    # Some Database layers can't combine the querysets, because of the existing ordering, so we need the ids
+    package_staff_qs = package.get_all_staff()
+    package_staff_pks = package_staff_qs.values_list('pk', flat=True)
+    logger.debug("[%s] creating query set: package staff pks: %s" % (request.user, package_staff_pks))
+    project_staff_pks = ProjectStaff.objects.filter(project=project).values_list('staff_id', flat=True)
+    logger.debug("[%s] creating query set: project staff pks: %s" % (request.user, project_staff_pks))
+    combined_pks = set(package_staff_pks) | set(project_staff_pks)
+    combined_staff_qs = Staff.objects.filter(pk__in=combined_pks).distinct().order_by('user__last_name')
+    logger.debug("[%s] creating query set: combined_staff_qs: %s" % (request.user, combined_staff_qs))
+
     # Get a formset with only the choosable fields
     ProjectStaffFormSet = modelformset_factory(ProjectStaff,  formset=BaseProjectStaffFormSet,
                                                fields=('staff', 'start', 'end', 'hours_per_week'),
@@ -1841,9 +1863,14 @@ def projects_details(request, project_id):
         if project_form.is_valid():
             project_form.save()
 
-        # A loop for debugging before validity checks
+        # Restrain querysets as we did for GET for validation checks.
         for form in formset:
-            logger.debug("[%s] (admin) formset: project %s, form %s" % (request.user, project, form))
+            # Get a sane list of staff to pick from.
+            formset.form.base_fields['staff'].queryset = combined_staff_qs
+            for form in formset:
+                form.fields['staff'].queryset = combined_staff_qs
+            formset.empty_form.fields['staff'].queryset = combined_staff_qs
+
 
         if formset.is_valid():
             formset.save(commit=False)
@@ -1881,8 +1908,13 @@ def projects_details(request, project_id):
     else:
         project_form = ProjectForm(instance=project)
         formset = ProjectStaffFormSet(queryset=ProjectStaff.objects.filter(project=project))
+
+        # Get a sane list of staff to pick from.
+        formset.form.base_fields['staff'].queryset = combined_staff_qs
         for form in formset:
-            form.fields['staff'].queryset = package.get_all_staff()
+            form.fields['staff'].queryset = combined_staff_qs
+        formset.empty_form.fields['staff'].queryset = combined_staff_qs
+
         logger.info("[%s] (admin) opened the details for project %s" % (request.user, project),
                     extra={'formset': formset})
 
