@@ -44,7 +44,9 @@ from .models import WorkPackage
 from .forms import AssessmentResourceForm
 from .forms import AssessmentStaffForm
 from .forms import AssessmentStateSignOffForm
+from .forms import BaseProjectStaffFormSet
 from .forms import LoadsByModulesForm
+from .forms import LoadChartsForm
 from .forms import TaskForm
 from .forms import TaskCompletionForm
 from .forms import StaffWorkPackageForm
@@ -407,11 +409,27 @@ def loads_by_staff_chart(request):
             return HttpResponseRedirect(url)
 
     logger.info("[%s] loads by staff chart viewed" % request.user, extra={'package': package})
-    # We will likely want these to be configurable
+
     # By default, we will sort lists by highest to lowest workload (if False, alphabetically)
-    sort_lists = True
-    # By default, we will add lines at 90% and 100%
+    sort_by_load = True
+    # By default, we will not add lines at 90% and 100%
     show_90_110 = False
+
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request
+        form = LoadChartsForm(request.POST)
+
+        # check whether it's valid:
+        if form.is_valid():
+            sort_by_load = form.cleaned_data['sort_by_load']
+            show_90_110 = form.cleaned_data['show_90_110']
+
+    # if a GET (or any other method) we'll create a form from the current logged in user
+    else:
+        form = LoadChartsForm()
+
+
     #TODO: This is still pretty much built in as True by assumption in some of the code below
     scale_fte = True
 
@@ -500,7 +518,7 @@ def loads_by_staff_chart(request):
             group_allocated_average = group_total / group_allocated_staff
 
         # We want to sort with the most loaded staff at the top, using scaled hours to compensate for FTE
-        if sort_lists:
+        if sort_by_load:
             group_list = sorted(group_list, key=lambda item : item[4], reverse=True)
 
         group_data.append(
@@ -513,7 +531,8 @@ def loads_by_staff_chart(request):
 
     template = loader.get_template('loads/loads_charts.html')
     context = {
-        'sort_lists': sort_lists,
+        'form': form,
+        'sort_by_load': sort_by_load,
         'show_90_110': show_90_110,
         'group_data': group_data,
         'total': total,
@@ -1136,21 +1155,40 @@ def module_staff_allocation(request, module_id, package_id):
         logger.info("[%s] user has no permissions to alter allocations" % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
-    # Get a formset with only the choosable fields
-    allocation_form_set = modelformset_factory(ModuleStaff, formset=BaseModuleStaffByModuleFormSet,
-                                             fields=('staff', 'contact_proportion', 'admin_proportion',
-                                                     'assessment_proportion'),
-                                             can_delete=True)
+    # We usually want to restrict the staff to select to the package, but best honour the possibility
+    # that there are staff not in, or no longer in the package, so add them too.
+    package_staff_qs = package.get_all_staff()
+    module_staff_ids = ModuleStaff.objects.filter(module=module).values_list('staff_id', flat=True)
+    module_staff_qs = Staff.objects.filter(pk__in=module_staff_ids)
+
+    # There can be challenges directly adding to package_staff, especially with some DB layers so
+    package_pks = [s.pk for s in package_staff_qs]
+    combined_pks = set(package_pks) | set(module_staff_ids)
+    combined_staff_qs = Staff.objects.filter(pk__in=combined_pks).distinct().order_by('user__last_name')
+
+    # Create a formset with only the choosable fields, and the information to populate the others
+    allocation_formset_factory = modelformset_factory(ModuleStaff,
+                                                      formset=BaseModuleStaffByModuleFormSet,
+                                                      fields=('staff',
+                                                              'contact_proportion',
+                                                              'admin_proportion',
+                                                              'assessment_proportion'),
+                                                      can_delete=True)
 
     if request.method == "POST":
-        formset = allocation_form_set(
-            request.POST, request.FILES,
-            queryset=ModuleStaff.objects.filter(package=package).filter(module=module).order_by(
-                'staff__user__last_name')
-        )
+        # Processing the form post submit, get the formset first
+        formset = allocation_formset_factory(request.POST, request.FILES,
+                                             queryset=ModuleStaff.objects.filter(module=module).order_by(
+                                                 'staff__user__last_name'))
+
+        logger.debug("[%s] inbound POST %s" % (request.user, request.POST))
+        logger.debug("[%s] %u forms before validation" % (request.user, len(formset.forms)))
+        logger.debug("[%s] %u deleted forms before validation" % (request.user, len(formset.deleted_forms)))
+
         # We need to tweak the queryset to only allow staff in the package
         for form in formset:
-            form.fields['staff'].queryset = package.get_all_staff()
+            form.fields['staff'].queryset = combined_staff_qs
+
         if formset.is_valid():
             formset.save(commit=False)
             for form in formset:
@@ -1159,9 +1197,11 @@ def module_staff_allocation(request, module_id, package_id):
                 # Fix the fields
                 allocation.module = module
                 allocation.package = package
+                logger.info("[%s] allocation for %s processed", request.user, allocation.staff)
             # Now do a real save
             formset.save(commit=True)
-            logger.info("[%s] adjusted the module allocation for module %s" % (request.user, module), extra={'formset': formset})
+            logger.info("[%s] adjusted the module allocation for module %s" % (request.user, module),
+                        extra={'formset': formset})
 
             # redirect to the activites page
             # TODO this might just be a different package from this one, note.
@@ -1169,11 +1209,11 @@ def module_staff_allocation(request, module_id, package_id):
             url = reverse('modules_details', args=[module_id])
             return HttpResponseRedirect(url)
     else:
-        formset = allocation_form_set(queryset=ModuleStaff.objects.filter(package=package).filter(module=module).order_by(
+        formset = allocation_formset_factory(queryset=ModuleStaff.objects.filter(module=module).order_by(
             'staff__user__last_name'))
         # Again, only allow staff members in the package
         for form in formset:
-            form.fields['staff'].queryset = package.get_all_staff()
+            form.fields['staff'].queryset = combined_staff_qs
         logger.info("[%s] opened the form for the module allocation for module %s" % (request.user, module), extra={'formset': formset})
 
     return render(request, 'loads/modules/allocations.html', {'module': module, 'package': package, 'formset': formset})
@@ -1664,6 +1704,11 @@ def staff_module_allocation(request, staff_id, package_id):
             request.POST, request.FILES,
             queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff)
         )
+
+        logger.debug("[%s] inbound POST %s" % (request.user, request.POST))
+        logger.debug("[%s] %u forms before validation" % (request.user, len(formset.forms)))
+        logger.debug("[%s] %u deleted forms before validation" % (request.user, len(formset.deleted_forms)))
+
         # We need to tweak the queryset to only allow modules in the package
         for form in formset:
             form.fields['module'].queryset = Module.objects.filter(package=package)
@@ -1776,7 +1821,7 @@ def projects_details(request, project_id):
     package = user_staff.package
 
     # Get a formset with only the choosable fields
-    ProjectStaffFormSet = modelformset_factory(ProjectStaff,   formset=FancyModelFormSet,
+    ProjectStaffFormSet = modelformset_factory(ProjectStaff,  formset=BaseProjectStaffFormSet,
                                                fields=('staff', 'start', 'end', 'hours_per_week'),
                                                widgets={'start' : DateInput(), 'end' : DateInput(),},
                                                can_delete=True)
@@ -1787,16 +1832,39 @@ def projects_details(request, project_id):
             request.POST, request.FILES,
             queryset=ProjectStaff.objects.filter(project=project),
         )
+
+        logger.debug("[%s] inbound POST %s" % (request.user, request.POST))
+        logger.debug("[%s] %u forms before validation" % (request.user, len(formset.forms)))
+        logger.debug("[%s] %u deleted forms before validation" % (request.user, len(formset.deleted_forms)))
+
+        # Save the Project Form itself if valid
         if project_form.is_valid():
             project_form.save()
 
+        # A loop for debugging before validity checks
+        for form in formset:
+            logger.debug("[%s] (admin) formset: project %s, form %s" % (request.user, project, form))
+
         if formset.is_valid():
             formset.save(commit=False)
+
+            logger.debug("[%s] (admin) formset processing" % (request.user,))
             for form in formset:
                 # Some fields are missing, so don't do a full save yet
                 allocation = form.save(commit=False)
                 # Fix the fields
                 allocation.project = project
+                logger.debug("[%s] (admin) processing project allocation %s, staff %s" % (request.user,
+                                                                             project,
+                                                                             form.cleaned_data.get("staff")))
+
+            for allocation in formset.deleted_objects:
+                logger.debug("[%s] (admin) deleting project allocation %s, staff %s" % (request.user,
+                                                                             allocation.project,
+                                                                             allocation.staff))
+                allocation.delete()
+
+
             # Now do a real save
             formset.save(commit=True)
             logger.info("[%s] (admin) edited the details for project %s" % (request.user, project),
@@ -1807,6 +1875,9 @@ def projects_details(request, project_id):
 
             url = reverse('projects_index')
             return HttpResponseRedirect(url)
+        else:
+            logger.debug("[%s] (admin) formset errors %s" % (request.user, formset.errors),
+                        extra={'formset': formset})
     else:
         project_form = ProjectForm(instance=project)
         formset = ProjectStaffFormSet(queryset=ProjectStaff.objects.filter(project=project))

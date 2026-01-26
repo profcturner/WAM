@@ -51,7 +51,7 @@ WAM/.ropeproject/history
 WAM/.ropeproject/objectdb
 WAM/local_settings.py
 .DS_Store
-django.log
+*.log
 /WAM/local
 *THINKINGS.txt*
 *.key

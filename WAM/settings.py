@@ -130,6 +130,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
 STATIC_URL = '/static/'
+# This ensures local files are searched first
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'loads/static')]
 
 # Where do we store media
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

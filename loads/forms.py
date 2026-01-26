@@ -129,6 +129,13 @@ class LoadsByModulesForm(forms.Form):
     )
 
 
+class LoadChartsForm(forms.Form):
+    """ This exposes some options for load charts views """
+
+    show_90_110 = forms.BooleanField(required=False, initial=False, help_text='Show 90% and 110% boundaries')
+    sort_by_load = forms.BooleanField(required=False, initial=True)
+
+
 class ModulesIndexForm(forms.Form):
     """This prompts for comma separated semesters used for some restrictions"""
     semesters = forms.CharField(
@@ -464,11 +471,14 @@ class ExternalExaminerCreationForm(forms.Form):
 
 
 class BaseModuleStaffByStaffFormSet(FancyModelFormSet):
+    """ Enables altering teaching allocation for a member of staff from staff views """
+
     def clean(self):
         """
-        Adds validation to check that no two links have the same anchor or URL
-        and that all links have both an anchor and URL.
+        Adds validation to check that no module is in the list twice, or that combined percentages exceed 100
         """
+
+        # Don't validate the whole formset (yet) if individual forms have issues
         if any(self.errors):
             return
 
@@ -508,19 +518,23 @@ class BaseModuleStaffByStaffFormSet(FancyModelFormSet):
                         code='invalid_assessment_proportion'
                     )
 
-            if duplicates:
-                raise forms.ValidationError(
-                    'Modules should not appear more than once.',
-                    code='duplicate_modules'
-                )
+        if duplicates:
+            raise forms.ValidationError(
+                'Modules should not appear more than once.',
+                code='duplicate_modules'
+            )
 
 
 class BaseModuleStaffByModuleFormSet(FancyModelFormSet):
+    """ Enables altering teaching allocation for a module from module views """
+
     def clean(self):
         """
-        Adds validation to check that no two links have the same anchor or URL
-        and that all links have both an anchor and URL.
+        Adds overall validation to check that no staff member is in the list twice,
+        or that combined percentages exceed 100
         """
+
+        # Don't validate the whole formset (yet) if individual forms have issues
         if any(self.errors):
             return
 
@@ -567,23 +581,62 @@ class BaseModuleStaffByModuleFormSet(FancyModelFormSet):
                         code='invalid_assessment_proportion'
                     )
 
-            if duplicates:
-                raise forms.ValidationError(
-                    'Staff members should not appear more than once.',
-                    code='duplicate_staff'
-                )
-            if contact_total > 100:
-                raise forms.ValidationError(
-                    'Contact proportions are over 100%',
-                    code='invalid_contact_total'
-                )
-            if admin_total > 100:
-                raise forms.ValidationError(
-                    'Admin proportions are over 100%',
-                    code='invalid_contact_total'
-                )
-            if assessment_total > 100:
-                raise forms.ValidationError(
-                    'Assessment proportions are over 100%',
-                    code='invalid_contact_total'
-                )
+        if duplicates:
+            raise forms.ValidationError(
+                'Staff members should not appear more than once.',
+                code='duplicate_staff'
+            )
+
+        if contact_total > 100:
+            raise forms.ValidationError(
+                'Contact proportions are over 100%',
+                code='invalid_contact_total'
+            )
+
+        if admin_total > 100:
+            raise forms.ValidationError(
+                'Admin proportions are over 100%',
+                code='invalid_contact_total'
+            )
+
+        if assessment_total > 100:
+            raise forms.ValidationError(
+                'Assessment proportions are over 100%',
+                code='invalid_contact_total'
+            )
+
+
+class BaseProjectStaffFormSet(FancyModelFormSet):
+    """ Enables altering project allocations """
+
+    def clean(self):
+        """
+        Adds overall validation to check that no staff member is in the list twice
+        """
+
+        # Don't validate the whole formset (yet) if individual forms have issues
+        if any(self.errors):
+            return
+
+        staff_members = []
+
+        duplicates = False
+
+        for form in self.forms:
+            # If the form is deleted, don't validate, its data is about to be nuked
+            if form in self.deleted_forms:
+                continue
+
+            if form.cleaned_data:
+                staff = form.cleaned_data['staff']
+
+                if staff in staff_members:
+                    duplicates = True
+                staff_members.append(staff)
+
+        if duplicates:
+            raise forms.ValidationError(
+                'Staff members should not appear more than once.',
+                code='duplicate_staff'
+            )
+

@@ -40,6 +40,77 @@
 </div>
 {% endif %}
 
+<a class="btn btn-info wam-hide-on-print mb-3" data-bs-toggle="collapse" href="#filterForm" role="button" aria-controls="filterForm">
+    Filter
+</a>
+
+<div class="border border-secondary-subtle rounded-3 p-3 mb-3 collapse wam-hide-on-print"
+     id="filterForm">
+    <h6 class="mt-1 mb-5">Use this form to select graph formatting options.</h6>
+    <form action="" method="post">
+        {% csrf_token %}
+        {# Process hidden fields, we don't need to style them #}
+        {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+        {% endfor %}
+
+    {% for field in form.visible_fields %}
+        <div class="row mb-3">
+            <label for="{{ field.id_for_label }}"
+                   class="col-12 col-md-3 form-label">{{ field.label }}</label>
+            {% if field.field.widget.input_type == "text" %}
+                <div class="col-12 col-md-8">
+                    <input type="{{ field.field.widget.input_type }}"
+                           class="form-control"
+                           id="{{ field.id_for_label }}"
+                           {% if not field.field.max_length is None %}
+                           maxlength="{{ field.field.max_length }}"
+                           {% endif %}
+                           name="{{ field.html_name }}" value="{{ field.value }}" />
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% elif field.field.widget.input_type == "select" %}
+                <div class="col-12 col-md-8">
+                    <select class="form-select" id="{{ field.id_for_label }}" name="{{ field.name }}" value="{{ field.value }}">
+                        {% for option in field.field.choices %}
+                        <option value="{{ option.0|escape }}"{% if field.value == option.0|stringformat:"s" %} selected{% endif %}>
+                            {{ option.1|escape }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {# Show field errors as a list, one per line #}
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                             {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% elif field.field.widget.input_type == "checkbox" %}
+                <div class="col">
+                    <input type="{{ field.field.widget.input_type }}"
+                           class="form-check-input" id="{{ field.id_for_label }}"
+                           name="{{ field.name }}" value="1"{% if field.value is True %} checked{% endif %} />
+                </div>
+            {% else %}
+            <pre>Unknown field type: {{ field.field.widget.input_type }}</pre>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        {#  {{ form }} #}
+        <input type="submit" class="btn btn-primary" value="Submit" />
+    </form>
+</div>
+
 {% if group_data %}
     {% for group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average in group_data %}
     <div class="container p-5 bg-body-secondary shadow-sm rounded printBreakWAM">
@@ -51,7 +122,9 @@
             {% for staff, loads_by_category, hours, bar_width, scaled_hours in group_list %}
             <!-- Start a row -->
             <div class="chart-row">
-                <div class="chart-label"><a class="link-offset-2 link-underline link-underline-opacity-25" href="{% url 'activities' staff.id %}">{{ staff }}</a></div>
+                <div class="chart-label">
+                    <a class="link-offset-2 link-underline link-underline-opacity-25" href="{% url 'activities' staff.id %}">{{ staff }}</a>
+                </div>
                 <div class="progress-wrapper">
                     <div class="hundred-percent-marker"></div>
                     {% if show_90_110 %}
@@ -72,7 +145,7 @@
             </div>
             {% endfor %}
         </div>
-        <div class="alert alert-info small">
+        <div class="alert alert-info small mt-4">
             <strong>Legend:</strong> The red dashed line represents 100% capacity, taking into account staff FTE.
             {% if show_90_110 %}
                 Grey dashed lines represent 90% and 100% capacity.
@@ -98,6 +171,8 @@
     <p>
         No allocations for this group at this time
     </p>
+    </div>
+    <br/>
     {% endif %}
     {% endfor %}
     <h3 class="mt-4">
