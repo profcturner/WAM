@@ -1824,16 +1824,17 @@ def projects_details(request, project_id):
     """Allows a Project and allocated staff to be edited"""
 
     # Fetch the staff user associated with the person requesting
-    user_staff = get_object_or_404(Staff, user=request.user)
+    staff = get_object_or_404(Staff, user=request.user)
 
     # And the project we are going to act on
     project = get_object_or_404(Project, pk=project_id)
-    package = user_staff.package
+    package = staff.package
 
     # We usually want to restrict the staff to select to the package, but best honour the possibility
     # that there are staff not in, or no longer in the package, so add them too.
     # Some Database layers can't combine the querysets, because of the existing ordering, so we need the ids
-    package_staff_qs = package.get_all_staff()
+    # TODO: maybe add this to the model layer, something like Staff::AugmentQuerySet(A, B)
+    package_staff_qs = staff.get_all_staff_in_all_packages(include_hidden="True")
     package_staff_pks = package_staff_qs.values_list('pk', flat=True)
     logger.debug("[%s] creating query set: package staff pks: %s" % (request.user, package_staff_pks))
     project_staff_pks = ProjectStaff.objects.filter(project=project).values_list('staff_id', flat=True)
