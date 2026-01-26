@@ -40,11 +40,11 @@
 </div>
 {% endif %}
 
-<a class="btn btn-info wam-hide-on-print" data-bs-toggle="collapse" href="#filterForm" role="button" aria-controls="filterForm">
+<a class="btn btn-info wam-hide-on-print mb-3" data-bs-toggle="collapse" href="#filterForm" role="button" aria-controls="filterForm">
     Filter
 </a>
 
-<div class="border border-secondary-subtle rounded-3 p-3 mb-3 mt-3 collapse wam-hide-on-print"
+<div class="border border-secondary-subtle rounded-3 p-3 mb-3 collapse wam-hide-on-print"
      id="filterForm">
     <h6 class="mt-1 mb-5">Use this form to select graph formatting options.</h6>
     <form action="" method="post">
@@ -122,7 +122,9 @@
             {% for staff, loads_by_category, hours, bar_width, scaled_hours in group_list %}
             <!-- Start a row -->
             <div class="chart-row">
-                <div class="chart-label"><a class="link-offset-2 link-underline link-underline-opacity-25" href="{% url 'activities' staff.id %}">{{ staff }}</a></div>
+                <div class="chart-label">
+                    <a class="link-offset-2 link-underline link-underline-opacity-25" href="{% url 'activities' staff.id %}">{{ staff }}</a>
+                </div>
                 <div class="progress-wrapper">
                     <div class="hundred-percent-marker"></div>
                     {% if show_90_110 %}
@@ -143,7 +145,7 @@
             </div>
             {% endfor %}
         </div>
-        <div class="alert alert-info small">
+        <div class="alert alert-info small mt-4">
             <strong>Legend:</strong> The red dashed line represents 100% capacity, taking into account staff FTE.
             {% if show_90_110 %}
                 Grey dashed lines represent 90% and 100% capacity.
