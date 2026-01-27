@@ -226,7 +226,7 @@
             {# if forloop.first #}
             {# This won't work since we may have a resource without signoff #}
             <div class="col-2 wam-hide-on-print p-0 pe-2 text-end">
-                <a class="btn btn-sm btn-warning" role="button" href="{% url 'delete_assessment_sign_off' signoff.id %}">
+                <a class="btn btn-sm btn-danger" role="button" href="{% url 'delete_assessment_sign_off' signoff.id %}">
                     delete
                 </a>
             </div>
