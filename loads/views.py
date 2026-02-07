@@ -2482,6 +2482,16 @@ class DeleteProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, DeleteVie
         return super().dispatch(request, *args, **kwargs)
 
 
+@method_decorator(login_required, name='dispatch')
+@method_decorator(staff_only, name='dispatch')
+class CreateProjectView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    """View for creating a Project"""
+    permission_required = 'loads.add_project'
+    model = Project
+    form_class = ProjectForm
+    success_url = reverse_lazy('projects_index')
+
+
  # Looks like decorators execute before mixins, so if you don't call the login decorator, the staff_only may fail
 @method_decorator(login_required, name='dispatch')
 @method_decorator(staff_only, name='dispatch')

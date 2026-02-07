@@ -479,6 +479,7 @@ class ExternalExaminerCreationForm(forms.Form):
 
         return user
 
+# Formsets
 
 class BaseModuleStaffByStaffFormSet(FancyModelFormSet):
     """ Enables altering teaching allocation for a member of staff from staff views """

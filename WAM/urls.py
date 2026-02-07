@@ -31,6 +31,7 @@ from loads.views import CreateProgrammeView
 from loads.views import ProgrammeList
 from loads.views import UpdateProgrammeView
 from loads.views import DetailsProgrammeView
+from loads.views import CreateProjectView
 from loads.views import CreateModuleView
 from loads.views import UpdateModuleView
 from loads.views import CreateTaskView
@@ -110,6 +111,7 @@ urlpatterns = [
     re_path(r'^programmes/details/(?P<pk>[0-9]+)$', DetailsProgrammeView.as_view(), name='view programme'),
     re_path(r'^programmes/delete/(?P<pk>[0-9]+)$', DeleteProgrammeView.as_view(), name='delete programme'),
     re_path(r'^projects/index/$', views.projects_index, name='projects_index'),
+    re_path(r'^projects/create/$', CreateProjectView.as_view(), name='create project'),
     re_path(r'^projects/detail/(?P<project_id>[0-9]+)$', views.projects_details, name='projects_details'),
     re_path(r'^projects/generate_activities/(?P<project_id>[0-9]+)$', views.projects_generate_activities,
             name='projects_generate_activities'),
