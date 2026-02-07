@@ -24,6 +24,9 @@ if DEBUG_TOOLBAR:
 
 from loads import views
 
+from loads.views import CreateActivityGeneratorView
+from loads.views import UpdateActivityGeneratorView
+from loads.views import DeleteActivityGeneratorView
 from loads.views import CreateProgrammeView
 from loads.views import ProgrammeList
 from loads.views import UpdateProgrammeView
@@ -69,6 +72,9 @@ urlpatterns = [
             name='generators_index'),
     re_path(r'^generators/generate_activities/(?P<generator_id>[0-9]+)$', views.generators_generate_activities,
             name='generators_generate_activities'),
+    re_path(r'^generators/create$', CreateActivityGeneratorView.as_view(), name='create generator'),
+    re_path(r'^generators/update/(?P<pk>[0-9]+)$', UpdateActivityGeneratorView.as_view(), name='update generator'),
+    re_path(r'^generators/delete/(?P<pk>[0-9]+)$', DeleteActivityGeneratorView.as_view(), name='delete generator'),
     re_path(r'^tasks/index/$', views.tasks_index,
             name='tasks_index'),
     re_path(r'^tasks/archived/index/$', views.archived_tasks_index,

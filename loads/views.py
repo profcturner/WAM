@@ -41,6 +41,7 @@ from .models import Project
 from .models import ProjectStaff
 from .models import WorkPackage
 
+from .forms import ActivityGeneratorForm
 from .forms import AssessmentResourceForm
 from .forms import AssessmentStaffForm
 from .forms import AssessmentStateSignOffForm
@@ -2044,6 +2045,111 @@ def workpackage_migrate(request):
 
 
 # Class based views
+
+class CreateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    """View for creating a Module"""
+    permission_required = 'loads.add_activitygenerator'
+    model = ActivityGenerator
+    form_class = ActivityGeneratorForm
+    success_url = reverse_lazy('generators_index')
+    fields = ['name', 'hours', 'percentage', 'hours_percentage', 'semester', 'activity_type',
+              'module', 'comment', 'package', 'details', 'targets', 'groups']
+
+    def get_form(self, form_class=ActivityGeneratorForm):
+        """We need to restrict form querysets"""
+        form = super(CreateActivityGeneratorView, self).get_form(form_class)
+
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+        package_staff = package.get_all_staff()
+
+        # And restrict the querysets as appropriate
+        form.fields['package'].initial = package
+        form.fields['targets'].queryset = package_staff
+        form.fields['groups'].queryset = package.groups
+        return form
+
+    def form_valid(self, form):
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+
+        self.object = form.save(commit=False)
+        self.object.package = package
+        response = super(CreateActivityGeneratorView, self).form_valid(form)
+        return response
+
+class UpdateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    """View for creating a Module"""
+    permission_required = 'loads.change_activitygenerator'
+    model = ActivityGenerator
+    form_class = ActivityGeneratorForm
+    success_url = reverse_lazy('generators_index')
+    fields = ['name', 'hours', 'percentage', 'hours_percentage', 'semester', 'activity_type',
+              'module', 'comment', 'package', 'details', 'targets', 'groups']
+
+    def get_form(self, form_class=ActivityGeneratorForm):
+        """We need to restrict form querysets"""
+        form = super(UpdateActivityGeneratorView, self).get_form(form_class)
+
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+        package_staff = package.get_all_staff()
+
+        # And restrict the querysets as appropriate
+        form.fields['package'].initial = package
+        form.fields['targets'].queryset = package_staff
+        form.fields['groups'].queryset = package.groups
+        return form
+
+    def form_valid(self, form):
+        # Work out the correct package and the staff within in
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = staff.package
+
+        self.object = form.save(commit=False)
+        self.object.package = package
+        response = super(UpdateActivityGeneratorView, self).form_valid(form)
+        return response
+
+
+@method_decorator(staff_only, name='dispatch')
+class DeleteActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    """
+    View for deleting a Module
+
+    There are a number of import Models that will delete on Cascade from this so checks and warnings are important.
+    """
+    permission_required = 'loads.delete_activitygenerator'
+    model = ActivityGenerator
+    success_url = reverse_lazy('generators_index')
+
+    def dispatch(self, request, *args, **kwargs):
+        # Check this Activity is the business of the logged in user
+        generator = self.get_object()
+
+        try:
+            staff = Staff.objects.get(user=self.request.user)
+        except Staff.DoesNotExist:
+            raise PermissionDenied("""Your user has no matching staff object.""")
+
+        if request.method == "POST":
+            action_verb = "confirming deletion of"
+        else:
+            action_verb = "seeking to delete"
+
+        logger.warning("[%s] %s activity generator %s in package %s" %
+                       (request.user, action_verb, generator.name, generator.package))
+
+        if not request.user.is_superuser:
+            if generator.package not in staff.get_all_packages(include_hidden=True):
+                logger.warning("[%s] permission denied, generator not in workpackages." % request.user)
+                raise PermissionDenied("""Sorry, this generator is not in your workpackages.""")
+
+        return super().dispatch(request, *args, **kwargs)
+
 
 class CreateTaskView(LoginRequiredMixin, CreateView):
     """View for creating a task"""

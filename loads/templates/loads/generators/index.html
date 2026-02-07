@@ -49,7 +49,8 @@
             <tr>
                 <th scope="col">Generator name</th>
                 <th scope="col">Activity type</th>
-                <th scope="col" class="text-center wam-hide-on-print">Generate activities</th>
+                <th scope="col">Update</th>
+                <th scope="col" class="wam-hide-on-print">Generate activities</th>
             </tr>
         </thead>
         <tbody class="table-group-divider">
@@ -57,7 +58,10 @@
             <tr>
                 <th>{{ generator.name }}</th>
                 <td>{{ generator.activity_type }}</td>
-                <td class="text-center wam-hide-on-print">
+                <td class="wam-hide-on-print">
+                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update generator' generator.id %}">Update</a>
+                </td>
+                <td class="wam-hide-on-print">
                     <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'generators_generate_activities' generator.id %}">Generate</a>
                 </td>
             </tr>
@@ -74,5 +78,9 @@
     No activity generators are available in this work package.
 </p>
 {% endif %}
+<div class="mt-5 wam-hide-on-print">
+    <h4>Add activity generator</h4>
+    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'create generator' %}">Click here to create a new activity generator</a>
+</div>
 
 {% endblock content %}
