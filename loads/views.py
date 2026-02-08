@@ -369,7 +369,7 @@ def loads(request):
     else:
         average = 0
 
-    template = loader.get_template('loads/loads.html')
+    template = loader.get_template('loads/loads/loads.html')
     context = {
         'group_data': group_data,
         'total': total,
@@ -530,7 +530,7 @@ def loads_by_staff_chart(request):
     else:
         average = 0
 
-    template = loader.get_template('loads/loads_charts.html')
+    template = loader.get_template('loads/loads/loads_charts.html')
     context = {
         'form': form,
         'sort_by_load': sort_by_load,
@@ -750,7 +750,7 @@ def activities(request, staff_id):
         semester3_total = semester3_total * 100 / package.nominal_hours
         total = 100 * total / package.nominal_hours
 
-    template = loader.get_template('loads/activities.html')
+    template = loader.get_template('loads/activities/activities.html')
     context = {
         'staff': staff,
         'combined_list': combined_list,
@@ -804,7 +804,7 @@ def assessmentstaff_index(request):
         form.fields['package'].initial = package
         form.fields['staff'].queryset = possible_assessment_staff
 
-    template = loader.get_template('loads/assessmentstaff_list.html')
+    template = loader.get_template('loads/admin/assessmentstaff_list.html')
     context = {
         'staff': staff,
         'package': package,
@@ -1982,8 +1982,6 @@ def workpackage_change(request):
         except KeyError:
             next_page_push(request, reverse('loads'))
 
-
-
     return render(request, 'loads/workpackage.html', {'form': form, 'staff': staff})
 
 
@@ -2046,12 +2044,15 @@ def workpackage_migrate(request):
 
 # Class based views
 
+@method_decorator(login_required, name='dispatch')
+@method_decorator(staff_only, name='dispatch')
 class CreateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """View for creating a Module"""
     permission_required = 'loads.add_activitygenerator'
     model = ActivityGenerator
     form_class = ActivityGeneratorForm
     success_url = reverse_lazy('generators_index')
+    template_name = 'loads/generators/activitygenerator_form.html'
     fields = ['name', 'hours', 'percentage', 'hours_percentage', 'semester', 'activity_type',
               'module', 'comment', 'package', 'details', 'targets', 'groups']
 
@@ -2080,12 +2081,16 @@ class CreateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, C
         response = super(CreateActivityGeneratorView, self).form_valid(form)
         return response
 
+
+@method_decorator(login_required, name='dispatch')
+@method_decorator(staff_only, name='dispatch')
 class UpdateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """View for creating a Module"""
     permission_required = 'loads.change_activitygenerator'
     model = ActivityGenerator
     form_class = ActivityGeneratorForm
     success_url = reverse_lazy('generators_index')
+    template_name = 'loads/generators/activitygenerator_form.html'
     fields = ['name', 'hours', 'percentage', 'hours_percentage', 'semester', 'activity_type',
               'module', 'comment', 'package', 'details', 'targets', 'groups']
 
@@ -2115,6 +2120,7 @@ class UpdateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, U
         return response
 
 
+@method_decorator(login_required, name='dispatch')
 @method_decorator(staff_only, name='dispatch')
 class DeleteActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     """
@@ -2124,6 +2130,7 @@ class DeleteActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, D
     """
     permission_required = 'loads.delete_activitygenerator'
     model = ActivityGenerator
+    template_name = 'loads/generators/activitygenerator_confirm_delete.html'
     success_url = reverse_lazy('generators_index')
 
     def dispatch(self, request, *args, **kwargs):
@@ -2155,6 +2162,7 @@ class CreateTaskView(LoginRequiredMixin, CreateView):
     """View for creating a task"""
     model = Task
     success_url = reverse_lazy('tasks_index')
+    template_name = 'loads/tasks/task_form.html'
     fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups']
 
     def get_form(self, form_class=TaskForm):
@@ -2189,6 +2197,7 @@ class UpdateTaskView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     permission_required = 'loads.change_task'
     model = Task
     success_url = reverse_lazy('tasks_index')
+    template_name = 'loads/tasks/task_form.html'
     fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups']
 
     def get_form(self, form_class=None):
@@ -2217,6 +2226,7 @@ class CreateModuleView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """View for creating a Module"""
     permission_required = 'loads.add_module'
     model = Module
+    template_name = 'loads/modules/module_form.html'
     fields = ['module_code', 'module_name', 'campus', 'size', 'semester', 'contact_hours', 'admin_hours',
               'assessment_hours',
               'coordinator', 'moderators', 'programmes', 'lead_programme']
@@ -2259,6 +2269,7 @@ class UpdateModuleView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """View for editing a Module"""
     permission_required = 'loads.change_module'
     model = Module
+    template_name = 'loads/modules/module_form.html'
 
 
     def get_form(self, form_class=ModuleForm):
@@ -2294,6 +2305,7 @@ class DeleteModuleView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     """
     permission_required = 'loads.delete_module'
     model = Module
+    template_name = 'loads/modules/module_confirm_delete.html'
     success_url = reverse_lazy('modules_index')
 
     def dispatch(self, request, *args, **kwargs):
@@ -2356,6 +2368,7 @@ class CreateProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, CreateVie
     permission_required = 'loads.add_programme'
     model = Programme
     success_url = reverse_lazy('programmes_index')
+    template_name = 'loads/programmes/programme_form.html'
     fields = ['programme_code', 'programme_name', 'examiners', 'directors']
 
     def get_form(self, form_class=None):
@@ -2384,6 +2397,7 @@ class DetailsProgrammeView(LoginRequiredMixin, DetailView):
     """View for editing a Programme"""
     model = Programme
     success_url = reverse_lazy('programmes_index')
+    template_name = 'loads/programmes/programme_detail.html'
     fields = ['programme_code', 'programme_name', 'examiners', 'directors']
 
     def get_queryset(self):
@@ -2402,6 +2416,7 @@ class UpdateProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, UpdateVie
     permission_required = 'loads.change_programme'
     model = Programme
     success_url = reverse_lazy('programmes_index')
+    template_name = 'loads/programmes/programme_form.html'
     fields = ['programme_code', 'programme_name', 'examiners', 'directors']
 
     def get_form(self, form_class=None):
@@ -2421,6 +2436,7 @@ class ProgrammeList(LoginRequiredMixin, ListView):
     """Generic view for Programme List"""
     model = Programme
     context_object_name = 'programmes'
+    template_name = 'loads/programmes/programme_list.html'
 
     def get_queryset(self):
         try:
@@ -2456,6 +2472,7 @@ class DeleteProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, DeleteVie
     """
     permission_required = 'loads.delete_programme'
     model = Programme
+    template_name = 'loads/programmes/programme_confirm_delete.html'
     success_url = reverse_lazy('programmes_index')
 
     def dispatch(self, request, *args, **kwargs):
@@ -2489,6 +2506,7 @@ class CreateProjectView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
     permission_required = 'loads.add_project'
     model = Project
     form_class = ProjectForm
+    template_name = "loads/projects/project_form.html"
     success_url = reverse_lazy('projects_index')
 
 
@@ -2501,6 +2519,7 @@ class ActivityListView(LoginRequiredMixin, ListView):
     """
     model = Activity
     context_object_name = 'activities'
+    template_name = 'loads/activities/activity_list.html'
     #TODO: Need more thought before paginate_by = 20
 
     def get_queryset(self):
@@ -2523,11 +2542,14 @@ class ActivityListView(LoginRequiredMixin, ListView):
         return context
 
 
+@method_decorator(login_required, name='dispatch')
+@method_decorator(staff_only, name='dispatch')
 class CreateActivityView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """View for creating an Activity"""
     permission_required = 'loads.add_activity'
     model = Activity
     success_url = reverse_lazy('activities_index')
+    template_name = 'loads/activities/activity_form.html'
     fields = ['name', 'hours', 'percentage', 'hours_percentage',
               'semester', 'activity_type', 'module', 'staff', 'comment']
 
@@ -2554,11 +2576,14 @@ class CreateActivityView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
         return response
 
 
+@method_decorator(login_required, name='dispatch')
+@method_decorator(staff_only, name='dispatch')
 class UpdateActivityView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """View for updating an Activity"""
     permission_required = 'loads.change_activity'
     model = Activity
     success_url = reverse_lazy('activities_index')
+    template_name = 'loads/activities/activity_form.html'
     fields = ['name', 'hours', 'percentage', 'hours_percentage',
               'semester', 'activity_type', 'module', 'staff', 'comment']
 
@@ -2585,10 +2610,13 @@ class UpdateActivityView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         return response
 
 
+@method_decorator(login_required, name='dispatch')
+@method_decorator(staff_only, name='dispatch')
 class DeleteActivityView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     """View for deleting an Activity"""
     permission_required = 'loads.delete_activity'
     model = Activity
+    template_name = 'loads/activities/activity_confirm_delete.html'
     success_url = reverse_lazy('activities_index')
 
     def dispatch(self, request, *args, **kwargs):
