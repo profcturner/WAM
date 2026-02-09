@@ -1571,7 +1571,7 @@ def add_assessment_sign_off(request, module_id):
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
-        form = AssessmentStateSignOffForm(request.POST)
+        form = AssessmentStateSignOffForm(request.POST, user=request.user)
 
         # check whether it's valid:
         if form.is_valid():
@@ -1588,7 +1588,7 @@ def add_assessment_sign_off(request, module_id):
 
     # if a GET (or any other method) we'll create a blank form
     else:
-        form = AssessmentStateSignOffForm()
+        form = AssessmentStateSignOffForm(user=request.user)
         form.fields['assessment_state'].queryset = next_states
         form.fields['signed_by'].initial = request.user
         form.fields['module'].initial = module
