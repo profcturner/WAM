@@ -1122,9 +1122,6 @@ def add_assessment_resource(request, module_id):
     if not permission:
         raise PermissionDenied("Sorry, you do not have permission to upload this resource")
 
-    # if not can_override:
-    #    return HttpResponseRedirect(reverse('forbidden'))
-
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request
