@@ -519,6 +519,106 @@ class UserClientTest(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
+    def test_staff_no_role_programme_pages(self):
+        """This checks that a Staff member with no specific has appropriate programme views"""
+
+        # Log the User in
+        user = User.objects.get(username='user')
+        staff = Staff.objects.get(user=user)
+        # force_login bypasses potential custom authentication back ends
+        self.client.force_login(user)
+
+        programme = Programme.objects.get(programme_code="123")
+
+        # These views should be response code 200 (OK)
+        response = self.client.get("/programmes/details/%u" % programme.id)
+        self.assertEqual(response.status_code, 200)
+
+        # These views should be response code 403 (Forbidden)
+        response = self.client.get("/programmes/update/%u" % programme.id)
+        self.assertEqual(response.status_code, 403)
+
+        # These views should be response code 404 (Not Found)
+        response = self.client.get("/programmes/update/9999")
+        self.assertEqual(response.status_code, 403)
+
+        # These views should be response code 403 (Forbidden)
+        response = self.client.get("/programmes/create/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/programmes/delete/%u" % programme.id)
+        self.assertEqual(response.status_code, 403)
+
+        # These views should be response code 404 (Not Found)
+        response = self.client.get("/programmes/details/9999")
+        self.assertEqual(response.status_code, 404)
+
+
+    def test_external_programme_pages(self):
+        """This checks that a Staff member with no specific has appropriate module views"""
+
+        # Log the User in
+        user = User.objects.get(username='external')
+        staff = Staff.objects.get(user=user)
+        # force_login bypasses potential custom authentication back ends
+        self.client.force_login(user)
+
+        programme = Programme.objects.get(programme_code="123")
+
+        # These views should be response code 200 (OK)
+        response = self.client.get("/programmes/details/%u" % programme.id)
+        self.assertEqual(response.status_code, 200)
+
+        # These views should be response code 403 (Forbidden)
+        response = self.client.get("/programmes/update/%u" % programme.id)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/programmes/update/9999")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/programmes/create/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/programmes/delete/%u" % programme.id)
+        self.assertEqual(response.status_code, 403)
+
+        # These views should be response code 404 (Not Found)
+        response = self.client.get("/programmes/details/9999")
+        self.assertEqual(response.status_code, 404)
+
+
+    def test_superuser_programme_pages(self):
+        """This checks that a Staff member with no specific has appropriate module views"""
+
+        # Log the User in
+        user = User.objects.get(username='admin')
+        staff = Staff.objects.get(user=user)
+        # force_login bypasses potential custom authentication back ends
+        self.client.force_login(user)
+
+        programme = Programme.objects.get(programme_code="123")
+
+        # These views should be response code 200 (OK)
+        response = self.client.get("/programmes/details/%u" % programme.id)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/programmes/update/%u" % programme.id)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/programmes/create/")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/programmes/delete/%u" % programme.id)
+        self.assertEqual(response.status_code, 200)
+
+        # These views should be response code 404 (Not Found)
+        response = self.client.get("/programmes/details/9999")
+        self.assertEqual(response.status_code, 404)
+
+        response = self.client.get("/programmes/update/9999")
+        self.assertEqual(response.status_code, 404)
+
+
     def test_staff_task_pages(self):
         """This checks that a Staff member can access the various task views"""
 

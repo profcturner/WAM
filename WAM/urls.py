@@ -24,10 +24,14 @@ if DEBUG_TOOLBAR:
 
 from loads import views
 
+from loads.views import CreateActivityGeneratorView
+from loads.views import UpdateActivityGeneratorView
+from loads.views import DeleteActivityGeneratorView
 from loads.views import CreateProgrammeView
 from loads.views import ProgrammeList
 from loads.views import UpdateProgrammeView
 from loads.views import DetailsProgrammeView
+from loads.views import CreateProjectView
 from loads.views import CreateModuleView
 from loads.views import UpdateModuleView
 from loads.views import CreateTaskView
@@ -69,6 +73,9 @@ urlpatterns = [
             name='generators_index'),
     re_path(r'^generators/generate_activities/(?P<generator_id>[0-9]+)$', views.generators_generate_activities,
             name='generators_generate_activities'),
+    re_path(r'^generators/create$', CreateActivityGeneratorView.as_view(), name='create generator'),
+    re_path(r'^generators/update/(?P<pk>[0-9]+)$', UpdateActivityGeneratorView.as_view(), name='update generator'),
+    re_path(r'^generators/delete/(?P<pk>[0-9]+)$', DeleteActivityGeneratorView.as_view(), name='delete generator'),
     re_path(r'^tasks/index/$', views.tasks_index,
             name='tasks_index'),
     re_path(r'^tasks/archived/index/$', views.archived_tasks_index,
@@ -104,6 +111,7 @@ urlpatterns = [
     re_path(r'^programmes/details/(?P<pk>[0-9]+)$', DetailsProgrammeView.as_view(), name='view programme'),
     re_path(r'^programmes/delete/(?P<pk>[0-9]+)$', DeleteProgrammeView.as_view(), name='delete programme'),
     re_path(r'^projects/index/$', views.projects_index, name='projects_index'),
+    re_path(r'^projects/create/$', CreateProjectView.as_view(), name='create project'),
     re_path(r'^projects/detail/(?P<project_id>[0-9]+)$', views.projects_details, name='projects_details'),
     re_path(r'^projects/generate_activities/(?P<project_id>[0-9]+)$', views.projects_generate_activities,
             name='projects_generate_activities'),

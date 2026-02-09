@@ -11,7 +11,7 @@ from django.contrib.auth.models import User, Group
 from django.db import transaction
 from django.core.exceptions import ValidationError
 
-from .models import AssessmentResource, Task, Module
+from .models import AssessmentResource, Task, Module, ActivityGenerator
 from .models import AssessmentStaff
 from .models import AssessmentStateSignOff
 from .models import Staff
@@ -156,6 +156,16 @@ class ModulesIndexForm(forms.Form):
 
 
 # Forms based on Models
+
+class ActivityGeneratorForm(ModelForm):
+    """Form for creating or editing activity generators"""
+
+    class Meta:
+        model = ActivityGenerator
+        fields = ['name', 'hours', 'percentage', 'hours_percentage', 'semester', 'activity_type',
+                  'module', 'comment', 'package', 'details', 'targets', 'groups']
+        widgets = {'details': forms.TextInput,
+                   'package': forms.HiddenInput()}
 
 class AssessmentStaffForm(ModelForm):
     """Used for adding AssessmentStaff to a work package"""
@@ -469,6 +479,7 @@ class ExternalExaminerCreationForm(forms.Form):
 
         return user
 
+# Formsets
 
 class BaseModuleStaffByStaffFormSet(FancyModelFormSet):
     """ Enables altering teaching allocation for a member of staff from staff views """

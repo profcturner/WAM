@@ -1,0 +1,41 @@
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
+
+<h3 class="my-3">Delete generator</h3>
+<h4 class="text-info-emphasis font-monospace">({{ object }})</h4>
+
+{% if object.package.in_the_past %}
+<div class="border border-2 border-danger p-4 pb-3 rounded-3 mt-4 mb-4">
+    <p class="fw-bold">Warning: The Work Package for this item is in the past!</p>
+    <p>You should not be deleting past generators unless they are a correction.</p>
+</div>
+{% endif %}
+
+<div class="mt-5">
+    <p>
+        You are deleting <span class="font-monospace">"{{ object }}"</span> in year
+        <span class="font-monospace">"{{ object.package }}"</span>
+    </p>
+    <div class="fw-bold mt-4">
+        Deleting generators will not delete activities they already created.
+    </div>
+</div>
+
+<div class="mt-5">
+    <p class="mt-5 fw-bold">
+        This cannot be undone! Are you sure?
+    </p>
+    <p>
+        <form method="post">
+            {{ form }}
+            {% csrf_token %}
+            <p class="mt-3">
+                <input type="submit" class="btn btn-danger me-4" role="button" value="Confirm" />
+                <a class="btn btn-primary" role="button" href="{% url 'generators_index' %}">Cancel</a>
+            </p>
+        </form>
+    </p>
+</div>
+
+{% endblock content %}
