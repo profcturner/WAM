@@ -1097,8 +1097,31 @@ def add_assessment_resource(request, module_id):
     # Get the module itself
     module = get_object_or_404(Module, pk=module_id)
 
-    # Check for a valid permission at this stage
-    # can_override = request.user.has_perm('loads.add_assessment_resource')
+    # Assume a lack of permission, unless a coordinator, teaching team member, moderator, examiner, or superuser
+    permission = False
+    logger.debug("[%s] checking status for module %s, pre upload" % (request.user, module))
+    if staff is module.coordinator:
+        logger.debug("[%s] is a module coordinator" % request.user)
+        permission = True
+    elif staff in module.moderators.all():
+        logger.debug("[%s] is a module moderator" % request.user)
+        permission = True
+    elif staff in ModuleStaff.objects.filter(module=module):
+        logger.debug("[%s] is on the module team" % request.user)
+        permission = True
+    elif staff.can_examine_module(module):
+        logger.debug("[%s] is a module examiner" % request.user)
+        permission = True
+    elif staff in AssessmentStaff.objects.filter(package=module.package):
+        logger.debug("[%s] is on the assessment team for the package" % request.user)
+        permission = True
+    elif staff.user.is_superuser:
+        logger.debug("[%s] is a superuser" % request.user)
+        permission = True
+
+    if not permission:
+        raise PermissionDenied("Sorry, you do not have permission to upload this resource")
+
     # if not can_override:
     #    return HttpResponseRedirect(reverse('forbidden'))
 
