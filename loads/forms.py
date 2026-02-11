@@ -265,6 +265,12 @@ class ProjectForm(ModelForm):
 
 
 class AssessmentStateSignOffForm(ModelForm):
+    """Form for adding assessment sign offs"""
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super(AssessmentStateSignOffForm, self).__init__(*args, **kwargs)
+
     class Meta:
         model = AssessmentStateSignOff
         fields = ['assessment_state', 'notes', 'module', 'signed_by']
@@ -274,7 +280,8 @@ class AssessmentStateSignOffForm(ModelForm):
         """Check the user can invoke this state"""
         assessment_state = self.cleaned_data['assessment_state']
         module = self.cleaned_data['module']
-        signed_by = self.cleaned_data['signed_by']
+        # Override with the passed in user (which should be request.user) for security reasons
+        signed_by = self.user
         staff = Staff.objects.get(user=signed_by)
 
         if not assessment_state.can_be_set_by(staff, module):

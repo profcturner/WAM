@@ -160,6 +160,14 @@ class UserClientTest(TestCase):
         module.programmes.add(other_programme)
         module.save()
 
+        # Module ABC101 is in programme 123 as a lead programme
+        # Module ABC101 in in programme 456 as a programme (but not lead)
+
+        # Programme 123 has an examiner "externalA" (a lead examiner)
+        # Programme 456 has an examiner "externalB" (an examiner but not lead)
+
+        # So "external" and "externalC" are externals with nothing to examine
+
         # and staffB on teaching team
         ModuleStaff.objects.create(
             module=module,
@@ -304,7 +312,7 @@ class UserClientTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
-    def test_external_index_pages(self):
+    def test_external_no_role_index_pages(self):
         """This checks that an External Examiner can access the various index pages, and not others"""
 
         # Log the User in
@@ -427,8 +435,41 @@ class UserClientTest(TestCase):
         response = self.client.get("/modules/details/%u" % module.id)
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get("/modules/add_assessment_resource/%u" % module.id)
+        response = self.client.get("/modules/add_assessment_sign_off/%u" % module.id)
         self.assertEqual(response.status_code, 200)
+
+        # These views should be response code 404 (Not Found)
+        response = self.client.get("/modules/details/9999")
+        self.assertEqual(response.status_code, 404)
+
+        # These views should be response code 403 (Forbidden)
+        response = self.client.get("/modules/create/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/modules/update/%u" % module.id)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/modules/delete/%u" % module.id)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get("/modules/add_assessment_resource/%u" % module.id)
+        self.assertEqual(response.status_code, 403)
+
+
+    def test_external_no_role_module_pages(self):
+        """This checks that a Staff member with no specific has appropriate module views"""
+
+        # Log the User in
+        user = User.objects.get(username='externalC')
+        staff = Staff.objects.get(user=user)
+        # force_login bypasses potential custom authentication back ends
+        self.client.force_login(user)
+
+        module = Module.objects.get(module_code="ABC101")
+
+        # These might be a redirect, which could be different with oauth2, but it should not be 200
+        response = self.client.get("/modules/details/%u" % module.id)
+        self.assertNotEqual(response.status_code, 200)
 
         response = self.client.get("/modules/add_assessment_sign_off/%u" % module.id)
         self.assertEqual(response.status_code, 200)
@@ -447,21 +488,24 @@ class UserClientTest(TestCase):
         response = self.client.get("/modules/delete/%u" % module.id)
         self.assertEqual(response.status_code, 403)
 
+        response = self.client.get("/modules/add_assessment_resource/%u" % module.id)
+        self.assertEqual(response.status_code, 403)
 
-    def test_external_module_pages(self):
+
+    def test_external_with_role_module_pages(self):
         """This checks that a Staff member with no specific has appropriate module views"""
 
         # Log the User in
-        user = User.objects.get(username='external')
+        user = User.objects.get(username='externalA')
         staff = Staff.objects.get(user=user)
         # force_login bypasses potential custom authentication back ends
         self.client.force_login(user)
 
         module = Module.objects.get(module_code="ABC101")
 
-        # These might be a redirect, which could be different with oauth2, but it should not be 200
+        # Should be OK
         response = self.client.get("/modules/details/%u" % module.id)
-        self.assertNotEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
         response = self.client.get("/modules/add_assessment_resource/%u" % module.id)
         self.assertEqual(response.status_code, 200)

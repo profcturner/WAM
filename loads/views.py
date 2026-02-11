@@ -1097,10 +1097,30 @@ def add_assessment_resource(request, module_id):
     # Get the module itself
     module = get_object_or_404(Module, pk=module_id)
 
-    # Check for a valid permission at this stage
-    # can_override = request.user.has_perm('loads.add_assessment_resource')
-    # if not can_override:
-    #    return HttpResponseRedirect(reverse('forbidden'))
+    # Assume a lack of permission, unless a coordinator, teaching team member, moderator, examiner, or superuser
+    permission = False
+    logger.debug("[%s] checking status for module %s, pre upload" % (request.user, module))
+    if staff is module.coordinator:
+        logger.debug("[%s] is a module coordinator" % request.user)
+        permission = True
+    elif staff in module.moderators.all():
+        logger.debug("[%s] is a module moderator" % request.user)
+        permission = True
+    elif staff in ModuleStaff.objects.filter(module=module):
+        logger.debug("[%s] is on the module team" % request.user)
+        permission = True
+    elif staff.can_examine_module(module):
+        logger.debug("[%s] is a module examiner" % request.user)
+        permission = True
+    elif staff in AssessmentStaff.objects.filter(package=module.package):
+        logger.debug("[%s] is on the assessment team for the package" % request.user)
+        permission = True
+    elif staff.user.is_superuser:
+        logger.debug("[%s] is a superuser" % request.user)
+        permission = True
+
+    if not permission:
+        raise PermissionDenied("Sorry, you do not have permission to upload this resource")
 
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
@@ -1571,7 +1591,7 @@ def add_assessment_sign_off(request, module_id):
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
-        form = AssessmentStateSignOffForm(request.POST)
+        form = AssessmentStateSignOffForm(request.POST, user=request.user)
 
         # check whether it's valid:
         if form.is_valid():
@@ -1588,7 +1608,7 @@ def add_assessment_sign_off(request, module_id):
 
     # if a GET (or any other method) we'll create a blank form
     else:
-        form = AssessmentStateSignOffForm()
+        form = AssessmentStateSignOffForm(user=request.user)
         form.fields['assessment_state'].queryset = next_states
         form.fields['signed_by'].initial = request.user
         form.fields['module'].initial = module
