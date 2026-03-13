@@ -70,7 +70,7 @@ class Command(BaseCommand):
                     self.stdout.write(string1)
                     self.stdout.write(string2)
                 # Put set the timestamp to avoid endless repeats from cron jobs
-                signoff.notified = datetime.datetime.replace(tzinfo=utc)
+                signoff.notified = datetime.datetime.now(datetime.timezone.utc)
                 signoff.save()
             else:
                 if self.email_updates_for_signoff(signoff, options):
