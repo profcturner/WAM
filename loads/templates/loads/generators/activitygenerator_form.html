@@ -33,6 +33,9 @@
                            name="{{ field.html_name }}"
                            value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"{% if field.field.required %} required{% endif %} />
                     {# Show field errors as a list, one per line #}
+                    {% if field.help_text %}
+                        <div class="form-text text-muted">{{ field.help_text }}</div>
+                    {% endif %}
                     {% if field.errors %}
                         <div class="wam-text-danger small mt-1">
                             {% for error in field.errors %}
@@ -41,6 +44,7 @@
                         </div>
                     {% endif %}
                 </div>
+
             {% elif field.field.widget.input_type == "select" %}
                 <div class="col-12 col-md-9">
                     <select class="form-select" id="{{ field.id_for_label }}"
@@ -62,6 +66,9 @@
                     </div>
                     {% endif %}
                     {# Show field errors as a list, one per line #}
+                    {% if field.help_text %}
+                        <div class="form-text text-muted">{{ field.help_text }}</div>
+                    {% endif %}
                     {% if field.errors %}
                         <div class="wam-text-danger small mt-1">
                             {% for error in field.errors %}
@@ -69,10 +76,23 @@
                              {% endfor %}
                         </div>
                     {% endif %}
+                    {% if field.help_text %}
+                        <div class="form-text text-muted">{{ field.help_text }}</div>
+                    {% endif %}
                 </div>
             {% else %}
-                <div class="col-12 col-md-8 form-text font-monospace">
-                Unknown field type: {{ field.field.widget.input_type }}
+                <div class="col-12 col-md-9">
+                    {{ field }}
+                    {% if field.help_text %}
+                        <div class="form-text text-muted">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% if field.errors %}
+                        <div class="wam-text-danger small mt-1">
+                            {% for error in field.errors %}
+                                <p>{{ error|escape }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
             {% endif %}
             </div>
@@ -91,5 +111,9 @@
 
     </form>
 </div>
+
+{% block extra_head %}
+    {{ form.media }}
+{% endblock %}
 
 {% endblock content %}

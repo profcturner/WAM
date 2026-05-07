@@ -41,6 +41,7 @@ from .models import Project
 from .models import ProjectStaff
 from .models import WorkPackage
 
+from .forms import ActivityForm
 from .forms import ActivityGeneratorForm
 from .forms import AssessmentResourceForm
 from .forms import AssessmentStaffForm
@@ -2247,9 +2248,10 @@ class CreateModuleView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     permission_required = 'loads.add_module'
     model = Module
     template_name = 'loads/modules/module_form.html'
-    fields = ['module_code', 'module_name', 'campus', 'size', 'semester', 'contact_hours', 'admin_hours',
-              'assessment_hours',
-              'coordinator', 'moderators', 'programmes', 'lead_programme']
+    form_class = ModuleForm
+    #fields = ['module_code', 'module_name', 'campus', 'size', 'semester', 'contact_hours', 'admin_hours',
+    #          'assessment_hours',
+    #          'coordinator', 'moderators', 'programmes', 'lead_programme']
 
     def get_form(self, form_class=None):
         """We need to restrict form querysets"""
@@ -2570,30 +2572,25 @@ class CreateActivityView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
     model = Activity
     success_url = reverse_lazy('activities_index')
     template_name = 'loads/activities/activity_form.html'
-    fields = ['name', 'hours', 'percentage', 'hours_percentage',
-              'semester', 'activity_type', 'module', 'staff', 'comment']
+    form_class = ActivityForm
 
     def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        staff = get_object_or_404(Staff, user=self.request.user)
+
+        package = staff.package
+        form.fields['staff'].queryset = package.get_all_staff()
+        form.fields['module'].queryset = Module.objects.filter(package=package)
+        form.fields['semesters'] = "1,2,3"
         form = super(CreateActivityView, self).get_form(form_class)
 
-        # Work out the correct package and the staff within in
-        staff = get_object_or_404(Staff, user=self.request.user)
-        package = staff.package
-        package_staff = package.get_all_staff()
-
-        form.fields['staff'].queryset = package_staff
-        form.fields['module'].queryset = Module.objects.all().filter(package=package)
         return form
 
     def form_valid(self, form):
-        # Work out the correct package and the staff within in
         staff = get_object_or_404(Staff, user=self.request.user)
-        package = staff.package
-
         self.object = form.save(commit=False)
-        self.object.package = package
-        response = super(CreateActivityView, self).form_valid(form)
-        return response
+        self.object.package = staff.package
+        return super().form_valid(form)
 
 
 @method_decorator(login_required, name='dispatch')
@@ -2604,30 +2601,22 @@ class UpdateActivityView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
     model = Activity
     success_url = reverse_lazy('activities_index')
     template_name = 'loads/activities/activity_form.html'
-    fields = ['name', 'hours', 'percentage', 'hours_percentage',
-              'semester', 'activity_type', 'module', 'staff', 'comment']
+    form_class = ActivityForm
+
 
     def get_form(self, form_class=None):
-        form = super(UpdateActivityView, self).get_form(form_class)
-
-        # Work out the correct package and the staff within in
+        form = super().get_form(form_class)
         staff = get_object_or_404(Staff, user=self.request.user)
         package = staff.package
-        package_staff = package.get_all_staff()
-
-        form.fields['staff'].queryset = package_staff
-        form.fields['module'].queryset = Module.objects.all().filter(package=package)
+        form.fields['staff'].queryset = package.get_all_staff()
+        form.fields['module'].queryset = Module.objects.filter(package=package)
         return form
 
     def form_valid(self, form):
-        # Work out the correct package and the staff within in
         staff = get_object_or_404(Staff, user=self.request.user)
-        package = staff.package
-
         self.object = form.save(commit=False)
-        self.object.package = package
-        response = super(UpdateActivityView, self).form_valid(form)
-        return response
+        self.object.package = staff.package
+        return super().form_valid(form)
 
 
 @method_decorator(login_required, name='dispatch')

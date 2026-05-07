@@ -11,6 +11,7 @@ from django.contrib.auth.models import User, Group
 from django.db import transaction
 from django.core.exceptions import ValidationError
 
+from .models import Activity
 from .models import AssessmentResource, Task, Module, ActivityGenerator
 from .models import AssessmentStaff
 from .models import AssessmentStateSignOff
@@ -20,6 +21,8 @@ from .models import TaskCompletion
 from .models import Programme
 from .models import Project
 from .models import WorkPackage
+
+from .widgets import HoursPercentageField, SemesterField
 
 from WAM.settings import WAM_STAFF_REGEX, WAM_EXTERNAL_REGEX
 
@@ -112,18 +115,7 @@ class MigrateWorkPackageForm(forms.Form):
 
 class LoadsByModulesForm(forms.Form):
     """This prompts for comma separated semesters used for some restrictions"""
-    semesters = forms.CharField(
-        max_length=10,
-        # help_text='Comma separated list of semesters to show',
-        required=False,
-        validators=[
-            RegexValidator(
-                regex='^[0-9,]*$',
-                message='Semesters must be comma separated numbers',
-                code='invalid_semesters'
-            ),
-        ]
-    )
+    semesters = SemesterField()
     brief_details = forms.BooleanField(
         required=False
     )
@@ -138,18 +130,7 @@ class LoadChartsForm(forms.Form):
 
 class ModulesIndexForm(forms.Form):
     """This prompts for comma separated semesters used for some restrictions"""
-    semesters = forms.CharField(
-        max_length=10,
-        # help_text='Comma separated list of semesters to show',
-        required=False,
-        validators=[
-            RegexValidator(
-                regex='^[0-9,]*$',
-                message='Semesters must be comma separated numbers',
-                code='invalid_semesters'
-            ),
-        ]
-    )
+    semesters = SemesterField()
     programme = forms.ModelChoiceField(queryset=Programme.objects.all(), required=False)
     lead_programme = forms.BooleanField(required=False, initial=False)
     show_people = forms.BooleanField(required=False, initial=False)
@@ -157,15 +138,96 @@ class ModulesIndexForm(forms.Form):
 
 # Forms based on Models
 
+
+class ActivityForm(forms.ModelForm):
+
+    hours_percentage_combined = HoursPercentageField(label="Hours / Percentage")
+    semester = SemesterField()
+
+    class Meta:
+        model = Activity
+        exclude = ['hours', 'percentage', 'hours_percentage', 'package', 'activity_set']
+
+    field_order = [
+        'name',
+        'hours_percentage_combined',
+        'semester',
+        'activity_type',
+        'module',
+        'staff',
+        'comment',
+    ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        instance = kwargs.get('instance')
+        if instance:
+            self.fields['hours_percentage_combined'].initial = (
+                instance.hours_percentage,
+                instance.hours,
+                instance.percentage,
+            )
+        else:
+            # No instance = create form, seed the model default manually
+            self.fields['semester'].initial = '1,2,3'
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        combined = self.cleaned_data['hours_percentage_combined']
+        instance.hours_percentage = combined['hours_percentage']
+        instance.hours = combined['hours']
+        instance.percentage = combined['percentage']
+        if commit:
+            instance.save()
+        return instance
+
+
 class ActivityGeneratorForm(ModelForm):
     """Form for creating or editing activity generators"""
 
+    hours_percentage_combined = HoursPercentageField(label="Hours / Percentage")
+    semester = SemesterField()
+
     class Meta:
         model = ActivityGenerator
-        fields = ['name', 'hours', 'percentage', 'hours_percentage', 'semester', 'activity_type',
-                  'module', 'comment', 'package', 'details', 'targets', 'groups']
+        exclude = ['hours', 'percentage', 'hours_percentage']
+
         widgets = {'details': forms.TextInput,
                    'package': forms.HiddenInput()}
+
+    field_order = [
+        'name',
+        'hours_percentage_combined',
+        'semester',
+        'activity_type',
+        'module',
+        'staff',
+        'comment',
+        'targets,'
+        'groups',
+        'details',
+    ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        instance = kwargs.get('instance')
+        if instance:
+            self.fields['hours_percentage_combined'].initial = (
+                instance.hours_percentage,
+                instance.hours,
+                instance.percentage,
+            )
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        combined = self.cleaned_data['hours_percentage_combined']
+        instance.hours_percentage = combined['hours_percentage']
+        instance.hours = combined['hours']
+        instance.percentage = combined['percentage']
+        if commit:
+            instance.save()
+        return instance
+
 
 class AssessmentStaffForm(ModelForm):
     """Used for adding AssessmentStaff to a work package"""
@@ -222,6 +284,8 @@ class AssessmentResourceForm(ModelForm):
 
 class ModuleForm(ModelForm):
     """Form for creating or editing modules"""
+
+    semester = SemesterField()
 
     class Meta:
         model = Module

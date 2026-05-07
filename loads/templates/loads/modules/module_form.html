@@ -66,8 +66,15 @@
                     {% endif %}
                 </div>
             {% else %}
-                <div class="col-12 col-md-8 form-text font-monospace">
-                Unknown field type: {{ field.field.widget.input_type }}
+                <div class="col-12 col-md-9">
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="wam-text-danger small mt-1">
+                            {% for error in field.errors %}
+                                <p>{{ error|escape }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
             {% endif %}
         </div>
@@ -85,5 +92,9 @@
         </div>
     </form>
 </div>
+
+{% block extra_head %}
+    {{ form.media }}
+{% endblock %}
 
 {% endblock content %}

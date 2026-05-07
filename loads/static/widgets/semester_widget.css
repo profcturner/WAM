@@ -1,0 +1,39 @@
+/* static/widgets/semester_widget.css */
+
+.semester-widget {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.25rem 0;
+}
+
+.semester-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    /* border: 1px solid #ccc; */
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.9rem;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.semester-option:hover {
+    border-color: #0077cc;
+    background: #f0f7ff;
+}
+
+.semester-option input[type="checkbox"] {
+    margin: 0;
+    accent-color: #0077cc;
+}
+
+/* Highlight label when checked */
+.semester-option:has(input:checked) {
+    background: #e6f2ff;
+    border-color: #0077cc;
+    color: #0055aa;
+    font-weight: 500;
+}
