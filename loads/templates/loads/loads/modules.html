@@ -69,8 +69,15 @@
                            name="{{ field.name }}" value="1"{% if field.value is True %} checked{% endif %} />
                 </div>
             {% else %}
-                <div class="col-12 col-md-8 form-text font-monospace">
-                Unknown field type: {{ field.field.widget.input_type }}
+                <div class="col-12 col-md-9">
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="wam-text-danger small mt-1">
+                            {% for error in field.errors %}
+                                <p>{{ error|escape }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
             {% endif %}
         </div>
@@ -162,5 +169,9 @@
     <p>No modules currently exist for this package.</p>
     {% endif %}
 </div>
+
+{% block extra_head %}
+    {{ form.media }}
+{% endblock %}
 
 {% endblock content %}

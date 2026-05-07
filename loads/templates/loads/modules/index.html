@@ -88,7 +88,16 @@
                            name="{{ field.name }}" value="1"{% if field.value is True %} checked{% endif %} />
                 </div>
             {% else %}
-            <pre>Unknown field type: {{ field.field.widget.input_type }}</pre>
+            <div class="col-12 col-md-9">
+                {{ field }}
+                {% if field.errors %}
+                    <div class="wam-text-danger small mt-1">
+                        {% for error in field.errors %}
+                            <p>{{ error|escape }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
             {% endif %}
         </div>
         {% endfor %}
@@ -176,4 +185,8 @@
     <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'create module' %}">Click here to create a new module</a>
 </div>
 {% endif %}
+
+{% block extra_head %}
+    {{ form.media }}
+{% endblock %}
 {% endblock %}

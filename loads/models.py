@@ -916,7 +916,7 @@ class Activity(models.Model):
     hours = models.PositiveSmallIntegerField()
     percentage = models.PositiveSmallIntegerField()
     hours_percentage = models.CharField(max_length=1, choices=HOURPERCENTAGE_CHOICES, default=HOURS)
-    semester = models.CharField(max_length=10, validators=[validate_comma_separated_integer_list])
+    semester = models.CharField(max_length=10, default='1,2,3', validators=[validate_comma_separated_integer_list])
     activity_type = models.ForeignKey('ActivityType', on_delete=models.CASCADE)
     module = models.ForeignKey('Module', blank=True, null=True, on_delete=models.CASCADE)
     comment = models.CharField(max_length=200, default='', blank=True)
@@ -990,11 +990,11 @@ class ActivityGenerator(models.Model):
     semester = models.CharField(max_length=10, validators=[validate_comma_separated_integer_list])
     activity_type = models.ForeignKey('ActivityType', on_delete=models.CASCADE)
     module = models.ForeignKey('Module', blank=True, null=True, on_delete=models.CASCADE)
-    comment = models.CharField(max_length=200, default='', blank=True)
+    comment = models.CharField(max_length=200, default='', blank=True, help_text='The comment added to generated activities')
     package = models.ForeignKey(WorkPackage, on_delete=models.CASCADE)
 
     # These are more associated with the set
-    details = models.TextField()
+    details = models.TextField(help_text='Additional details of the generator itself')
     targets = models.ManyToManyField(Staff, blank=True)
     groups = models.ManyToManyField(Group, blank=True)
 
