@@ -141,8 +141,12 @@ class ModulesIndexForm(forms.Form):
 
 class ActivityForm(forms.ModelForm):
 
-    hours_percentage_combined = HoursPercentageField(label="Hours / Percentage")
-    semester = SemesterField()
+    hours_percentage_combined = HoursPercentageField(
+        label="Hours / Percentage",
+        help_text="Select whether this activity is measured in hours or as a percentage of a full load, then enter the value.")
+    semester = SemesterField(
+        help_text="Select the semester(s) in which this activity takes place."
+    )
 
     class Meta:
         model = Activity

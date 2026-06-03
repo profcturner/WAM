@@ -1,0 +1,10 @@
+{% if field.help_text %}
+    <div class="form-text text-muted">{{ field.help_text }}</div>
+{% endif %}
+{% if field.errors %}
+    <div class="wam-text-danger small mt-1">
+        {% for error in field.errors %}
+            <p>{{ error|escape }}</p>
+        {% endfor %}
+    </div>
+{% endif %}
