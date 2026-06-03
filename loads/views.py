@@ -1101,7 +1101,7 @@ def add_assessment_resource(request, module_id):
     # Assume a lack of permission, unless a coordinator, teaching team member, moderator, examiner, or superuser
     permission = False
     logger.debug("[%s] checking status for module %s, pre upload" % (request.user, module))
-    if staff is module.coordinator:
+    if staff == module.coordinator:
         logger.debug("[%s] is a module coordinator" % request.user)
         permission = True
     elif staff in module.moderators.all():

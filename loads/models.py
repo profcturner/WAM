@@ -912,16 +912,17 @@ class Activity(models.Model):
         (HOURS, 'Hours'),
         (PERCENTAGE, 'Percentage'),
     )
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, help_text="Specify the name of the activity.")
     hours = models.PositiveSmallIntegerField()
     percentage = models.PositiveSmallIntegerField()
     hours_percentage = models.CharField(max_length=1, choices=HOURPERCENTAGE_CHOICES, default=HOURS)
     semester = models.CharField(max_length=10, default='1,2,3', validators=[validate_comma_separated_integer_list])
-    activity_type = models.ForeignKey('ActivityType', on_delete=models.CASCADE)
-    module = models.ForeignKey('Module', blank=True, null=True, on_delete=models.CASCADE)
-    comment = models.CharField(max_length=200, default='', blank=True)
+    activity_type = models.ForeignKey('ActivityType', on_delete=models.CASCADE, help_text="The activity type is used to help categorise this workload.")
+    module = models.ForeignKey('Module', blank=True, null=True, on_delete=models.CASCADE, help_text="Optionally, if this activity is associated with a module, enter it here.")
+    comment = models.CharField(max_length=200, default='', blank=True, help_text="Optionally, add any comment associated with this activity here.")
     staff = models.ForeignKey(Staff, null=True, blank=True, on_delete=models.SET_NULL,
-                              limit_choices_to={'is_external': False})
+                              limit_choices_to={'is_external': False},
+                              help_text="If known, allocate this workload to a specific member of staff.")
     package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
     activity_set = models.ForeignKey('ActivitySet', blank=True, null=True, on_delete=models.CASCADE)
 
@@ -1152,21 +1153,25 @@ class Module(models.Model):
     module_code = models.CharField(max_length=10)
     module_name = models.CharField(max_length=200)
     campus = models.ForeignKey('Campus', on_delete=models.CASCADE)
-    semester = models.CharField(max_length=10, validators=[validate_comma_separated_integer_list])
+    semester = models.CharField(max_length=10, validators=[validate_comma_separated_integer_list],
+                                help_text='Specify which semester(s) this module runs in.')
     credits = models.PositiveSmallIntegerField(default=20)
     size = models.ForeignKey('ModuleSize', on_delete=models.CASCADE)
     contact_hours = models.PositiveSmallIntegerField(blank=True, null=True)
     admin_hours = models.PositiveSmallIntegerField(blank=True, null=True)
     assessment_hours = models.PositiveSmallIntegerField(blank=True, null=True)
     package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
-    details = models.TextField(blank=True, null=True)
-    programmes = models.ManyToManyField(Programme, blank=True, related_name='modules')
+    details = models.TextField(blank=True, null=True, help_text="Use this optional field for any explanatory comment.")
+    programmes = models.ManyToManyField(Programme, blank=True, related_name='modules',
+                                        help_text='Specify which programmes this module belongs to, for assessment purposes only.')
     lead_programme = models.ForeignKey(Programme, blank=True, null=True, related_name='lead_modules',
-                                       on_delete=models.SET_NULL)
+                                       on_delete=models.SET_NULL,
+                                       help_text='The External Examiner(s) for this programme will be considered the lead examiner, for assessment purposes only.')
     coordinator = models.ForeignKey(Staff, blank=True, null=True, related_name='coordinated_modules',
                                     on_delete=models.SET_NULL, limit_choices_to={'is_external': False})
     moderators = models.ManyToManyField(Staff, blank=True, related_name='moderated_modules',
-                                        limit_choices_to={'is_external': False})
+                                        limit_choices_to={'is_external': False},
+                                        help_text='Specify who should moderate any assessments in this module. For assessment purposes only.')
 
     def get_contact_hours(self):
         """returns the contact hours for the module

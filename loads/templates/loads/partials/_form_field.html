@@ -1,0 +1,60 @@
+<div class="row mb-3">
+    <label for="{{ field.id_for_label }}" class="col-12 col-md-{{ label_width|default:'3' }} form-label">
+        {{ field.label }}
+        {% if field.field.required %}<span class="text-danger ms-1" title="Required">*</span>{% endif %}
+    </label>
+
+    {% if field.field.widget.input_type == "text" or field.field.widget.input_type == "number" %}
+        <div class="col-12 col-md-{{ input_width|default:'9' }}">
+            <input type="{{ field.field.widget.input_type }}"
+                   class="form-control{% if field.errors %} is-invalid{% endif %}"
+                   id="{{ field.id_for_label }}"
+                   {% for name, value in field.field.widget.attrs.items %}
+                       {% if value is not False %} {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                   {% endfor %}
+                   name="{{ field.html_name }}"
+                   value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"
+                   {% if field.field.required %} required{% endif %} />
+            {% include "loads/partials/_field_footer.html" %}
+        </div>
+
+    {% elif field.field.widget.input_type == "select" %}
+        <div class="col-12 col-md-{{ input_width|default:'9' }}">
+            <select class="form-select{% if field.errors %} is-invalid{% endif %}"
+                    id="{{ field.id_for_label }}"
+                    {% for name, value in field.field.widget.attrs.items %}
+                        {% if value is not False %}{{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}
+                    {% endfor %}
+                    name="{{ field.name }}"
+                    {% if field.field.widget.allow_multiple_selected %} multiple{% endif %}>
+                {% for option in field.field.choices %}
+                    <option value="{{ option.0|escape }}"
+                            {% if option.0 in field.value or option.0 == field.value %} selected{% endif %}>
+                        {{ option.1|escape }}
+                    </option>
+                {% endfor %}
+            </select>
+            {% include "loads/partials/_field_footer.html" %}
+            {% if field.field.widget.allow_multiple_selected %}
+                <div class="form-text">Hold down <kbd>CTRL</kbd> or <kbd>CMD</kbd> to select multiple options</div>
+            {% endif %}
+        </div>
+
+    {% elif field.field.widget.input_type == "checkbox" %}
+        <div class="col-12 col-md-{{ input_width|default:'9' }}">
+            <input type="checkbox"
+                   class="form-check-input{% if field.errors %} is-invalid{% endif %}"
+                   id="{{ field.id_for_label }}"
+                   name="{{ field.name }}"
+                   value="1"
+                   {% if field.value is True %} checked{% endif %} />
+            {% include "loads/partials/_field_footer.html" %}
+        </div>
+
+    {% else %}
+        <div class="col-12 col-md-{{ input_width|default:'9' }}">
+            {{ field }}
+            {% include "loads/partials/_field_footer.html" %}
+        </div>
+    {% endif %}
+</div>
