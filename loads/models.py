@@ -649,7 +649,7 @@ class Staff(models.Model):
     package         the active work package to edit or display
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    title = models.CharField(max_length=100, default='')
+    title = models.CharField(max_length=100, blank=True, default='')
     staff_number = models.CharField(max_length=20)
     fte = models.PositiveSmallIntegerField(default=100)
     is_external = models.BooleanField(default=False)
@@ -658,7 +658,7 @@ class Staff(models.Model):
     school = models.ForeignKey(School, null=True, blank=True, on_delete=models.SET_NULL)
     faculty = models.ForeignKey(Faculty, null=True, blank=True, on_delete=models.SET_NULL)
     campus = models.ForeignKey(Campus, null=True, blank=True, on_delete=models.SET_NULL)
-    package = models.ForeignKey(WorkPackage, null=True, on_delete=models.SET_NULL)
+    package = models.ForeignKey(WorkPackage, null=True, blank=True, on_delete=models.SET_NULL)
 
     objects = StaffManager()
 
