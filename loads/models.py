@@ -26,22 +26,12 @@ def divide_by_semesters(total_hours, semester_string):
     returns a list with the first item containing the total and
     then each following item being the hours for that semester
     """
-    semesters = semester_string.split(',')
-
-    # Create a list to contain their subdivision
-    split_hours = list()
-    # How many semesters are listed?
+    semesters = [s.strip() for s in semester_string.split(',')]
     no_semesters = len(semesters)
-    # We currently have three semesters, 1, 2 and 3
-    for semester in range(1, 4):
-        # Check if this one is flagged, brutally ugly code :-(
-        # TODO: Try and fix the abomination
-        if semester_string.count(str(semester)) > 0:
-            split_hours.append(total_hours / no_semesters)
-        else:
-            # Nothing in this semester
-            split_hours.append(0)
-
+    split_hours = [
+        total_hours / no_semesters if str(semester) in semesters else 0
+        for semester in range(1, 4)
+    ]
     split_hours.insert(0, total_hours)
     return split_hours
 
