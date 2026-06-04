@@ -1,21 +1,24 @@
 """Django Models for WAM project"""
 
+# General Python imports
 import datetime
+import logging
 
 from django.db import models
 from django.contrib.auth.models import User, Group
 
 from django.core.validators import validate_comma_separated_integer_list
 
+# Project imports
 from WAM.settings import (WAM_DEFAULT_ACTIVITY_TYPE, WAM_AUTO_CREATE_CAMPUS,
                           WAM_AUTO_CREATE_FACULTY, WAM_AUTO_CREATE_SCHOOL, WAM_AUTO_CREATE_SCHOOL_GROUPS)
 
 
 import logging
+from .validators import validate_formula
 
 # Create a logger
 logger = logging.getLogger(__name__)
-
 
 def divide_by_semesters(total_hours, semester_string):
     """divide hours equally between targeted semesters
