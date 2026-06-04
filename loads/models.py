@@ -1,8 +1,11 @@
 """Django Models for WAM project"""
 
 # General Python imports
+
 import datetime
 import logging
+
+# Django imports
 
 from django.db import models
 from django.contrib.auth.models import User, Group
@@ -10,34 +13,15 @@ from django.contrib.auth.models import User, Group
 from django.core.validators import validate_comma_separated_integer_list
 
 # Project imports
+
 from WAM.settings import (WAM_DEFAULT_ACTIVITY_TYPE, WAM_AUTO_CREATE_CAMPUS,
                           WAM_AUTO_CREATE_FACULTY, WAM_AUTO_CREATE_SCHOOL, WAM_AUTO_CREATE_SCHOOL_GROUPS)
 
-
-import logging
 from .validators import validate_formula
+from .helpers import divide_by_semesters
 
 # Create a logger
 logger = logging.getLogger(__name__)
-
-def divide_by_semesters(total_hours, semester_string):
-    """divide hours equally between targeted semesters
-
-    total_hours     the total number of hours to divide
-    semester_string comma separated list of semesters the hours are in
-
-    returns a list with the first item containing the total and
-    then each following item being the hours for that semester
-    """
-    semesters = [s.strip() for s in semester_string.split(',')]
-    no_semesters = len(semesters)
-    split_hours = [
-        total_hours / no_semesters if str(semester) in semesters else 0
-        for semester in range(1, 4)
-    ]
-    split_hours.insert(0, total_hours)
-    return split_hours
-
 
 class WorkPackage(models.Model):
     """Groups workload by user groups and time
@@ -75,7 +59,6 @@ class WorkPackage(models.Model):
                 a formula for calculating unspecified assessment hours
     """
 
-    # TODO: create sensible defaults for formulae below and then enable
     name = models.CharField(max_length=100)
     details = models.TextField()
     startdate = models.DateField()
@@ -91,9 +74,26 @@ class WorkPackage(models.Model):
     contact_assessment_scaling = models.FloatField(default=1)
     working_days = models.PositiveIntegerField(default=228)
     days_in_week = models.PositiveIntegerField(default=5)
-    # contact_formula = models.TextField()
-    # admin_formula = models.TextField()
-    # assessment_formula = models.TextField()
+
+    contact_formula = models.TextField(
+        blank=True,
+        default='credits * contact_scaling',
+        help_text="Formula for contact hours. Variables: credits, students, (deprecated: contact_scaling).",
+        validators=[validate_formula],
+    )
+    admin_formula = models.TextField(
+        blank=True,
+        default='contact * admin_scaling',
+        help_text="Formula for admin hours. Variables: credits, students, contact, (deprecated: admin_scaling, assessment_scaling).",
+        validators=[validate_formula],
+    )
+    assessment_formula = models.TextField(
+        blank=True,
+        default='contact * assessment_scaling',
+        help_text="Formula for assessment hours. Variables: credits, students, contact, admin, (deprecated: admin_scaling, assessment_scaling).",
+        validators=[validate_formula],
+    )
+
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
@@ -1150,9 +1150,22 @@ class Module(models.Model):
                                 help_text='Specify which semester(s) this module runs in.')
     credits = models.PositiveSmallIntegerField(default=20)
     size = models.ForeignKey('ModuleSize', on_delete=models.CASCADE)
-    contact_hours = models.PositiveSmallIntegerField(blank=True, null=True)
-    admin_hours = models.PositiveSmallIntegerField(blank=True, null=True)
-    assessment_hours = models.PositiveSmallIntegerField(blank=True, null=True)
+    contact_hours = models.PositiveSmallIntegerField(
+        blank=True, null=True,
+        help_text="Leave blank for an estimate from an automated formula."
+    )
+    admin_hours = models.PositiveSmallIntegerField(
+        blank=True, null=True,
+        help_text="Leave blank for an estimate from an automated formula."
+    )
+    assessment_hours = models.PositiveSmallIntegerField(
+        blank=True, null=True,
+        help_text="Leave blank for an estimate from an automated formula."
+    )
+    coordinator_hours = models.PositiveSmallIntegerField(
+        blank=True, null=True,
+        help_text="Leave blank for an estimate from an automated formula."
+    )
     package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
     details = models.TextField(blank=True, null=True, help_text="Use this optional field for any explanatory comment.")
     programmes = models.ManyToManyField(Programme, blank=True, related_name='modules',
