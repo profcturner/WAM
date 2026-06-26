@@ -183,6 +183,7 @@ class ActivityForm(forms.ModelForm):
         instance.percentage = combined['percentage']
         if commit:
             instance.save()
+            self.save_m2m()
         return instance
 
 
@@ -207,7 +208,7 @@ class ActivityGeneratorForm(ModelForm):
         'module',
         'staff',
         'comment',
-        'targets,'
+        'targets',
         'groups',
         'details',
     ]
@@ -230,6 +231,7 @@ class ActivityGeneratorForm(ModelForm):
         instance.percentage = combined['percentage']
         if commit:
             instance.save()
+            self.save_m2m()
         return instance
 
 

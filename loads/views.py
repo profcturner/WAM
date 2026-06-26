@@ -2090,6 +2090,7 @@ class CreateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, C
         form.fields['package'].initial = package
         form.fields['targets'].queryset = package_staff
         form.fields['groups'].queryset = package.groups
+        form.fields['module'].queryset = Module.objects.filter(package=package)
         return form
 
     def form_valid(self, form):
@@ -2128,6 +2129,7 @@ class UpdateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, U
         form.fields['package'].initial = package
         form.fields['targets'].queryset = package_staff
         form.fields['groups'].queryset = package.groups
+        form.fields['module'].queryset = Module.objects.filter(package=package)
         return form
 
     def form_valid(self, form):
