@@ -183,6 +183,7 @@ class ActivityForm(forms.ModelForm):
         instance.percentage = combined['percentage']
         if commit:
             instance.save()
+            self.save_m2m()
         return instance
 
 
