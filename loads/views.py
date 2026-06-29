@@ -1227,7 +1227,9 @@ def module_staff_allocation(request, module_id, package_id):
                     # Fix the fields
                     allocation.module = module
                     allocation.package = package
-                logger.info("[%s] allocation for %s processed", request.user, allocation.staff)
+                # Sometimes we get here with no allocated staff, I don't know why!
+                if allocation.staff:
+                    logger.info("[%s] allocation for %s processed", request.user, allocation.staff)
             # Now do a real save
             formset.save(commit=True)
             logger.info("[%s] adjusted the module allocation for module %s" % (request.user, module),
