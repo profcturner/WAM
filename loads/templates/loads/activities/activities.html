@@ -82,13 +82,13 @@
             </tr>
         </thead>
         <tbody class="table-group-divider">
-            {% for activity, year, first, second, third in combined_list_modules %}
+            {% for activity, total, first, second, third in combined_list_modules %}
             <tr>
                 <td class="col-8">{{ activity }}</td>
                 <td class="font-monospace col-1" style="white-space: pre;">{{ first|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
                 <td class="font-monospace col-1" style="white-space: pre;">{{ second|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
                 <td class="font-monospace col-1" style="white-space: pre;">{{ third|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
-                <td class="font-monospace col-1" style="white-space: pre;">{{ year|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
+                <td class="font-monospace col-1" style="white-space: pre;">{{ total|stringformat:"5.2f" }}{% if show_percentages %}%{% endif %}</td>
             </tr>
             {% endfor %}
         </tbody>

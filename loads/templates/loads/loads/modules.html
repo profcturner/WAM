@@ -148,10 +148,17 @@
                     </td>
                     <td class="small ms-1 text-info-emphasis" colspan="7">
                         {% for allocation in module_staff %}
-                        <div class="row m-0 p-0 g-0 ms-2">
-                            <div class="col-4 m-0 p-0"><strong>{{ allocation.staff }}</strong></div>
-                            <div class="col-8 m-0 p-0">Contact {{ allocation.contact_proportion }}%; Admin {{ allocation.admin_proportion }}%; Assessment {{ allocation.assessment_proportion }}% </div>
-                        </div>
+                            <div class="row m-0 p-0 g-0 ms-2">
+                                <div class="col-4 m-0 p-0"><strong>{{ allocation.staff }}</strong></div>
+                                <div class="col-8 m-0 p-0">
+                                    Contact {{ allocation.contact_proportion }}%;
+                                    Admin {{ allocation.admin_proportion }}%;
+                                    Assessment {{ allocation.assessment_proportion }}%
+                                    {% if allocation.staff == module.coordinator and module.get_coordinator_hours %}
+                                        + {{ module.get_coordinator_hours|floatformat:1 }}h coordination
+                                    {% endif %}
+                                </div>
+                            </div>
                         {% endfor %}
                     </td>
                 </tr>

@@ -114,7 +114,8 @@ class WorkPackageMigrationTestCase(TestCase):
                                        coordinator=coordinator,
                                        lead_programme=lead_programme,
                                        campus=campus,
-                                       size=modulesize)
+                                       size=modulesize,
+                                       number_students=30)
 
         module.moderators.add(moderator)
         module.programmes.add(lead_programme)
@@ -487,7 +488,8 @@ class AssessmentResourceTestCase(TestCase):
                                        coordinator=coordinator,
                                        lead_programme=lead_programme,
                                        campus=campus,
-                                       size=modulesize)
+                                       size=modulesize,
+                                       number_students=30)
 
         module.moderators.add(moderator)
         module.programmes.add(lead_programme)
