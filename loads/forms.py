@@ -295,7 +295,7 @@ class ModuleForm(ModelForm):
 
     class Meta:
         model = Module
-        fields = ['module_code', 'module_name', 'campus', 'credits', 'size', 'semester', 'contact_hours', 'admin_hours',
+        fields = ['module_code', 'module_name', 'campus', 'credits', 'number_students', 'semester', 'coordinator_hours', 'contact_hours', 'admin_hours',
                   'assessment_hours', 'coordinator', 'moderators', 'programmes', 'lead_programme', 'details']
         widgets = {'details': forms.TextInput}
 
