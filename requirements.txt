@@ -4,3 +4,4 @@ django
 django-utils
 django-fancy-formset
 python-dateutil
+simpleeval

@@ -52,7 +52,11 @@
         <div class="col-9 font-monospace text-nowrap">
             Total hours: {{ total_hours|stringformat:".2f" }}; Contact hours: {{ contact_hours|stringformat:".2f" }};
             <br/>
-            Admin hours {{ admin_hours|stringformat:".2f" }}; Assessment hours {{ assessment_hours|stringformat:".2f" }}
+            Coordinator hours {{ module.get_coordinator_hours|stringformat:".2f" }}; Assessment hours {{ assessment_hours|stringformat:".2f" }};
+            <br />
+            Other Admin hours {{ admin_hours|stringformat:".2f" }};
+
+
         </div>
     </div>
     {% if module.details %}

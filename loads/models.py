@@ -1,50 +1,29 @@
 """Django Models for WAM project"""
 
+# General Python imports
+
 import datetime
+import logging
+
+# Django imports
 
 from django.db import models
 from django.contrib.auth.models import User, Group
 
 from django.core.validators import validate_comma_separated_integer_list
+from django.core.exceptions import ValidationError
+
+# Project imports
 
 from WAM.settings import (WAM_DEFAULT_ACTIVITY_TYPE, WAM_AUTO_CREATE_CAMPUS,
                           WAM_AUTO_CREATE_FACULTY, WAM_AUTO_CREATE_SCHOOL, WAM_AUTO_CREATE_SCHOOL_GROUPS)
 
-
-import logging
+from .validators import validate_formula
+from .helpers import divide_by_semesters
+from .formula_engine import calculate_admin_hours, calculate_assessment_hours, calculate_contact_hours, calculate_all_hours, calculate_coordinator_hours
 
 # Create a logger
 logger = logging.getLogger(__name__)
-
-
-def divide_by_semesters(total_hours, semester_string):
-    """divide hours equally between targeted semesters
-
-    total_hours     the total number of hours to divide
-    semester_string comma separated list of semesters the hours are in
-
-    returns a list with the first item containing the total and
-    then each following item being the hours for that semester
-    """
-    semesters = semester_string.split(',')
-
-    # Create a list to contain their subdivision
-    split_hours = list()
-    # How many semesters are listed?
-    no_semesters = len(semesters)
-    # We currently have three semesters, 1, 2 and 3
-    for semester in range(1, 4):
-        # Check if this one is flagged, brutally ugly code :-(
-        # TODO: Try and fix the abomination
-        if semester_string.count(str(semester)) > 0:
-            split_hours.append(total_hours / no_semesters)
-        else:
-            # Nothing in this semester
-            split_hours.append(0)
-
-    split_hours.insert(0, total_hours)
-    return split_hours
-
 
 class WorkPackage(models.Model):
     """Groups workload by user groups and time
@@ -82,7 +61,6 @@ class WorkPackage(models.Model):
                 a formula for calculating unspecified assessment hours
     """
 
-    # TODO: create sensible defaults for formulae below and then enable
     name = models.CharField(max_length=100)
     details = models.TextField()
     startdate = models.DateField()
@@ -98,14 +76,48 @@ class WorkPackage(models.Model):
     contact_assessment_scaling = models.FloatField(default=1)
     working_days = models.PositiveIntegerField(default=228)
     days_in_week = models.PositiveIntegerField(default=5)
-    # contact_formula = models.TextField()
-    # admin_formula = models.TextField()
-    # assessment_formula = models.TextField()
+
+    contact_formula = models.TextField(
+        blank=True,
+        default='credits * contact_scaling',
+        help_text="Formula for contact hours. Variables: credits, students, (deprecated: contact_scaling).",
+        validators=[validate_formula],
+    )
+    admin_formula = models.TextField(
+        blank=True,
+        default='contact * admin_scaling',
+        help_text="Formula for admin hours. Variables: credits, students, contact, (deprecated: admin_scaling, assessment_scaling).",
+        validators=[validate_formula],
+    )
+    assessment_formula = models.TextField(
+        blank=True,
+        default='contact * assessment_scaling',
+        help_text="Formula for assessment hours. Variables: credits, students, contact, admin, (deprecated: admin_scaling, assessment_scaling).",
+        validators=[validate_formula],
+    )
+    coordinator_formula = models.TextField(
+        blank=True,
+        default='15 + students * 0.01',
+        validators=[validate_formula],
+        help_text="Formula for coordinator admin hours. Variables: students, credits."
+    )
+    coordinator_activity_type = models.ForeignKey(
+        'ActivityType', null=True, blank=True, on_delete=models.SET_NULL,
+        help_text="The activity type used to categorise coordinator hours."
+    )
+
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name + ' (' + str(self.startdate) + ' - ' + str(self.enddate) + ')'
+
+    def clean(self):
+        if self.coordinator_formula and not self.coordinator_activity_type:
+            raise ValidationError({
+                'coordinator_activity_type':
+                    'An activity type must be set when a coordinator formula is specified.'
+            })
 
     def __clone_programmes(self, source_package, options, messages):
         """Clones programmes from source package and produces a mapping for other operations
@@ -398,6 +410,7 @@ class WorkPackage(models.Model):
     class Meta:
         ordering = ['name', '-startdate']
 
+
 class Campus(models.Model):
     """
     This indicates the campus or site that a module is delivered at, or is associated with another entity
@@ -649,7 +662,7 @@ class Staff(models.Model):
     package         the active work package to edit or display
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    title = models.CharField(max_length=100, default='')
+    title = models.CharField(max_length=100, blank=True, default='')
     staff_number = models.CharField(max_length=20)
     fte = models.PositiveSmallIntegerField(default=100)
     is_external = models.BooleanField(default=False)
@@ -658,7 +671,7 @@ class Staff(models.Model):
     school = models.ForeignKey(School, null=True, blank=True, on_delete=models.SET_NULL)
     faculty = models.ForeignKey(Faculty, null=True, blank=True, on_delete=models.SET_NULL)
     campus = models.ForeignKey(Campus, null=True, blank=True, on_delete=models.SET_NULL)
-    package = models.ForeignKey(WorkPackage, null=True, on_delete=models.SET_NULL)
+    package = models.ForeignKey(WorkPackage, null=True, blank=True, on_delete=models.SET_NULL)
 
     objects = StaffManager()
 
@@ -696,13 +709,21 @@ class Staff(models.Model):
         # Add hours calculated from "automatic" module allocation
         modulestaff = ModuleStaff.objects.all().filter(staff=self.id).filter(package=package)
         for moduledata in modulestaff:
-            c_hours = moduledata.contact_proportion * moduledata.module.get_contact_hours() / 100
-            as_hours = moduledata.assessment_proportion * moduledata.module.get_assessment_hours() / 100
-            ad_hours = (moduledata.admin_proportion * moduledata.module.get_admin_hours() / 100)
+            contact_hours = moduledata.contact_proportion * moduledata.module.get_contact_hours() / 100
+            assess_hours = moduledata.assessment_proportion * moduledata.module.get_assessment_hours() / 100
+            admin_hours = (moduledata.admin_proportion * moduledata.module.get_admin_hours() / 100)
 
-            hours = c_hours + as_hours + ad_hours
+            hours = contact_hours + assess_hours + admin_hours
 
             hours_by_category[moduledata.activity_type.category] += hours
+
+        # Add coordinator hours for modules this staff member coordinates
+        coordinated = Module.objects.filter(coordinator=self, package=package)
+        for module in coordinated:
+            if module.package.coordinator_activity_type:
+                category = module.package.coordinator_activity_type.category
+                if category in hours_by_category:
+                    hours_by_category[category] += module.get_coordinator_hours()
 
         return hours_by_category
 
@@ -727,21 +748,35 @@ class Staff(models.Model):
         # Add hours calculated from "automatic" module allocation
         modulestaff = ModuleStaff.objects.all().filter(staff=self.id).filter(package=package)
         for moduledata in modulestaff:
-            c_hours = moduledata.module.get_contact_hours_by_semester()
-            as_hours = moduledata.module.get_assessment_hours_by_semester()
-            ad_hours = moduledata.module.get_admin_hours_by_semester()
+            contact_hours = moduledata.module.get_contact_hours_by_semester()
+            assess_hours = moduledata.module.get_assessment_hours_by_semester()
+            admin_hours = moduledata.module.get_admin_hours_by_semester()
 
-            semester1_hours += (c_hours[1] * moduledata.contact_proportion / 100)
-            semester1_hours += (as_hours[1] * moduledata.assessment_proportion / 100)
-            semester1_hours += (ad_hours[1] * moduledata.admin_proportion / 100)
+            # Check if this is the module coordinator
+            if moduledata.module.coordinator and moduledata.module.coordinator == self.id:
+                coord_hours = moduledata.module.get_coordinator_hours_by_semester()
+            else:
+                coord_hours = [0, 0, 0]
 
-            semester2_hours += (c_hours[2] * moduledata.contact_proportion / 100)
-            semester2_hours += (as_hours[2] * moduledata.assessment_proportion / 100)
-            semester2_hours += (ad_hours[2] * moduledata.admin_proportion / 100)
+            semester1_hours += (contact_hours[1] * moduledata.contact_proportion / 100)
+            semester1_hours += (assess_hours[1] * moduledata.assessment_proportion / 100)
+            semester1_hours += (admin_hours[1] * moduledata.admin_proportion / 100)
 
-            semester3_hours += (c_hours[3] * moduledata.contact_proportion / 100)
-            semester3_hours += (as_hours[3] * moduledata.assessment_proportion / 100)
-            semester3_hours += (ad_hours[3] * moduledata.admin_proportion / 100)
+            semester2_hours += (contact_hours[2] * moduledata.contact_proportion / 100)
+            semester2_hours += (assess_hours[2] * moduledata.assessment_proportion / 100)
+            semester2_hours += (admin_hours[2] * moduledata.admin_proportion / 100)
+
+            semester3_hours += (contact_hours[3] * moduledata.contact_proportion / 100)
+            semester3_hours += (assess_hours[3] * moduledata.assessment_proportion / 100)
+            semester3_hours += (admin_hours[3] * moduledata.admin_proportion / 100)
+
+        # Add coordinator hours for modules this staff member coordinates
+        coordinated = Module.objects.filter(coordinator=self, package=package)
+        for module in coordinated:
+            coord_by_semester = module.get_coordinator_hours_by_semester()
+            semester1_hours += coord_by_semester[1]
+            semester2_hours += coord_by_semester[2]
+            semester3_hours += coord_by_semester[3]
 
         return [semester1_hours + semester2_hours + semester3_hours,
                 semester1_hours, semester2_hours, semester3_hours, len(activities)]
@@ -1079,6 +1114,46 @@ class ModuleStaff(models.Model):
     def __str__(self):
         return str(self.module) + " : " + str(self.staff)
 
+
+    def get_hours_breakdown(self):
+        """
+        Returns a list of (label, total, s1, s2, s3) tuples for all hour
+        categories this staff member has for this module, including coordinator
+        hours if this staff member is the module coordinator.
+
+        Proportions are applied to contact/admin/assessment hours.
+        Coordinator hours are not proportioned — they belong entirely to the
+        coordinator.
+        """
+        module = self.module
+        breakdown = []
+
+        for label, by_semester, proportion in [
+            ('Contact Hours', module.get_contact_hours_by_semester(), self.contact_proportion),
+            ('Admin Hours', module.get_admin_hours_by_semester(), self.admin_proportion),
+            ('Assessment Hours', module.get_assessment_hours_by_semester(), self.assessment_proportion),
+        ]:
+            p = proportion / 100
+            breakdown.append((
+                f"{module} {label}",
+                by_semester[0] * p,
+                by_semester[1] * p,
+                by_semester[2] * p,
+                by_semester[3] * p,
+            ))
+
+        # Coordinator hours belong entirely to the coordinator — no proportion
+        if module.coordinator == self.staff:
+            coord = module.get_coordinator_hours_by_semester()
+            breakdown.append((
+                f"{module} Coordination",
+                coord[0], coord[1], coord[2], coord[3],
+            ))
+
+        return breakdown
+
+
+
     class Meta:
         verbose_name_plural = "module staff"
 
@@ -1156,10 +1231,29 @@ class Module(models.Model):
     semester = models.CharField(max_length=10, validators=[validate_comma_separated_integer_list],
                                 help_text='Specify which semester(s) this module runs in.')
     credits = models.PositiveSmallIntegerField(default=20)
-    size = models.ForeignKey('ModuleSize', on_delete=models.CASCADE)
-    contact_hours = models.PositiveSmallIntegerField(blank=True, null=True)
-    admin_hours = models.PositiveSmallIntegerField(blank=True, null=True)
-    assessment_hours = models.PositiveSmallIntegerField(blank=True, null=True)
+    # Deprecated
+    size = models.ForeignKey('ModuleSize', on_delete=models.CASCADE) #, null=True, blank=True)
+    number_students = models.PositiveSmallIntegerField(
+        verbose_name='Number of students',
+        help_text='Number of students, or approximate number of students enrolled',
+    )
+    contact_hours = models.PositiveSmallIntegerField(
+        blank=True, null=True,
+        help_text="Contact Hours with Students. Leave blank for an estimate from an automated formula."
+    )
+    coordinator_hours = models.PositiveSmallIntegerField(
+        blank=True, null=True,
+        help_text="Hours for Module Coordination. Leave blank for an estimate from an automated formula."
+    )
+    assessment_hours = models.PositiveSmallIntegerField(
+        blank=True, null=True,
+        help_text="Hours for other aspects of Assessment. Leave blank for an estimate from an automated formula."
+    )
+    admin_hours = models.PositiveSmallIntegerField(
+        blank=True, null=True,
+        help_text="Hours for other aspects of Admin. Leave blank for an estimate from an automated formula."
+    )
+
     package = models.ForeignKey('WorkPackage', on_delete=models.CASCADE)
     details = models.TextField(blank=True, null=True, help_text="Use this optional field for any explanatory comment.")
     programmes = models.ManyToManyField(Programme, blank=True, related_name='modules',
@@ -1173,56 +1267,87 @@ class Module(models.Model):
                                         limit_choices_to={'is_external': False},
                                         help_text='Specify who should moderate any assessments in this module. For assessment purposes only.')
 
-    def get_contact_hours(self):
-        """returns the contact hours for the module
+    # -------------------------------------------------------------------------
+    # Hour calculation methods
+    # Each method respects the manual override first, then falls back to the
+    # formula engine, which in turn falls back to the legacy scalar calculation.
+    # -------------------------------------------------------------------------
 
-        If the override is set, this is returns, otherwise an assumption is made
+    def _student_count(self):
         """
-        if self.contact_hours is None:
-            hours = self.credits * self.package.credit_contact_scaling
-        else:
-            hours = self.contact_hours
+        Returns the best available student count for formula calculations.
+        Uses number_students if available (new field), falls back to the
+        ModuleSize midpoint during the transition period while size still exists.
+        """
+        if self.number_students is not None:
+            return self.number_students
+        # Fallback during transition — remove once size FK is dropped
+        low = self.size.min_size
+        high = self.size.max_size
+        if high is None:
+            return low
+        return round((low + high) / 2)
 
-        return hours
+    def get_contact_hours(self):
+        """Returns contact hours, using override if set, otherwise formula."""
+        if self.contact_hours is not None:
+            return float(self.contact_hours)
+        return calculate_contact_hours(self.package, self.credits, self._student_count())
 
     def get_contact_hours_by_semester(self):
-        """returns the list divided by semester of contact hours"""
         return divide_by_semesters(self.get_contact_hours(), self.semester)
 
     def get_admin_hours(self):
-        """returns the total admin hours"""
-        if self.admin_hours is None:
-            hours = self.get_contact_hours() * self.package.contact_admin_scaling * self.size.admin_scaling
-        else:
-            hours = self.admin_hours
-        return hours
+        """Returns admin hours, using override if set, otherwise formula.
+        Note: uses get_contact_hours() so that any contact override is respected."""
+        if self.admin_hours is not None:
+            return float(self.admin_hours)
+        return calculate_admin_hours(
+            self.package, self.credits, self._student_count(),
+            contact=self.get_contact_hours(),
+        )
 
     def get_admin_hours_by_semester(self):
-        """returns the list divided by semester of admin hours"""
         return divide_by_semesters(self.get_admin_hours(), self.semester)
 
     def get_assessment_hours(self):
-        """returns the total assessment hours"""
-        if self.assessment_hours is None:
-            hours = self.get_contact_hours() * self.package.contact_assessment_scaling * self.size.assessment_scaling
-        else:
-            hours = self.assessment_hours
-        return hours
+        """Returns assessment hours, using override if set, otherwise formula."""
+        if self.assessment_hours is not None:
+            return float(self.assessment_hours)
+        return calculate_assessment_hours(
+            self.package, self.credits, self._student_count(),
+            contact=self.get_contact_hours(),
+            admin=self.get_admin_hours(),
+        )
 
     def get_assessment_hours_by_semester(self):
-        """returns the list divided by semester of assessment hours"""
         return divide_by_semesters(self.get_assessment_hours(), self.semester)
 
-    def get_all_hours(self):
-        """returns the total hours for the module"""
-        c_hours = self.get_contact_hours()
-        ad_hours = self.get_admin_hours()
-        as_hours = self.get_assessment_hours()
+    def get_coordinator_hours(self):
+        """Returns coordinator hours for whoever is the module coordinator.
+        Returns 0 if no coordinator is assigned to this module."""
+        if self.coordinator is None:
+            return 0
+        if self.coordinator_hours is not None:
+            return float(self.coordinator_hours)
+        return calculate_coordinator_hours(
+            self.package, self.credits, self._student_count(),
+        )
 
-        return c_hours + ad_hours + as_hours
+    def get_coordinator_hours_by_semester(self):
+        """Coordinator admin is distributed across the module's own semesters."""
+        return divide_by_semesters(self.get_coordinator_hours(), self.semester)
+
+    def get_all_hours(self):
+        """Returns total hours for the module including coordinator hours."""
+        return (
+                self.get_contact_hours()
+                + self.get_admin_hours()
+                + self.get_assessment_hours()
+                + self.get_coordinator_hours()
+        )
 
     def get_all_hours_by_semester(self):
-        """returns the list divided by semester of the total hours for the module"""
         return divide_by_semesters(self.get_all_hours(), self.semester)
 
     def get_assessment_history(self):

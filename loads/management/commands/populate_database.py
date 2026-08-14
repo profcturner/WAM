@@ -695,6 +695,7 @@ class Command(BaseCommand):
                 credits=20,
                 contact_hours=random.choice([36, 48, 60]),
                 size=random.choice(module_sizes),
+                number_students=random.randrange(10, 100),
                 lead_programme=random.choice(programmes),
                 coordinator=random.choice(staff),
                 package=package
