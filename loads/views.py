@@ -2285,7 +2285,7 @@ class DeleteModuleView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     permission_required = 'loads.delete_module'
     model = Module
     template_name = 'loads/modules/module_confirm_delete.html'
-    success_url = reverse_lazy('modules_index')
+    success_url = reverse_lazy('modules_index', kwargs={'semesters': ''})
 
     def dispatch(self, request, *args, **kwargs):
         # Check this Activity is the business of the logged in user
