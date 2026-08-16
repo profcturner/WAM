@@ -1232,7 +1232,7 @@ class Module(models.Model):
                                 help_text='Specify which semester(s) this module runs in.')
     credits = models.PositiveSmallIntegerField(default=20)
     # Deprecated
-    size = models.ForeignKey('ModuleSize', on_delete=models.CASCADE) #, null=True, blank=True)
+    size = models.ForeignKey('ModuleSize', on_delete=models.CASCADE, null=True, blank=True) #, null=True, blank=True)
     number_students = models.PositiveSmallIntegerField(
         verbose_name='Number of students',
         help_text='Number of students, or approximate number of students enrolled',
