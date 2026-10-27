@@ -34,6 +34,11 @@ already added can no longer be deleted.</p>
 <div class="border border-secondary-subtle rounded-3 p-3 mb-3 mt-4">
     <form action="" method="post" enctype="multipart/form-data">
         {% csrf_token %}
+        {% if form.non_field_errors %}
+            <div class="text-bg-danger rounded-3 p-3 mb-3">
+                {% for error in form.non_field_errors %}<p class="mb-0">{{ error|escape }}</p>{% endfor %}
+            </div>
+        {% endif %}
         {# Process hidden fields, we don't need to style them #}
         {% for hidden in form.hidden_fields %}
             {{ hidden }}

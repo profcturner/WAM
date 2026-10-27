@@ -297,6 +297,29 @@ class WorkPackageViewTests(ViewTestCase):
         response = self.client.post(reverse('workpackage_change'), {'package': self.next_year.pk})
         self.assertRedirects(response, reverse('loads'), fetch_redirect_response=False)
 
+    def test_change_package_without_session_next_page(self):
+        """Error report: KeyError 'next_page' when the POST arrives without the GET having stored a
+        next page in this session (a second tab, a double submit, or a session renewed by re-login)"""
+        self.login(self.lecturer)
+        response = self.client.post(reverse('workpackage_change') + '?next=/modules/index/',
+                                    {'package': self.next_year.pk})
+        self.assertRedirects(response, '/modules/index/', fetch_redirect_response=False)
+        self.lecturer.refresh_from_db()
+        self.assertEqual(self.lecturer.package, self.next_year)
+
+    def test_change_package_twice_from_one_form(self):
+        self.login(self.lecturer)
+        self.client.get(reverse('workpackage_change'), HTTP_REFERER='/loads_charts/')
+        self.client.post(reverse('workpackage_change'), {'package': self.next_year.pk})
+        response = self.client.post(reverse('workpackage_change'), {'package': self.package.pk})
+        self.assertRedirects(response, reverse('loads'), fetch_redirect_response=False)
+
+    def test_change_package_ignores_unsafe_next(self):
+        self.login(self.lecturer)
+        response = self.client.post(reverse('workpackage_change') + '?next=https://evil.example/',
+                                    {'package': self.next_year.pk})
+        self.assertRedirects(response, reverse('loads'), fetch_redirect_response=False)
+
     def test_cannot_change_to_other_schools_package(self):
         self.login(self.lecturer)
         response = self.client.post(reverse('workpackage_change'), {'package': self.other_package.pk})
@@ -342,14 +365,46 @@ class AllocationViewTests(ViewTestCase):
         return reverse('staff_module_allocation', args=[(package or self.package).pk, staff.pk])
 
     @staticmethod
-    def formset(field, rows):
-        data = {'form-TOTAL_FORMS': len(rows), 'form-INITIAL_FORMS': 0,
+    def formset(field, rows, blank_rows=0):
+        """POST data for an allocation formset. Like the real page, can include untouched blank rows"""
+        data = {'form-TOTAL_FORMS': len(rows) + blank_rows, 'form-INITIAL_FORMS': 0,
                 'form-MIN_NUM_FORMS': 0, 'form-MAX_NUM_FORMS': 1000}
         for i, (target, contact, admin, assessment) in enumerate(rows):
             data.update({f'form-{i}-id': '', f'form-{i}-{field}': target.pk,
                          f'form-{i}-contact_proportion': contact, f'form-{i}-admin_proportion': admin,
                          f'form-{i}-assessment_proportion': assessment})
+        for i in range(len(rows), len(rows) + blank_rows):
+            data.update({f'form-{i}-{name}': '' for name in
+                         ('id', field, 'contact_proportion', 'admin_proportion', 'assessment_proportion')})
         return data
+
+    def test_module_allocation_with_blank_row(self):
+        """Error report: 'ModuleStaff has no staff' when the page submits an untouched blank row"""
+        self.login(self.allocator)
+        response = self.client.post(self.module_url(), self.formset('staff', [
+            (self.lecturer, 40, 40, 40), (self.coordinator, 60, 60, 60)], blank_rows=1))
+        self.assertRedirects(response, reverse('modules_details', args=[self.module.pk]),
+                             fetch_redirect_response=False)
+        self.assertEqual(ModuleStaff.objects.filter(module=self.module).count(), 2)
+
+    def test_module_allocation_edit_and_delete(self):
+        existing = allocate(self.lecturer, self.module, 100, 100, 100)
+        self.login(self.allocator)
+        data = {'form-TOTAL_FORMS': 2, 'form-INITIAL_FORMS': 1, 'form-MIN_NUM_FORMS': 0, 'form-MAX_NUM_FORMS': 1000,
+                'form-0-id': existing.pk, 'form-0-staff': self.lecturer.pk, 'form-0-contact_proportion': 50,
+                'form-0-admin_proportion': 50, 'form-0-assessment_proportion': 50, 'form-0-DELETE': 'on',
+                'form-1-id': '', 'form-1-staff': self.coordinator.pk, 'form-1-contact_proportion': 100,
+                'form-1-admin_proportion': 100, 'form-1-assessment_proportion': 100}
+        self.client.post(self.module_url(), data)
+        self.assertEqual(list(ModuleStaff.objects.values_list('staff', 'module', 'package')),
+                         [(self.coordinator.pk, self.module.pk, self.package.pk)])
+
+    def test_staff_allocation_with_blank_row(self):
+        self.login(self.allocator)
+        response = self.client.post(self.staff_url(self.lecturer), self.formset('module', [
+            (self.module, 100, 100, 100)], blank_rows=1))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(ModuleStaff.objects.filter(staff=self.lecturer).count(), 1)
 
     def test_allocate_staff_to_module(self):
         self.login(self.allocator)
@@ -459,3 +514,63 @@ class AdminActionViewTests(ViewTestCase):
         self.login(make_staff('schooladmin', group=self.group, permissions=['loads.add_activity']))
         self.assertForbidden(self.client.get(reverse('generators_generate_activities', args=[generator.pk])))
         self.assertFalse(Activity.objects.exists())
+
+
+class AssessmentSignOffViewTests(ViewTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.ready = make_state("Ready", actors="coordinator", initial_state=True, priority=1)
+        self.approved = make_state("Approved", actors="coordinator", initial_state=False, priority=2)
+        self.ready.next_states.add(self.approved)
+
+    def sign(self, state, module=None, url_module=None):
+        url = reverse('add_assessment_sign_off', args=[(url_module or self.module).pk])
+        return self.client.post(url, {'module': (module or self.module).pk, 'signed_by': self.coordinator.user.pk,
+                                      'assessment_state': state.pk if state else '', 'notes': 'Moderated'})
+
+    def test_sign_off(self):
+        self.login(self.coordinator)
+        self.assertEqual(self.client.get(reverse('add_assessment_sign_off', args=[self.module.pk])).status_code, 200)
+        response = self.sign(self.ready)
+        self.assertRedirects(response, reverse('modules_details', args=[self.module.pk]),
+                             fetch_redirect_response=False)
+        signoff = AssessmentStateSignOff.objects.get()
+        self.assertEqual((signoff.assessment_state, signoff.signed_by), (self.ready, self.coordinator.user))
+
+    def test_sign_off_without_choosing_a_state(self):
+        """Error report: KeyError 'assessment_state' when the form is submitted with no state selected"""
+        self.login(self.coordinator)
+        response = self.sign(None)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('assessment_state', response.context['form'].errors)
+        self.assertFalse(AssessmentStateSignOff.objects.exists())
+
+    def test_cannot_skip_workflow_states(self):
+        """Only the states that may follow the latest sign off can be chosen"""
+        self.login(self.coordinator)
+        response = self.sign(self.approved)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(AssessmentStateSignOff.objects.exists())
+
+        self.sign(self.ready)
+        self.sign(self.approved)
+        self.assertEqual(AssessmentStateSignOff.objects.count(), 2)
+
+    def test_permission_is_checked_against_the_module_signed(self):
+        """The hidden module field mustn't let permission on one module sign off another"""
+        others_module = make_module(self.package, code="COM999", coordinator=self.lecturer)
+        self.login(self.coordinator)
+        response = self.sign(self.ready, module=self.module, url_module=others_module)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(AssessmentStateSignOff.objects.exists())
+
+    def test_cannot_choose_a_state_reserved_for_others(self):
+        # The lecturer can set "Anyone", so gets the form, but "Ready" is for coordinators only
+        make_state("Anyone", actors="anyone", initial_state=True, priority=3)
+        self.login(self.lecturer)
+        response = self.client.post(reverse('add_assessment_sign_off', args=[self.module.pk]),
+                                    {'module': self.module.pk, 'signed_by': self.lecturer.user.pk,
+                                     'assessment_state': self.ready.pk, 'notes': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(AssessmentStateSignOff.objects.exists())

@@ -338,7 +338,12 @@ class AssessmentStateSignOffForm(ModelForm):
     """Form for adding assessment sign offs"""
 
     def __init__(self, *args, **kwargs):
+        """
+        :param user:    the user signing off (request.user), trusted over the hidden form field
+        :param module:  the module being signed off (from the URL), trusted over the hidden form field
+        """
         self.user = kwargs.pop('user', None)
+        self.module = kwargs.pop('module', None)
         super(AssessmentStateSignOffForm, self).__init__(*args, **kwargs)
 
     class Meta:
@@ -348,14 +353,20 @@ class AssessmentStateSignOffForm(ModelForm):
 
     def clean(self):
         """Check the user can invoke this state"""
-        assessment_state = self.cleaned_data['assessment_state']
-        module = self.cleaned_data['module']
-        # Override with the passed in user (which should be request.user) for security reasons
-        signed_by = self.user
-        staff = Staff.objects.get(user=signed_by)
+        cleaned_data = super().clean()
+        assessment_state = cleaned_data.get('assessment_state')
+        # Override with the passed in user and module, for security reasons
+        module = self.module or cleaned_data.get('module')
 
+        # A missing or invalid state or module is already reported against its field
+        if assessment_state is None or module is None:
+            return cleaned_data
+
+        staff = Staff.objects.get(user=self.user)
         if not assessment_state.can_be_set_by(staff, module):
             raise ValidationError("You don't have permission to select that state.")
+
+        return cleaned_data
 
 
 class StaffCreationForm(forms.Form):
