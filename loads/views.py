@@ -1153,11 +1153,11 @@ def module_staff_allocation(request, module_id, package_id):
                                                               'admin_proportion',
                                                               'assessment_proportion'),
                                                       can_delete=True)
+    # Only offer sensible staff. Setting this on the form class, before any forms are built or
+    # validated, covers existing rows, validation, and empty_form (the template for added rows).
+    allocation_formset_factory.form.base_fields['staff'].queryset = combined_staff_qs
 
     if request.method == "POST":
-        initial = [
-            {"staff": combined_staff_qs.values()},
-        ]
         # Processing the form post submit, get the formset first
         formset = allocation_formset_factory(request.POST, request.FILES,
                                              queryset=ModuleStaff.objects.filter(module=module).order_by(
@@ -1166,13 +1166,6 @@ def module_staff_allocation(request, module_id, package_id):
         logger.debug("[%s] inbound POST %s" % (request.user, request.POST))
         logger.debug("[%s] %u forms before validation" % (request.user, len(formset.forms)))
         logger.debug("[%s] %u deleted forms before validation" % (request.user, len(formset.deleted_forms)))
-
-        # Unfortunately if we don't restruct the query set in additional places fancy_formset messes it up
-        formset.form.base_fields['staff'].queryset = combined_staff_qs
-        # We need to tweak the queryset to only allow staff in the package
-        for form in formset:
-            form.fields['staff'].queryset = combined_staff_qs
-        formset.empty_form.fields['staff'].queryset = combined_staff_qs
 
         if formset.is_valid():
             # save(commit=False) returns only new or changed allocations, skipping the untouched
@@ -1196,12 +1189,6 @@ def module_staff_allocation(request, module_id, package_id):
     else:
         formset = allocation_formset_factory(queryset=ModuleStaff.objects.filter(module=module).order_by(
             'staff__user__last_name'))
-        # Again, only allow staff members in the package plus a few others.
-        logger.debug("[%s] creating query set: combined_staff_qs: %s" % (request.user, combined_staff_qs))
-        formset.form.base_fields['staff'].queryset = combined_staff_qs
-        for form in formset:
-            form.fields['staff'].queryset = combined_staff_qs
-        formset.empty_form.fields['staff'].queryset = combined_staff_qs
         logger.info("[%s] opened the form for the module allocation for module %s" % (request.user, module), extra={'formset': formset})
 
     return render(request, 'loads/modules/allocations.html', {'module': module, 'package': package, 'formset': formset})
@@ -1688,6 +1675,10 @@ def staff_module_allocation(request, staff_id, package_id):
                                              fields=('module', 'contact_proportion', 'admin_proportion',
                                                      'assessment_proportion'),
                                              can_delete=True)
+    # Only offer modules in this package. Setting this on the form class, before any forms are built,
+    # covers existing rows and also empty_form, the template for rows added on the page.
+    allocation_form_set.form.base_fields['module'].queryset = \
+        Module.objects.filter(package=package).order_by('module_code')
 
     if request.method == "POST":
         formset = allocation_form_set(
@@ -1699,9 +1690,6 @@ def staff_module_allocation(request, staff_id, package_id):
         logger.debug("[%s] %u forms before validation" % (request.user, len(formset.forms)))
         logger.debug("[%s] %u deleted forms before validation" % (request.user, len(formset.deleted_forms)))
 
-        # We need to tweak the queryset to only allow modules in the package
-        for form in formset:
-            form.fields['module'].queryset = Module.objects.filter(package=package)
         if formset.is_valid():
             # save(commit=False) returns only new or changed allocations, skipping untouched blank rows
             for allocation in formset.save(commit=False):
@@ -1721,9 +1709,6 @@ def staff_module_allocation(request, staff_id, package_id):
             return HttpResponseRedirect(url)
     else:
         formset = allocation_form_set(queryset=ModuleStaff.objects.filter(package=package).filter(staff=staff))
-        # Again, only allow modules in the package
-        for form in formset:
-            form.fields['module'].queryset = Module.objects.filter(package=package)
         logger.info("[%s] examining the module allocation for %s on package %s" %
                     (request.user, staff, package), extra={'formset': formset})
 
@@ -1827,6 +1812,8 @@ def projects_details(request, project_id):
                                                fields=('staff', 'start', 'end', 'hours_per_week'),
                                                widgets={'start' : DateInput(), 'end' : DateInput(),},
                                                can_delete=True)
+    # Only offer sensible staff, set before any forms are built or validated (see module_staff_allocation)
+    ProjectStaffFormSet.form.base_fields['staff'].queryset = combined_staff_qs
 
     if request.method == "POST":
         project_form = ProjectForm(request.POST, instance=project)
@@ -1844,21 +1831,13 @@ def projects_details(request, project_id):
             project_form.save()
 
         if formset.is_valid():
-            formset.form.base_fields['staff'].queryset = combined_staff_qs
-            formset.empty_form.fields['staff'].queryset = combined_staff_qs
-
-            formset.save(commit=False)
-            for form in formset:
-                # Get a sane list of staff to pick from.
-                form.fields['staff'].queryset = combined_staff_qs
-
-                # Some fields are missing, so don't do a full save yet, don't do this on delete items
-                if form not in formset.deleted_forms:
-                    allocation = form.save(commit=False)
-                    # Fix the fields
-                    allocation.project = project
-            # Now do a real save
-            formset.save(commit=True)
+            # save(commit=False) returns only new or changed allocations, skipping untouched blank rows
+            for allocation in formset.save(commit=False):
+                # Fill in the field that isn't on the form
+                allocation.project = project
+                allocation.save()
+            for allocation in formset.deleted_objects:
+                allocation.delete()
             logger.info("[%s] (admin) edited the details for project %s" % (request.user, project),
                          extra={'formset': formset})
 
@@ -1873,12 +1852,6 @@ def projects_details(request, project_id):
     else:
         project_form = ProjectForm(instance=project)
         formset = ProjectStaffFormSet(queryset=ProjectStaff.objects.filter(project=project))
-
-        # Get a sane list of staff to pick from.
-        formset.form.base_fields['staff'].queryset = combined_staff_qs
-        for form in formset:
-            form.fields['staff'].queryset = combined_staff_qs
-        formset.empty_form.fields['staff'].queryset = combined_staff_qs
 
         logger.info("[%s] (admin) opened the details for project %s" % (request.user, project),
                     extra={'formset': formset})
@@ -2531,6 +2504,10 @@ class CreateActivityView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
     template_name = 'loads/activities/activity_form.html'
     form_class = ActivityForm
 
+    def get_initial(self):
+        # New activities default to running all year
+        return {**super().get_initial(), 'semester': '1,2,3'}
+
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         staff = get_object_or_404(Staff, user=self.request.user)
@@ -2538,8 +2515,6 @@ class CreateActivityView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
         package = staff.package
         form.fields['staff'].queryset = package.get_all_staff()
         form.fields['module'].queryset = Module.objects.filter(package=package)
-        form.fields['semesters'] = "1,2,3"
-        form = super(CreateActivityView, self).get_form(form_class)
 
         return form
 

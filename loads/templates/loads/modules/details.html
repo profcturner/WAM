@@ -31,10 +31,15 @@
     </div>
     <div class="row mb-2">
         <div class="col-12 col-md-3 fw-bold">
-            Module size
+            {% if module.number_students is not None %}Number of students{% else %}Module size{% endif %}
         </div>
         <div class="col-9 font-monospace">
-            {{ module.size }}
+            {% if module.number_students is not None %}
+                {{ module.number_students }}
+            {% else %}
+                {# Deprecated ModuleSize, only for modules without a student number #}
+                {{ module.size|default:"Not set" }}
+            {% endif %}
         </div>
     </div>
     <div class="row mb-2">
