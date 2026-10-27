@@ -5,3 +5,6 @@ django-utils
 django-fancy-formset
 python-dateutil
 simpleeval
+# Used by loads.directory_graph to onboard staff from Microsoft Entra ID
+msal
+requests

@@ -46,6 +46,18 @@ WAM_AUTO_CREATE_SCHOOL = True
 # Automatically create School level "Groups"
 WAM_AUTO_CREATE_SCHOOL_GROUPS = True
 
+# Directory integration, to onboard a School's staff before they log in, with:
+#   python manage.py onboard_staff "School name"
+# Set this to the dotted path of a loads.directory.DirectorySource subclass, for example
+# "loads.directory_graph.GraphDirectorySource" for Microsoft Entra ID (Azure AD).
+# See loads/directory.py and loads/directory_graph.py for details and further settings.
+WAM_DIRECTORY_SOURCE = None
+
+# Settings for loads.directory_graph.GraphDirectorySource (read secrets from the environment)
+WAM_GRAPH_TENANT_ID = None
+WAM_GRAPH_CLIENT_ID = None
+WAM_GRAPH_CLIENT_SECRET = None
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 DEBUG_TOOLBAR = False
