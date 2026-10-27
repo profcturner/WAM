@@ -92,10 +92,11 @@ def next_page_pop(request, backup_url=None):
     :param backup_url:  Use this URL is the pop fails
     :return:            The url for redirection, or a backup if not found in the session
     """
-    url = request.session.pop('next_page')
-    # Just in case we can't get one
+    # The session may have no next page, e.g. a second tab or double submit has already
+    # popped it, or the session was renewed by logging in again
+    url = request.session.pop('next_page', None)
     if url is None:
-        logger.debug("[%s] could not pop next page from session, bacup url used %s" % (request.user, url))
+        logger.debug("[%s] could not pop next page from session, backup url used %s" % (request.user, backup_url))
         return backup_url
     else:
         logger.debug("[%s] popping next page %s from session" % (request.user, url))
@@ -1174,17 +1175,16 @@ def module_staff_allocation(request, module_id, package_id):
         formset.empty_form.fields['staff'].queryset = combined_staff_qs
 
         if formset.is_valid():
-            formset.save(commit=False)
-            for form in formset:
-                if form not in formset.deleted_forms:
-                    # Some fields are missing, so don't do a full save yet
-                    allocation = form.save(commit=False)
-                    # Fix the fields
-                    allocation.module = module
-                    allocation.package = package
-                    logger.info("[%s] allocation for %s processed", request.user, allocation.staff)
-            # Now do a real save
-            formset.save(commit=True)
+            # save(commit=False) returns only new or changed allocations, skipping the untouched
+            # blank rows the page always submits, which have no staff member
+            for allocation in formset.save(commit=False):
+                # Fill in the fields that aren't on the form
+                allocation.module = module
+                allocation.package = package
+                allocation.save()
+                logger.info("[%s] allocation for %s processed", request.user, allocation.staff)
+            for allocation in formset.deleted_objects:
+                allocation.delete()
             logger.info("[%s] adjusted the module allocation for module %s" % (request.user, module),
                         extra={'formset': formset})
 
@@ -1547,7 +1547,9 @@ def add_assessment_sign_off(request, module_id):
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
-        form = AssessmentStateSignOffForm(request.POST, user=request.user)
+        form = AssessmentStateSignOffForm(request.POST, user=request.user, module=module)
+        # Only the permitted next states may be chosen, so the workflow can't be skipped
+        form.fields['assessment_state'].queryset = next_states
 
         # check whether it's valid:
         if form.is_valid():
@@ -1564,7 +1566,7 @@ def add_assessment_sign_off(request, module_id):
 
     # if a GET (or any other method) we'll create a blank form
     else:
-        form = AssessmentStateSignOffForm(user=request.user)
+        form = AssessmentStateSignOffForm(user=request.user, module=module)
         form.fields['assessment_state'].queryset = next_states
         form.fields['signed_by'].initial = request.user
         form.fields['module'].initial = module
@@ -1701,16 +1703,14 @@ def staff_module_allocation(request, staff_id, package_id):
         for form in formset:
             form.fields['module'].queryset = Module.objects.filter(package=package)
         if formset.is_valid():
-            formset.save(commit=False)
-            for form in formset:
-                if form not in formset.deleted_forms:
-                    # Some fields are missing, so don't do a full save yet
-                    allocation = form.save(commit=False)
-                    # Fix the fields
-                    allocation.staff = staff
-                    allocation.package = package
-            # Now do a real save
-            formset.save(commit=True)
+            # save(commit=False) returns only new or changed allocations, skipping untouched blank rows
+            for allocation in formset.save(commit=False):
+                # Fill in the fields that aren't on the form
+                allocation.staff = staff
+                allocation.package = package
+                allocation.save()
+            for allocation in formset.deleted_objects:
+                allocation.delete()
             logger.info("[%s] edited the module allocation for %s on package %s" %
                         (request.user, staff, package), extra={'formset': formset})
 
@@ -1932,21 +1932,21 @@ def workpackage_change(request):
             logger.info("[%s] changed package to %s", request.user, staff.package,
                          extra={'form': form})
 
-            # Try to find where we came from
-            next = next_page_pop(request)
-            #TODO: Put the below handling into pop helper
-            is_safe = url_has_allowed_host_and_scheme(url=next, allowed_hosts=request.get_host(),
-                                                      require_https=request.is_secure())
+            # Try to find where we came from: the ?next= the "Change year" links pass,
+            # or failing that the referer stored in the session when the form was opened
+            next = request.GET.get('next') or next_page_pop(request)
+            # Always remove any stored next page, so it can't go stale
+            next_page_pop(request)
 
-            if not is_safe:
+            if next:
+                is_safe = url_has_allowed_host_and_scheme(url=next, allowed_hosts={request.get_host()},
+                                                          require_https=request.is_secure())
+                if is_safe:
+                    return HttpResponseRedirect(next)
                 logger.critical("[%s] used an invalid next page in package change" % request.user)
 
-            if is_safe and next:
-                return HttpResponseRedirect(next)
-            else:
-                # redirect to the loads page
-                url = reverse('loads')
-                return HttpResponseRedirect(url)
+            # redirect to the loads page
+            return HttpResponseRedirect(reverse('loads'))
 
     # if a GET (or any other method) we'll create a form from the current logged in user
     else:
