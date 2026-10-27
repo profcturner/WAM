@@ -574,3 +574,126 @@ class AssessmentSignOffViewTests(ViewTestCase):
                                      'assessment_state': self.ready.pk, 'notes': ''})
         self.assertEqual(response.status_code, 200)
         self.assertFalse(AssessmentStateSignOff.objects.exists())
+
+
+class PackageRestrictionViewTests(ViewTestCase):
+    """Choices offered in forms should be limited to the user's current package"""
+
+    def setUp(self):
+        super().setUp()
+        self.allocator = make_staff('allocator', package=self.package, group=self.group,
+                                    permissions=ALLOCATION_PERMISSIONS + ('loads.add_activity', 'loads.change_activity'))
+        self.foreign_module = make_module(self.other_package, code="FOREIGN")
+        self.activity_type = make_activity_type()
+
+    def test_staff_allocation_only_offers_package_modules(self):
+        """Known bug: the 'add a module' row offered modules from every package"""
+        allocate(self.lecturer, self.module)
+        self.login(self.allocator)
+        response = self.client.get(reverse('staff_module_allocation', args=[self.package.pk, self.lecturer.pk]))
+        formset = response.context['formset']
+        self.assertEqual(list(formset.empty_form.fields['module'].queryset), [self.module])
+        self.assertEqual(list(formset.forms[0].fields['module'].queryset), [self.module])
+        self.assertNotContains(response, "FOREIGN")
+
+    def test_staff_allocation_rejects_other_package_modules(self):
+        self.login(self.allocator)
+        data = {'form-TOTAL_FORMS': 1, 'form-INITIAL_FORMS': 0, 'form-MIN_NUM_FORMS': 0, 'form-MAX_NUM_FORMS': 1000,
+                'form-0-id': '', 'form-0-module': self.foreign_module.pk, 'form-0-contact_proportion': 100,
+                'form-0-admin_proportion': 100, 'form-0-assessment_proportion': 100}
+        response = self.client.post(reverse('staff_module_allocation', args=[self.package.pk, self.lecturer.pk]), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(ModuleStaff.objects.exists())
+
+    def activity_post(self, staff):
+        return {'name': 'Open day', 'hours_percentage_combined_0': 'H', 'hours_percentage_combined_1': 10,
+                'hours_percentage_combined_2': '', 'semester_1': 'on', 'activity_type': self.activity_type.pk,
+                'module': '', 'staff': staff.pk, 'comment': ''}
+
+    def test_create_activity_only_offers_package_staff_and_modules(self):
+        """Known bug: the staff list on /activities/create/ wasn't restricted, unlike editing"""
+        self.login(self.allocator)
+        form = self.client.get(reverse('create activity')).context['form']
+        self.assertNotIn(self.outsider, form.fields['staff'].queryset)
+        self.assertIn(self.lecturer, form.fields['staff'].queryset)
+        self.assertEqual(list(form.fields['module'].queryset), [self.module])
+        self.assertEqual(form['semester'].value(), '1,2,3')
+
+    def test_create_activity(self):
+        self.login(self.allocator)
+        response = self.client.post(reverse('create activity'), self.activity_post(self.lecturer))
+        self.assertRedirects(response, reverse('activities_index'), fetch_redirect_response=False)
+        activity = Activity.objects.get()
+        self.assertEqual((activity.staff, activity.package, activity.hours, activity.semester),
+                         (self.lecturer, self.package, 10, '1'))
+
+    def test_create_activity_rejects_staff_outside_package(self):
+        self.login(self.allocator)
+        response = self.client.post(reverse('create activity'), self.activity_post(self.outsider))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('staff', response.context['form'].errors)
+        self.assertFalse(Activity.objects.exists())
+
+
+    def test_module_allocation_rejects_staff_outside_package(self):
+        """The staff restriction used to be applied after the formset had already been validated"""
+        self.login(self.allocator)
+        data = {'form-TOTAL_FORMS': 1, 'form-INITIAL_FORMS': 0, 'form-MIN_NUM_FORMS': 0, 'form-MAX_NUM_FORMS': 1000,
+                'form-0-id': '', 'form-0-staff': self.outsider.pk, 'form-0-contact_proportion': 100,
+                'form-0-admin_proportion': 100, 'form-0-assessment_proportion': 100}
+        response = self.client.post(reverse('module_staff_allocation', args=[self.package.pk, self.module.pk]), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(ModuleStaff.objects.exists())
+        self.assertNotIn(self.outsider, response.context['formset'].empty_form.fields['staff'].queryset)
+
+
+class ModuleDetailsViewTests(ViewTestCase):
+
+    def test_shows_number_of_students(self):
+        """Known bug: showed the deprecated ModuleSize, so "None" for modules without one"""
+        self.login(self.coordinator)
+        response = self.client.get(reverse('modules_details', args=[self.module.pk]))
+        self.assertContains(response, "Number of students")
+        self.assertNotContains(response, ">None<")
+        self.assertContains(response, str(self.module.number_students))
+
+
+class ProjectDetailsViewTests(ViewTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.admin = make_staff('projectadmin', package=self.package, group=self.group, is_staff=True, permissions=(
+            'loads.change_project', 'loads.add_projectstaff', 'loads.change_projectstaff',
+            'loads.delete_projectstaff'))
+        from .models import Body, Project
+        self.project = Project.objects.create(name="Grant", body=Body.objects.create(name="Funder", details=""),
+                                              activity_type=make_activity_type(),
+                                              start=datetime.date(2017, 9, 1), end=datetime.date(2018, 8, 31))
+
+    def post(self, rows, blank_rows=0):
+        data = {'name': self.project.name, 'activity_type': self.project.activity_type.pk,
+                'body': self.project.body.pk, 'start': '2017-09-01', 'end': '2018-08-31',
+                'form-TOTAL_FORMS': len(rows) + blank_rows, 'form-INITIAL_FORMS': 0,
+                'form-MIN_NUM_FORMS': 0, 'form-MAX_NUM_FORMS': 1000}
+        for i, staff in enumerate(rows):
+            data.update({f'form-{i}-id': '', f'form-{i}-staff': staff.pk, f'form-{i}-start': '2017-09-01',
+                         f'form-{i}-end': '2018-08-31', f'form-{i}-hours_per_week': 2})
+        for i in range(len(rows), len(rows) + blank_rows):
+            data.update({f'form-{i}-{name}': '' for name in ('id', 'staff', 'start', 'end', 'hours_per_week')})
+        return self.client.post(reverse('projects_details', args=[self.project.pk]), data)
+
+    def test_allocate_staff_with_blank_row(self):
+        from .models import ProjectStaff
+        self.login(self.admin)
+        self.assertEqual(self.client.get(reverse('projects_details', args=[self.project.pk])).status_code, 200)
+        response = self.post([self.lecturer], blank_rows=1)
+        self.assertRedirects(response, reverse('projects_index'), fetch_redirect_response=False)
+        self.assertEqual(list(ProjectStaff.objects.values_list('staff', 'project')),
+                         [(self.lecturer.pk, self.project.pk)])
+
+    def test_rejects_staff_outside_packages(self):
+        from .models import ProjectStaff
+        self.login(self.admin)
+        response = self.post([self.outsider])
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(ProjectStaff.objects.exists())
