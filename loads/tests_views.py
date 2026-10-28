@@ -763,3 +763,113 @@ class ProjectDetailsViewTests(ViewTestCase):
         response = self.post([self.outsider])
         self.assertEqual(response.status_code, 200)
         self.assertFalse(ProjectStaff.objects.exists())
+
+
+class EditOtherSchoolsRecordsTests(ViewTestCase):
+    """Audit item 1: edit pages must not reach records outside the user's packages"""
+
+    def setUp(self):
+        super().setUp()
+        self.activity_type = make_activity_type()
+        self.admin = make_staff('schooladmin', package=self.package, group=self.group, permissions=[
+            'loads.change_module', 'loads.change_activity', 'loads.change_programme', 'loads.change_task',
+            'loads.change_activitygenerator'])
+        # Records belonging to the other School
+        self.their_module = make_module(self.other_package, code="THEIRS")
+        self.their_activity = Activity.objects.create(name="Theirs", hours=5, percentage=0, package=self.other_package,
+                                                      activity_type=self.activity_type, staff=self.outsider)
+        self.their_programme = Programme.objects.create(programme_code="T1", programme_name="Theirs",
+                                                        package=self.other_package)
+        self.their_generator = ActivityGenerator.objects.create(
+            name="Theirs", hours=5, percentage=0, semester='1', activity_type=self.activity_type,
+            package=self.other_package, details="")
+        self.category = Category.objects.create(name="Admin", abbreviation="admin", colour="blue")
+        self.their_task = Task.objects.create(name="Theirs", details="", deadline=timezone.now(), category=self.category)
+        self.their_task.targets.add(self.outsider)
+
+    def module_post(self, module, code):
+        return {'module_code': code, 'module_name': 'Changed', 'campus': module.campus.pk, 'credits': 20,
+                'number_students': 5, 'semester_1': 'on', 'coordinator_hours': '', 'contact_hours': '',
+                'admin_hours': '', 'assessment_hours': '', 'coordinator': '', 'lead_programme': '', 'details': ''}
+
+    def activity_post(self, name, staff=''):
+        return {'name': name, 'hours_percentage_combined_0': 'H', 'hours_percentage_combined_1': 7,
+                'hours_percentage_combined_2': '', 'semester_1': 'on', 'activity_type': self.activity_type.pk,
+                'module': '', 'staff': staff, 'comment': ''}
+
+    def test_other_schools_records_are_not_found(self):
+        self.login(self.admin)
+        for name, obj in (('update module', self.their_module), ('update activity', self.their_activity),
+                          ('update programme', self.their_programme), ('update generator', self.their_generator),
+                          ('update task', self.their_task)):
+            self.assertEqual(self.client.get(reverse(name, args=[obj.pk])).status_code, 404, name)
+            self.assertEqual(self.client.post(reverse(name, args=[obj.pk]), {'name': 'Hacked'}).status_code, 404, name)
+
+    def test_other_schools_module_unchanged(self):
+        """Confirmed in the audit: another School's module could be renamed"""
+        self.login(self.admin)
+        self.client.post(reverse('update module', args=[self.their_module.pk]),
+                         self.module_post(self.their_module, 'HACKED'))
+        self.their_module.refresh_from_db()
+        self.assertEqual(self.their_module.module_code, 'THEIRS')
+
+    def test_other_schools_activity_not_moved(self):
+        """Confirmed in the audit: editing another School's activity moved it into the editor's package"""
+        self.login(self.admin)
+        self.client.post(reverse('update activity', args=[self.their_activity.pk]), self.activity_post('Moved'))
+        self.their_activity.refresh_from_db()
+        self.assertEqual((self.their_activity.package, self.their_activity.name), (self.other_package, 'Theirs'))
+
+    def test_own_records_in_another_package_stay_put(self):
+        """Editing a record in one of your packages, while another is selected, mustn't move it"""
+        next_year = make_package("2018/19", group=self.group)
+        activity = Activity.objects.create(name="Next year", hours=5, percentage=0, package=next_year,
+                                           activity_type=self.activity_type, staff=self.lecturer)
+        self.login(self.admin)  # current package is self.package
+        form = self.client.get(reverse('update activity', args=[activity.pk])).context['form']
+        self.assertEqual(list(form.fields['module'].queryset), [])  # next year's modules, not this year's
+        response = self.client.post(reverse('update activity', args=[activity.pk]),
+                                    self.activity_post('Next year, edited', staff=self.lecturer.pk))
+        self.assertEqual(response.status_code, 302)
+        activity.refresh_from_db()
+        self.assertEqual((activity.package, activity.name, activity.hours), (next_year, 'Next year, edited', 7))
+
+    def test_own_generator_keeps_its_package(self):
+        next_year = make_package("2018/19", group=self.group)
+        generator = ActivityGenerator.objects.create(name="Open day", hours=5, percentage=0, semester='1',
+                                                     activity_type=self.activity_type, package=next_year, details="")
+        self.login(self.admin)
+        response = self.client.post(reverse('update generator', args=[generator.pk]), {
+            'name': 'Open day, edited', 'hours_percentage_combined_0': 'H', 'hours_percentage_combined_1': 3,
+            'hours_percentage_combined_2': '', 'semester_1': 'on', 'activity_type': self.activity_type.pk,
+            'module': '', 'comment': '', 'package': self.other_package.pk, 'details': 'Annual event'})
+        self.assertEqual(response.status_code, 302)
+        generator.refresh_from_db()
+        self.assertEqual((generator.package, generator.name), (next_year, 'Open day, edited'))
+
+    def test_own_module_can_be_edited(self):
+        self.login(self.admin)
+        response = self.client.post(reverse('update module', args=[self.module.pk]),
+                                    self.module_post(self.module, 'COM101X'))
+        self.assertEqual(response.status_code, 302)
+        self.module.refresh_from_db()
+        self.assertEqual((self.module.module_code, self.module.package), ('COM101X', self.package))
+
+    def test_superuser_can_edit_any_school(self):
+        self.login(self.superuser)
+        self.client.post(reverse('update module', args=[self.their_module.pk]),
+                         self.module_post(self.their_module, 'FIXED'))
+        self.their_module.refresh_from_db()
+        self.assertEqual((self.their_module.module_code, self.their_module.package), ('FIXED', self.other_package))
+
+    def test_shared_task_keeps_other_schools_targets(self):
+        """A task aimed at both Schools can be edited, without dropping the targets the editor can't see"""
+        self.their_task.targets.add(self.lecturer)
+        self.login(self.admin)
+        response = self.client.post(reverse('update task', args=[self.their_task.pk]), {
+            'name': 'Shared, edited', 'category': self.category.pk, 'details': 'x',
+            'deadline': '2030-01-01T09:00', 'targets': [self.lecturer.pk, self.coordinator.pk]})
+        self.assertEqual(response.status_code, 302)
+        self.their_task.refresh_from_db()
+        self.assertEqual(self.their_task.name, 'Shared, edited')
+        self.assertCountEqual(self.their_task.targets.all(), [self.outsider, self.lecturer, self.coordinator])
