@@ -3,6 +3,7 @@ import logging
 
 from django.core.mail import mail_admins
 from django.shortcuts import get_object_or_404, render
+from django.db.models import Q
 from django.http import Http404
 
 from .validators import assessment_file_serving
@@ -1998,6 +1999,23 @@ def workpackage_migrate(request):
 
 # Class based views
 
+class InUsersPackagesMixin:
+    """
+    Limits a single-object view (update, delete) to objects in the user's work packages,
+    or any object for a superuser. Anything else is a 404, so other Schools' records
+    can't be opened, changed, or even confirmed to exist.
+    """
+    package_field = 'package'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_superuser:
+            return queryset
+        staff = get_object_or_404(Staff, user=self.request.user)
+        packages = staff.get_all_packages(include_hidden=True)
+        return queryset.filter(**{f'{self.package_field}__in': packages})
+
+
 @method_decorator(login_required, name='dispatch')
 @method_decorator(staff_only, name='dispatch')
 class CreateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
@@ -2039,7 +2057,7 @@ class CreateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, C
 
 @method_decorator(login_required, name='dispatch')
 @method_decorator(staff_only, name='dispatch')
-class UpdateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+class UpdateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, InUsersPackagesMixin, UpdateView):
     """View for creating a Module"""
     permission_required = 'loads.change_activitygenerator'
     model = ActivityGenerator
@@ -2053,9 +2071,8 @@ class UpdateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, U
         """We need to restrict form querysets"""
         form = super(UpdateActivityGeneratorView, self).get_form(form_class)
 
-        # Work out the correct package and the staff within in
-        staff = get_object_or_404(Staff, user=self.request.user)
-        package = staff.package
+        # Offer choices from the generator's own package, which may not be the user's current one
+        package = self.object.package
         package_staff = package.get_all_staff()
 
         # And restrict the querysets as appropriate
@@ -2066,14 +2083,9 @@ class UpdateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, U
         return form
 
     def form_valid(self, form):
-        # Work out the correct package and the staff within in
-        staff = get_object_or_404(Staff, user=self.request.user)
-        package = staff.package
-
-        self.object = form.save(commit=False)
-        self.object.package = package
-        response = super(UpdateActivityGeneratorView, self).form_valid(form)
-        return response
+        # Keep the generator in its own package, whatever the hidden package field says
+        form.instance.package = self.get_object().package
+        return super().form_valid(form)
 
 
 @method_decorator(login_required, name='dispatch')
@@ -2149,7 +2161,13 @@ class CreateTaskView(LoginRequiredMixin, CreateView):
 
 
 class UpdateTaskView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
-    """View for creating a task"""
+    """
+    View for editing a task.
+
+    Tasks have no package; they belong to their target staff and groups. A user can edit
+    a task aimed at anyone in their packages (or at no one yet), and saving never removes
+    targets or groups from outside their packages, which they can't see on the form.
+    """
     permission_required = 'loads.change_task'
     model = Task
     success_url = reverse_lazy('tasks_index')
@@ -2172,6 +2190,28 @@ class UpdateTaskView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
         form.fields['targets'].queryset = package_staff
         form.fields['groups'].queryset = groups
         return form
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_superuser:
+            return queryset
+        staff = get_object_or_404(Staff, user=self.request.user)
+        packages = staff.get_all_packages(include_hidden=True)
+        groups = Group.objects.filter(workpackage__in=packages)
+        package_staff = staff.get_all_staff_in_all_packages(include_hidden=True)
+        return queryset.filter(Q(groups__in=groups) | Q(targets__in=package_staff) |
+                               Q(groups__isnull=True, targets__isnull=True)).distinct()
+
+    def form_valid(self, form):
+        # Remember the targets and groups this user can't see on the form, and put them back
+        task = self.get_object()
+        hidden_targets = task.targets.exclude(pk__in=form.fields['targets'].queryset.values('pk'))
+        hidden_groups = task.groups.exclude(pk__in=form.fields['groups'].queryset.values('pk'))
+        hidden_targets, hidden_groups = list(hidden_targets), list(hidden_groups)
+        response = super().form_valid(form)
+        self.object.targets.add(*hidden_targets)
+        self.object.groups.add(*hidden_groups)
+        return response
 
     # @method_decorator(permission_required('loads.change_task', raise_exception=True))
     # def dispatch(self, request):
@@ -2222,7 +2262,7 @@ class CreateModuleView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         return reverse('modules_details', kwargs={'module_id': self.object.pk})
 
 
-class UpdateModuleView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+class UpdateModuleView(LoginRequiredMixin, PermissionRequiredMixin, InUsersPackagesMixin, UpdateView):
     """View for editing a Module"""
     permission_required = 'loads.change_module'
     model = Module
@@ -2233,9 +2273,8 @@ class UpdateModuleView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
         """We need to restrict form querysets"""
         form = super(UpdateModuleView, self).get_form(form_class)
 
-        # Work out the correct package and the staff within in
-        staff = get_object_or_404(Staff, user=self.request.user)
-        package = staff.package
+        # Offer choices from the module's own package, which may not be the user's current one
+        package = self.object.package
         package_staff = package.get_all_staff()
 
         # Work out the programmes in the package
@@ -2368,7 +2407,7 @@ class DetailsProgrammeView(LoginRequiredMixin, DetailView):
             return Programme.objects.all().filter(package=package)
 
 
-class UpdateProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+class UpdateProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, InUsersPackagesMixin, UpdateView):
     """View for editing a Programme"""
     permission_required = 'loads.change_programme'
     model = Programme
@@ -2379,10 +2418,8 @@ class UpdateProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, UpdateVie
     def get_form(self, form_class=None):
         form = super(UpdateProgrammeView, self).get_form(form_class)
 
-        # Work out the correct package and the staff within in
-        staff = get_object_or_404(Staff, user=self.request.user)
-        package = staff.package
-        package_staff = package.get_all_staff()
+        # Offer choices from the programme's own package, which may not be the user's current one
+        package_staff = self.object.package.get_all_staff()
 
         form.fields["directors"].queryset = package_staff
         return form
@@ -2532,7 +2569,7 @@ class CreateActivityView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
 
 @method_decorator(login_required, name='dispatch')
 @method_decorator(staff_only, name='dispatch')
-class UpdateActivityView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+class UpdateActivityView(LoginRequiredMixin, PermissionRequiredMixin, InUsersPackagesMixin, UpdateView):
     """View for updating an Activity"""
     permission_required = 'loads.change_activity'
     model = Activity
@@ -2543,17 +2580,13 @@ class UpdateActivityView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        staff = get_object_or_404(Staff, user=self.request.user)
-        package = staff.package
+        # Offer choices from the activity's own package, which may not be the user's current one
+        package = self.object.package
         form.fields['staff'].queryset = package.get_all_staff()
         form.fields['module'].queryset = Module.objects.filter(package=package)
         return form
 
-    def form_valid(self, form):
-        staff = get_object_or_404(Staff, user=self.request.user)
-        self.object = form.save(commit=False)
-        self.object.package = staff.package
-        return super().form_valid(form)
+    # The activity stays in its own package: package isn't on the form, so it isn't changed
 
 
 @method_decorator(login_required, name='dispatch')
