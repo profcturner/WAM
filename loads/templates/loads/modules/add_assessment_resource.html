@@ -74,6 +74,7 @@
                            {% endfor %}
                            name="{{ field.html_name }}"
                            value="{% if field.value != None %}{{ field.value|stringformat:'s' }}{% endif %}"{% if field.field.required %} required{% endif %} />
+                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
                     {# Show field errors as a list, one per line #}
                     {% if field.errors %}
                         <div class="text-danger small mt-1">

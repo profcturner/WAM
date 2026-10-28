@@ -23,6 +23,8 @@ from .models import Project
 from .models import WorkPackage
 
 from .widgets import HoursPercentageField, SemesterField
+from .validators import validate_assessment_upload
+from django.conf import settings
 
 from WAM.settings import WAM_STAFF_REGEX, WAM_EXTERNAL_REGEX
 
@@ -286,6 +288,18 @@ class AssessmentResourceForm(ModelForm):
         model = AssessmentResource
         # A number of fields are automatically handled
         fields = ['name', 'details', 'resource_type', 'resource']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        max_mb = getattr(settings, 'WAM_ASSESSMENT_MAX_UPLOAD_MB', 50)
+        self.fields['resource'].help_text = (
+            f"Up to {max_mb} MB. PDFs open in the browser; most other files download. "
+            "Web pages, scripts, programs and macro-enabled Office files can't be uploaded.")
+
+    def clean_resource(self):
+        resource = self.cleaned_data['resource']
+        validate_assessment_upload(resource)
+        return resource
 
 
 class ModuleForm(ModelForm):

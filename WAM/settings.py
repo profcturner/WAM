@@ -155,6 +155,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = None
 
+# The largest assessment resource that can be uploaded, in MB. Apache's LimitRequestBody, if set,
+# must be at least this large.
+WAM_ASSESSMENT_MAX_UPLOAD_MB = 50
+
 # Where do we store media
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
