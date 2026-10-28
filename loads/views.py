@@ -4,6 +4,7 @@ import logging
 from django.core.mail import mail_admins
 from django.shortcuts import get_object_or_404, render
 from django.db.models import Q
+from django.views.decorators.http import require_POST
 from django.http import Http404
 
 from .validators import assessment_file_serving
@@ -264,8 +265,8 @@ def delete_assessment_resource(request, resource_id, confirm=None):
         return HttpResponseRedirect(reverse('forbidden'))
 
     # Ok, we are allowed to delete
-    # Check if the deletion is confirmed
-    if not confirm:
+    # Deletion needs the confirmation form to be submitted (POST), so a link can't trigger it
+    if not confirm or request.method != 'POST':
         context = {
             'resource': resource
         }
@@ -781,8 +782,9 @@ def assessmentstaff_index(request):
 @login_required
 @staff_only
 @permission_required('loads.delete_assessmentstaff')
+@require_POST
 def assessmentstaff_delete(request, assessmentstaff_id):
-    """Delete an assessment resource, should not be possible for signed resources, except for superuser"""
+    """Remove a member of an assessment team. Only by POST, so a link can't trigger it."""
     # Get the resource object
     assessmentstaff = get_object_or_404(AssessmentStaff, pk=assessmentstaff_id)
 
@@ -1634,8 +1636,8 @@ def delete_assessment_sign_off(request, signoff_id, confirm=None):
         return HttpResponseRedirect(reverse('forbidden'))
 
 
-    # Check if the deletion is confirmed
-    if not confirm:
+    # Deletion needs the confirmation form to be submitted (POST), so a link can't trigger it
+    if not confirm or request.method != 'POST':
         logger.debug("deletion not confirmed")
         context = {
             'signoff': signoff
@@ -1745,6 +1747,7 @@ def generators_index(request):
 @login_required
 @staff_only
 @permission_required('loads.add_activity')
+@require_POST
 def generators_generate_activities(request, generator_id):
     """(Re)generate all activities for a given Activity Generator"""
 
@@ -1872,6 +1875,7 @@ def projects_details(request, project_id):
 @permission_required('loads.add_projectstaff')
 @permission_required('loads.change_projectstaff')
 @permission_required('loads.delete_projectstaff')
+@require_POST
 def projects_generate_activities(request, project_id):
     """(Re)generate all activities for a project"""
 

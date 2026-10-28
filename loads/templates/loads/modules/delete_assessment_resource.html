@@ -21,7 +21,10 @@
     </p>
 
     <p>
-        <a class="btn btn-warning me-4" role="button" href="{% url 'delete_assessment_resource' resource.id "/confirm" %}">Confirm</a>
+        <form method="post" action="{% url 'delete_assessment_resource' resource.id "/confirm" %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-warning me-4">Confirm</button>
+        </form>
         <a class="btn btn-primary" role="button" href="{% url 'modules_details' resource.module.id %}">Cancel</a>
     </p>
 </div>

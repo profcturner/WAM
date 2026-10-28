@@ -73,8 +73,11 @@ class AssessmentResourceViewTests(ViewTestCase):
         return self.client.get(reverse('download_assessment_resource', args=[self.resource.pk]))
 
     def delete(self, confirm=False):
+        """Open the confirmation page, or submit it"""
         url = reverse('delete_assessment_resource', args=[self.resource.pk])
-        return self.client.get(url + ('/confirm' if confirm else ''))
+        if confirm:
+            return self.client.post(url + '/confirm')
+        return self.client.get(url)
 
     def sign_off(self):
         return AssessmentStateSignOff.objects.create(module=self.module, assessment_state=make_state(),
@@ -205,7 +208,20 @@ class AssessmentResourceViewTests(ViewTestCase):
         self.assertIn("filename*=utf-8''", response['Content-Disposition'])
 
     def delete_sign_off(self, signoff):
-        return self.client.get(reverse('delete_assessment_sign_off', args=[signoff.pk]) + '/confirm')
+        return self.client.post(reverse('delete_assessment_sign_off', args=[signoff.pk]) + '/confirm')
+
+    def test_links_cannot_delete(self):
+        """Audit item 3: following the confirm link (a GET) only shows the confirmation page"""
+        signoff = self.sign_off()
+        self.login(self.superuser)
+        response = self.client.get(reverse('delete_assessment_resource', args=[self.resource.pk]) + '/confirm')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'method="post"')
+        self.assertTrue(AssessmentResource.objects.filter(pk=self.resource.pk).exists())
+
+        response = self.client.get(reverse('delete_assessment_sign_off', args=[signoff.pk]) + '/confirm')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(AssessmentStateSignOff.objects.filter(pk=signoff.pk).exists())
 
     def test_superuser_deletes_latest_sign_off(self):
         signoff = self.sign_off()
@@ -551,14 +567,14 @@ class AdminActionViewTests(ViewTestCase):
     def test_remove_assessment_staff(self):
         membership = add_assessment_staff(self.lecturer, self.package)
         self.login(make_staff('schooladmin', group=self.group, permissions=['loads.delete_assessmentstaff']))
-        response = self.client.get(reverse('assessmentstaff_delete', args=[membership.pk]))
+        response = self.client.post(reverse('assessmentstaff_delete', args=[membership.pk]))
         self.assertRedirects(response, reverse('assessmentstaff_index'), fetch_redirect_response=False)
         self.assertFalse(AssessmentStaff.objects.exists())
 
     def test_cannot_remove_assessment_staff_in_other_package(self):
         membership = add_assessment_staff(self.outsider, self.other_package)
         self.login(make_staff('schooladmin', group=self.group, permissions=['loads.delete_assessmentstaff']))
-        self.assertForbidden(self.client.get(reverse('assessmentstaff_delete', args=[membership.pk])))
+        self.assertForbidden(self.client.post(reverse('assessmentstaff_delete', args=[membership.pk])))
         self.assertTrue(AssessmentStaff.objects.exists())
 
     def make_generator(self, package):
@@ -571,14 +587,14 @@ class AdminActionViewTests(ViewTestCase):
     def test_generate_activities(self):
         generator = self.make_generator(self.package)
         self.login(make_staff('schooladmin', group=self.group, permissions=['loads.add_activity']))
-        response = self.client.get(reverse('generators_generate_activities', args=[generator.pk]))
+        response = self.client.post(reverse('generators_generate_activities', args=[generator.pk]))
         self.assertRedirects(response, reverse('generators_index'), fetch_redirect_response=False)
         self.assertEqual(Activity.objects.filter(staff=self.lecturer).count(), 1)
 
     def test_generate_activities_in_other_package(self):
         generator = self.make_generator(self.other_package)
         self.login(make_staff('schooladmin', group=self.group, permissions=['loads.add_activity']))
-        self.assertForbidden(self.client.get(reverse('generators_generate_activities', args=[generator.pk])))
+        self.assertForbidden(self.client.post(reverse('generators_generate_activities', args=[generator.pk])))
         self.assertFalse(Activity.objects.exists())
 
 
@@ -873,3 +889,54 @@ class EditOtherSchoolsRecordsTests(ViewTestCase):
         self.their_task.refresh_from_db()
         self.assertEqual(self.their_task.name, 'Shared, edited')
         self.assertCountEqual(self.their_task.targets.all(), [self.outsider, self.lecturer, self.coordinator])
+
+
+class ActionsNeedAFormTests(ViewTestCase):
+    """Audit item 3: actions that change data can't be triggered by following a link (a GET)"""
+
+    def setUp(self):
+        super().setUp()
+        from .models import Body, Project, ProjectStaff
+        self.admin = make_staff('schooladmin', package=self.package, group=self.group, is_staff=True, permissions=(
+            'loads.view_assessmentstaff', 'loads.add_assessmentstaff', 'loads.delete_assessmentstaff',
+            'loads.add_activity', 'loads.add_projectstaff',
+            'loads.change_projectstaff', 'loads.delete_projectstaff'))
+        self.membership = add_assessment_staff(self.lecturer, self.package)
+        activity_type = make_activity_type()
+        self.generator = ActivityGenerator.objects.create(name="Open day", hours=5, percentage=0, semester='1',
+                                                          activity_type=activity_type, package=self.package,
+                                                          details="")
+        self.generator.groups.add(self.group)
+        self.project = Project.objects.create(name="Grant", body=Body.objects.create(name="Funder", details=""),
+                                              activity_type=activity_type, start=self.package.startdate,
+                                              end=self.package.enddate)
+        ProjectStaff.objects.create(staff=self.lecturer, project=self.project, hours_per_week=2,
+                                    start=self.package.startdate, end=self.package.enddate)
+        self.login(self.admin)
+
+    def test_get_is_refused(self):
+        for name, pk in (('assessmentstaff_delete', self.membership.pk),
+                         ('generators_generate_activities', self.generator.pk),
+                         ('projects_generate_activities', self.project.pk)):
+            self.assertEqual(self.client.get(reverse(name, args=[pk])).status_code, 405, name)
+        self.assertTrue(AssessmentStaff.objects.filter(pk=self.membership.pk).exists())
+        self.assertFalse(Activity.objects.exists())
+
+    def test_post_works(self):
+        self.client.post(reverse('assessmentstaff_delete', args=[self.membership.pk]))
+        self.assertFalse(AssessmentStaff.objects.filter(pk=self.membership.pk).exists())
+        self.client.post(reverse('generators_generate_activities', args=[self.generator.pk]))
+        self.assertTrue(Activity.objects.filter(name="Open day").exists())
+        response = self.client.post(reverse('projects_generate_activities', args=[self.project.pk]))
+        self.assertRedirects(response, reverse('projects_index'), fetch_redirect_response=False)
+        self.assertTrue(Activity.objects.filter(name="Grant (Funder)").exists())
+
+    def test_pages_offer_forms_not_links(self):
+        """The buttons on each page submit forms, with the CSRF token"""
+        for page, action in ((reverse('assessmentstaff_index'), reverse('assessmentstaff_delete', args=[self.membership.pk])),
+                             (reverse('generators_index'), reverse('generators_generate_activities', args=[self.generator.pk])),
+                             (reverse('projects_index'), reverse('projects_generate_activities', args=[self.project.pk]))):
+            content = self.client.get(page).content.decode()
+            self.assertIn(f'action="{action}"', content, page)
+            self.assertNotIn(f'href="{action}"', content, page)
+            self.assertIn('csrfmiddlewaretoken', content, page)

@@ -72,7 +72,10 @@
         This cannot be undone! Are you sure?
     </p>
     <p class="mt-3">
-        <a class="btn btn-warning me-4" role="button" href="{% url 'delete_assessment_sign_off' signoff.id "/confirm" %}">Confirm</a>
+        <form method="post" action="{% url 'delete_assessment_sign_off' signoff.id "/confirm" %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-warning me-4">Confirm</button>
+        </form>
         <a class="btn btn-primary" role="button" href="{% url 'modules_details' signoff.module.id %}">Cancel</a>
     </p>
 </div>
