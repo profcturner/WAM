@@ -565,6 +565,10 @@ def loads_modules(request, semesters, staff_details=False):
     # And therefore the package enabled for that user
     package = staff.package
 
+    # As for the other loads pages: send anyone without a package, or one they aren't in, to the chooser
+    if not package or (not staff.user.is_superuser and package not in staff.get_all_packages()):
+        return HttpResponseRedirect(reverse('workpackage_change'))
+
     logger.info("[%s] loads by modules viewed" % request.user, extra={'package': package})
     modules = Module.objects.all().filter(package=package).order_by('module_code')
 
@@ -751,6 +755,8 @@ def assessmentstaff_index(request):
     # Because the view is so simple, we will add the "Create" view within it
     if request.method == 'POST':
         form = AssessmentStaffForm(request.POST, user=request.user)
+        # Only staff in the package can be added (restricted before validation, so it applies to what's submitted)
+        form.fields['staff'].queryset = possible_assessment_staff
         if form.is_valid():
             # Validation should ensure no duplicates and permissions are respected
             new_staff = form.cleaned_data['staff']
@@ -1071,13 +1077,13 @@ def add_assessment_resource(request, module_id):
     elif staff in module.moderators.all():
         logger.debug("[%s] is a module moderator" % request.user)
         permission = True
-    elif staff in ModuleStaff.objects.filter(module=module):
+    elif ModuleStaff.objects.filter(module=module, staff=staff).exists():
         logger.debug("[%s] is on the module team" % request.user)
         permission = True
     elif staff.can_examine_module(module):
         logger.debug("[%s] is a module examiner" % request.user)
         permission = True
-    elif staff in AssessmentStaff.objects.filter(package=module.package):
+    elif AssessmentStaff.objects.filter(package=module.package, staff=staff).exists():
         logger.debug("[%s] is on the assessment team for the package" % request.user)
         permission = True
     elif staff.user.is_superuser:
@@ -1438,20 +1444,21 @@ def modules_details(request, module_id):
     module = get_object_or_404(Module, pk=module_id)
     logger.info("[%s] seeking to examine the module details for %s" % (request.user, module))
 
-    # Fetch the staff user associated with the person requesting
+    # Fetch the staff user associated with the person requesting; without one, there's no access
     try:
         staff = Staff.objects.get(user=request.user)
-
-        if staff.is_external:
-            if not staff.can_examine_module(module):
-                logger.info("[%s] not an examiner for module %s" % (request.user, module))
-                return HttpResponseRedirect(reverse('forbidden'))
-        else:
-            if not staff.user.is_superuser and not module.package in staff.get_all_packages(include_hidden=True):
-                logger.info("[%s] module %s is not in user's packages" % (request.user, module))
-                return HttpResponseRedirect(reverse('forbidden'))
     except Staff.DoesNotExist:
-        staff = None
+        logger.info("[%s] has no staff object, so can't view module %s" % (request.user, module))
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    if staff.is_external:
+        if not staff.can_examine_module(module):
+            logger.info("[%s] not an examiner for module %s" % (request.user, module))
+            return HttpResponseRedirect(reverse('forbidden'))
+    else:
+        if not staff.user.is_superuser and not module.package in staff.get_all_packages(include_hidden=True):
+            logger.info("[%s] module %s is not in user's packages" % (request.user, module))
+            return HttpResponseRedirect(reverse('forbidden'))
 
     # Get all associated activities and allocations
     activities = Activity.objects.all().filter(module=module).order_by('name')
