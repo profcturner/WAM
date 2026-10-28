@@ -112,6 +112,26 @@ class WorkPackage(models.Model):
     def __str__(self):
         return self.name + ' (' + str(self.startdate) + ' - ' + str(self.enddate) + ')'
 
+    def get_coordinator_category(self):
+        """
+        The Category that module coordinator hours count towards in this package.
+
+        This is the category of coordinator_activity_type. Packages without one (older
+        packages, or one whose activity type was deleted) fall back to the category of
+        WAM_DEFAULT_ACTIVITY_TYPE, which module allocations also default to, so that
+        category totals and charts always agree with overall totals.
+
+        :return: a Category, or None (with a warning logged) if neither activity type exists
+        """
+        if self.coordinator_activity_type:
+            return self.coordinator_activity_type.category
+        default = ActivityType.objects.filter(pk=WAM_DEFAULT_ACTIVITY_TYPE).select_related('category').first()
+        if default:
+            return default.category
+        logger.warning("package %s has no coordinator activity type, and WAM_DEFAULT_ACTIVITY_TYPE (%s) doesn't exist, "
+                       "so coordinator hours are missing from category totals", self, WAM_DEFAULT_ACTIVITY_TYPE)
+        return None
+
     def clean(self):
         if self.coordinator_formula and not self.coordinator_activity_type:
             raise ValidationError({
@@ -700,10 +720,9 @@ class Staff(models.Model):
         # Add coordinator hours for modules this staff member coordinates
         coordinated = Module.objects.filter(coordinator=self, package=package)
         for module in coordinated:
-            if module.package.coordinator_activity_type:
-                category = module.package.coordinator_activity_type.category
-                if category in hours_by_category:
-                    hours_by_category[category] += module.get_coordinator_hours()
+            category = module.package.get_coordinator_category()
+            if category in hours_by_category:
+                hours_by_category[category] += module.get_coordinator_hours()
 
         return hours_by_category
 

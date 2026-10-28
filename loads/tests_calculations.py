@@ -2,6 +2,7 @@
 import datetime
 import logging
 import unittest
+from unittest import mock
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -229,6 +230,30 @@ class StaffTotalsTestCase(TestCase):
         self.assertEqual(by_category[self.lecturing.category], 60)
         self.assertEqual(by_category[self.admin_type.category], 6)
         self.assertAlmostEqual(sum(by_category.values()), self.staff.total_hours(self.package))
+
+    def test_coordinator_hours_fall_back_to_the_default_activity_type(self):
+        """With no coordinator activity type, coordinator hours used to vanish from category totals"""
+        self.module.coordinator = self.staff
+        self.module.coordinator_hours = 6
+        self.module.save()
+        self.assertIsNone(self.package.coordinator_activity_type)
+
+        with mock.patch('loads.models.WAM_DEFAULT_ACTIVITY_TYPE', self.admin_type.pk):
+            by_category = self.staff.hours_by_category(self.package)
+        self.assertEqual(by_category[self.admin_type.category], 6)
+        self.assertAlmostEqual(sum(by_category.values()), self.staff.total_hours(self.package))
+
+    def test_package_coordinator_type_wins_over_the_default(self):
+        self.package.coordinator_activity_type = self.lecturing
+        self.package.save()
+        with mock.patch('loads.models.WAM_DEFAULT_ACTIVITY_TYPE', self.admin_type.pk):
+            self.assertEqual(self.package.get_coordinator_category(), self.lecturing.category)
+
+    def test_no_coordinator_category_at_all_warns(self):
+        with mock.patch('loads.models.WAM_DEFAULT_ACTIVITY_TYPE', 999999), \
+                self.assertLogs('loads.models', 'WARNING'):
+            logging.disable(logging.NOTSET)
+            self.assertIsNone(self.package.get_coordinator_category())
 
 
 class GeneratorTestCase(TestCase):
