@@ -354,7 +354,10 @@ class TaskCompletionViewTests(ViewTestCase):
         self.assertFalse(TaskCompletion.objects.exists())
 
     def test_complete_for_others_with_permission(self):
-        self.login(make_staff('taskadmin', permissions=['loads.add_taskcompletion']))
+        self.task.package = self.package
+        self.task.save()
+        self.login(make_staff('taskadmin', group=self.group,
+                              permissions=['loads.add_taskcompletion', 'loads.change_task']))
         self.complete(self.lecturer)
         self.assertEqual(TaskCompletion.objects.get(task=self.task).staff, self.lecturer)
 
@@ -1015,3 +1018,166 @@ class AuditQuickFixTests(ViewTestCase):
         self.lecturer.package = self.package
         self.lecturer.save()
         self.assertEqual(self.client.get(reverse('loads_modules', args=[''])).status_code, 200)
+
+
+
+class TaskOwnershipTests(ViewTestCase):
+    """Tasks have an owner and a package, and their completion is visible to the right people"""
+
+    def setUp(self):
+        super().setUp()
+        self.category = Category.objects.create(name="Admin", abbreviation="admin", colour="blue")
+        self.colleague = make_staff('colleague', package=self.package, group=self.group)
+        self.bystander = make_staff('bystander', package=self.package, group=self.group)
+        self.target_group = make_group("Marking team")
+        self.package.groups.add(self.target_group)
+        self.group_member = make_staff('groupmember', package=self.package, group=self.target_group)
+        # A task the coordinator set for the lecturer and the marking team
+        self.task = Task.objects.create(name="Submit marks", details="Before the board", deadline=timezone.now(),
+                                        category=self.category, owner=self.coordinator, package=self.package)
+        self.task.targets.add(self.lecturer)
+        self.task.groups.add(self.target_group)
+
+    def task_post(self, **kwargs):
+        data = {'name': 'Moderate scripts', 'category': self.category.pk, 'details': 'Sample of 10',
+                'deadline': '2030-01-01T09:00', 'targets_see_completion': 'on'}
+        data.update(kwargs)
+        return data
+
+    def details(self):
+        return self.client.get(reverse('tasks_details', args=[self.task.pk]))
+
+    # Creating
+
+    def test_creator_becomes_owner_in_their_package(self):
+        self.login(self.colleague)
+        response = self.client.post(reverse('create task'), self.task_post(targets=[self.colleague.pk]))
+        self.assertEqual(response.status_code, 302)
+        task = Task.objects.get(name='Moderate scripts')
+        self.assertEqual((task.owner, task.package, task.targets_see_completion), (self.colleague, self.package, True))
+
+    def test_visibility_switch_can_be_turned_off(self):
+        self.login(self.colleague)
+        data = self.task_post(targets=[self.colleague.pk])
+        del data['targets_see_completion']
+        self.client.post(reverse('create task'), data)
+        self.assertFalse(Task.objects.get(name='Moderate scripts').targets_see_completion)
+
+    def test_target_choices_are_the_package(self):
+        """Answer 3: in scope of the package for most people; superusers can aim wider"""
+        setter = make_staff('setter', package=self.package, group=self.group, permissions=['loads.add_task'])
+        self.login(setter)
+        form = self.client.get(reverse('create task')).context['form']
+        self.assertIn(self.lecturer, form.fields['targets'].queryset)
+        self.assertNotIn(self.outsider, form.fields['targets'].queryset)
+        self.assertCountEqual(form.fields['groups'].queryset, [self.group, self.target_group])
+
+        self.login(self.colleague)  # no add_task permission: only themselves
+        form = self.client.get(reverse('create task')).context['form']
+        self.assertEqual(list(form.fields['targets'].queryset), [self.colleague])
+        self.assertFalse(form.fields['groups'].queryset.exists())
+
+        self.login(self.superuser)
+        form = self.client.get(reverse('create task')).context['form']
+        self.assertIn(self.outsider, form.fields['targets'].queryset)
+
+    # Seeing tasks you've set
+
+    def test_owner_sees_tasks_they_set(self):
+        """The reported problem: setting a task for others lost sight of it"""
+        self.login(self.coordinator)
+        response = self.client.get(reverse('tasks_index'))
+        self.assertEqual([row[0] for row in response.context['set_tasks']], [self.task])
+        self.assertEqual(response.context['augmented_tasks'], [])  # not a target themselves
+
+    def test_owner_sees_everyones_completion(self):
+        TaskCompletion.objects.create(task=self.task, staff=self.lecturer, comment="Done")
+        self.login(self.coordinator)
+        response = self.details()
+        self.assertTrue(response.context['show_completions'])
+        self.assertEqual([t for t, c in response.context['combined_list_complete']], [self.lecturer])
+        self.assertEqual([t for t, c in response.context['combined_list_incomplete']], [self.group_member])
+
+    # Peer visibility (answer 1: the targets, individual and by group)
+
+    def test_targets_see_each_others_completion_by_default(self):
+        for staff in (self.lecturer, self.group_member):
+            self.login(staff)
+            response = self.details()
+            self.assertTrue(response.context['show_completions'], staff)
+            self.assertEqual(len(response.context['combined_list_incomplete']), 2, staff)
+
+    def test_targets_see_only_themselves_when_switched_off(self):
+        self.task.targets_see_completion = False
+        self.task.save()
+        self.login(self.group_member)
+        response = self.details()
+        self.assertFalse(response.context['show_completions'])
+        self.assertEqual([t for t, c in response.context['combined_list_incomplete']], [self.group_member])
+        self.assertContains(response, 'Your completion')
+
+        self.login(self.coordinator)  # the owner still sees everyone
+        self.assertTrue(self.details().context['show_completions'])
+
+    def test_people_who_arent_targets_cant_see_the_task(self):
+        for staff in (self.bystander, self.examiner, self.outsider):
+            self.login(staff)
+            self.assertForbidden(self.details())
+
+    def test_staff_task_lists_follow_the_same_rule(self):
+        self.login(self.bystander)
+        response = self.client.get(reverse('tasks_bystaff', args=[self.lecturer.pk]))
+        self.assertEqual(response.context['combined_list_incomplete'], [])
+
+        self.login(self.group_member)  # a fellow target
+        response = self.client.get(reverse('tasks_bystaff', args=[self.lecturer.pk]))
+        self.assertEqual([row[0] for row in response.context['combined_list_incomplete']], [self.task])
+
+        self.login(self.lecturer)  # your own list shows everything
+        response = self.client.get(reverse('tasks_bystaff', args=[self.lecturer.pk]))
+        self.assertEqual([row[0] for row in response.context['combined_list_incomplete']], [self.task])
+
+    # Editing (answer 2: owners can edit without the change_task permission)
+
+    def test_owner_can_edit_without_permission(self):
+        self.login(self.coordinator)
+        self.assertFalse(self.coordinator.user.has_perm('loads.change_task'))
+        response = self.client.post(reverse('update task', args=[self.task.pk]),
+                                    self.task_post(name='Submit marks (extended)'))
+        self.assertEqual(response.status_code, 302)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.name, 'Submit marks (extended)')
+        # Targets the owner can't choose (they lack add_task) are kept, not dropped
+        self.assertCountEqual(self.task.targets.all(), [self.lecturer])
+        self.assertCountEqual(self.task.groups.all(), [self.target_group])
+
+    def test_targets_cannot_edit(self):
+        self.login(self.lecturer)
+        self.assertEqual(self.client.get(reverse('update task', args=[self.task.pk])).status_code, 404)
+
+    def test_package_admins_can_edit_their_packages_tasks_only(self):
+        admin = make_staff('schooladmin', package=self.package, group=self.group, permissions=['loads.change_task'])
+        self.login(admin)
+        self.assertEqual(self.client.get(reverse('update task', args=[self.task.pk])).status_code, 200)
+
+        other_admin = make_staff('otheradmin', package=self.other_package, permissions=['loads.change_task'])
+        other_admin.user.groups.add(*self.other_package.groups.all())
+        self.login(other_admin)
+        self.assertEqual(self.client.get(reverse('update task', args=[self.task.pk])).status_code, 404)
+
+    def test_completion_for_others_is_limited_to_manageable_tasks(self):
+        other_admin = make_staff('otheradmin', package=self.other_package,
+                                 permissions=['loads.add_taskcompletion', 'loads.change_task'])
+        other_admin.user.groups.add(*self.other_package.groups.all())
+        self.login(other_admin)
+        self.client.post(reverse('tasks_completion', args=[self.task.pk, self.lecturer.pk]), {'comment': 'x'})
+        self.assertFalse(TaskCompletion.objects.exists())
+
+    def test_only_targets_can_be_marked_complete(self):
+        self.login(self.bystander)
+        self.client.post(reverse('tasks_completion', args=[self.task.pk, self.bystander.pk]), {'comment': 'x'})
+        self.assertFalse(TaskCompletion.objects.exists())
+
+        self.login(self.group_member)  # a target by group
+        self.client.post(reverse('tasks_completion', args=[self.task.pk, self.group_member.pk]), {'comment': 'Done'})
+        self.assertTrue(TaskCompletion.objects.filter(staff=self.group_member).exists())

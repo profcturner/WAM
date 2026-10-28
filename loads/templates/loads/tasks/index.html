@@ -22,7 +22,7 @@
             </tr>
         </thead>
         <tbody class="table-group-divider">
-            {% for task, urgent, overdue in augmented_tasks %}
+            {% for task, urgent, overdue, manageable in augmented_tasks %}
             <tr>
                 <td>
                     {{ task.name }}
@@ -50,7 +50,7 @@
                     <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'tasks_details' task.id %}">Details</a>
                 </td>
                 <td class="wam-hide-on-print">
-                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update task' task.id %}">Edit</a>
+                    {% if manageable %}<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update task' task.id %}">Edit</a>{% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -58,7 +58,7 @@
     </table>
     
     <p class="text-info-emphasis">
-        There are {{ augmented_tasks|length}} {% if archived %}archived{% else %}open{% endif %} task{{tasks|length|pluralize}}.
+        There are {{ augmented_tasks|length}} {% if archived %}archived{% else %}open{% endif %} task{{augmented_tasks|length|pluralize}}.
     </p>
 {% else %}
     {% if archived %}
@@ -68,6 +68,43 @@
     {% endif %}
 {% endif %}
 
+{% if set_tasks %}
+<h4 class="mt-5 mb-3">{% if archived %}Archived tasks{% else %}Tasks{% endif %} you've set</h4>
+<div class="table-responsive small">
+    <table class="table table-sm table-striped table-hover">
+        <thead>
+            <tr>
+                <th scope="col">Task name</th>
+                <th scope="col">Deadline</th>
+                <th scope="col">Time left</th>
+                <th scope="col">Status</th>
+                <th scope="col" class="wam-hide-on-print">Completion</th>
+                <th scope="col" class="wam-hide-on-print">Edit</th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            {% for task, urgent, overdue, manageable in set_tasks %}
+            <tr>
+                <td>{{ task.name }}</td>
+                <td>{{ task.deadline }}</td>
+                <td>{{ task.deadline|timeuntil }}</td>
+                <td>
+                    {% if overdue %}<span class="badge text-bg-danger">Overdue</span>
+                    {% elif urgent %}<span class="badge text-bg-warning">Urgent</span>
+                    {% else %}Pending{% endif %}
+                </td>
+                <td class="wam-hide-on-print">
+                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'tasks_details' task.id %}">Who's completed it</a>
+                </td>
+                <td class="wam-hide-on-print">
+                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update task' task.id %}">Edit</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
 <div class="mt-5 wam-hide-on-print">
     <h4>
         Create a new task

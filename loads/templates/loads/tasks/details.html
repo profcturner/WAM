@@ -45,11 +45,30 @@
                     {{ task.category}}
                 </td>
             </tr>
+            {% if task.owner %}
+            <tr>
+                <th>
+                    Set by
+                </th>
+                <td>
+                    {{ task.owner }}{% if task.package %} <span class="small text-body-secondary">({{ task.package }})</span>{% endif %}
+                </td>
+            </tr>
+            {% endif %}
         </table>
+        {% if can_manage %}
+        <p class="mb-0 wam-hide-on-print">
+            <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update task' task.id %}">Edit this task</a>
+        </p>
+        {% endif %}
     </div>
 </div>
 
+{% if show_completions %}
 <h4 class="my-4">Task completion information</h4>
+{% else %}
+<h4 class="my-4">Your completion</h4>
+{% endif %}
 
 {% if combined_list_incomplete %}
 <h5 class="mb-3">
@@ -123,6 +142,7 @@
 </div>
 {% endif %}
 
+{% if show_completions %}
 <h5 class="my-3">
     Completion Status
 </h5>
@@ -133,4 +153,5 @@
     Completions: <span class="font-monospace">{{ combined_list_complete|length}}</span>. Non completions: <span class="font-monospace">{{combined_list_incomplete|length}}</span>.
 </p>
 
+{% endif %}
 {% endblock content %}

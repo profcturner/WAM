@@ -818,57 +818,55 @@ def assessmentstaff_delete(request, assessmentstaff_id):
     return HttpResponseRedirect(url)
 
 
-@login_required
-def tasks_index(request):
-    """Obtains a list of all non archived tasks"""
-    # Fetch the tasks assigned against the specific user of the staff member
+def task_rows(tasks, staff):
+    """[task, urgent, overdue, can_manage] for each task, as the task lists show them"""
+    return [[task, task.is_urgent(), task.is_overdue(), task.can_manage(staff)] for task in tasks]
+
+
+def render_task_lists(request, archived):
+    """The user's own tasks, and the tasks they've set, active or archived"""
     staff = get_object_or_404(Staff, user=request.user)
-    tasks = staff.get_all_tasks()
-    # tasks = Task.objects.all().exclude(archive=True).order_by('deadline')
+    my_tasks = staff.get_all_tasks(archived=archived)
+    set_tasks = Task.objects.filter(owner=staff, archive=archived).order_by('deadline')
 
-    augmented_tasks = []
-    for task in tasks:
-        augmented_tasks.append([task, task.is_urgent(), task.is_overdue()])
-
-    logger.info("[%s] viewed their tasks" % request.user)
     template = loader.get_template('loads/tasks/index.html')
     context = {
-        'augmented_tasks': augmented_tasks,
+        'augmented_tasks': task_rows(my_tasks, staff),
+        'set_tasks': task_rows(set_tasks, staff),
         'tasks_menu': True,
-        'archived': False
+        'archived': archived,
     }
     return HttpResponse(template.render(context, request))
+
+
+@login_required
+def tasks_index(request):
+    """The user's open tasks, and the open tasks they've set"""
+    logger.info("[%s] viewed their tasks" % request.user)
+    return render_task_lists(request, archived=False)
 
 
 @login_required
 @staff_only
 def archived_tasks_index(request):
-    """Obtains a list of all non archived tasks"""
-    # Fetch the tasks assigned against the specific user of the staff member
-    staff = get_object_or_404(Staff, user=request.user)
-    tasks = staff.get_all_tasks(archived=True)
-    # tasks = Task.objects.all().exclude(archive=True).order_by('deadline')
-
-    augmented_tasks = []
-    for task in tasks:
-        augmented_tasks.append([task, task.is_urgent(), task.is_overdue()])
-
+    """The user's archived tasks, and the archived tasks they've set"""
     logger.debug("[%s] viewed their archived tasks" % request.user)
-    template = loader.get_template('loads/tasks/index.html')
-    context = {
-        'augmented_tasks': augmented_tasks,
-        'tasks_menu': True,
-        'archived': True
-    }
-    return HttpResponse(template.render(context, request))
+    return render_task_lists(request, archived=True)
 
 
 @login_required
 @staff_only
 def tasks_bystaff(request, staff_id):
-    """Show the tasks assigned against the specific user of the staff member"""
+    """
+    Show the tasks assigned to a member of staff, and whether they've completed them.
+
+    Others only see the tasks whose completion they could see anyway (see Task.can_view_completions()).
+    """
+    viewer = get_object_or_404(Staff, user=request.user)
     staff = get_object_or_404(Staff, pk=staff_id)
     all_tasks = staff.get_all_tasks()
+    if viewer != staff:
+        all_tasks = [task for task in all_tasks if task.can_view_completions(viewer)]
 
     logger.info("[%s] viewed the tasks assigned to %s" % (request.user, staff))
     # We will create separate lists for those tasks that are complete
@@ -896,12 +894,23 @@ def tasks_bystaff(request, staff_id):
 
 @login_required()
 def tasks_details(request, task_id):
-    """Obtains a list of all completions for a given task"""
-    # Get the task itself, and all targetted users
+    """
+    A task's details, with everyone's completion for those allowed to see it
+    (see Task.can_view_completions()), or otherwise just the viewer's own.
+    """
     task = get_object_or_404(Task, pk=task_id)
+    try:
+        viewer = Staff.objects.get(user=request.user)
+    except Staff.DoesNotExist:
+        viewer = None
+
+    if not task.can_view(viewer):
+        logger.info("[%s] forbidden from viewing task %s" % (request.user, task), extra={'task': task})
+        return HttpResponseRedirect(reverse('forbidden'))
 
     logger.info("[%s] viewed details of task %s" % (request.user, task), extra={'task': task})
-    all_targets = task.get_all_targets()
+    show_completions = task.can_view_completions(viewer)
+    all_targets = task.get_all_targets() if show_completions else Staff.objects.filter(pk=viewer.pk)
 
     combined_list_complete = []
     combined_list_incomplete = []
@@ -910,7 +919,7 @@ def tasks_details(request, task_id):
         # Is it complete? Look for a completion model
         completion = TaskCompletion.objects.all().filter(staff=target).filter(task=task)
         if len(completion) == 0:
-            # Not complete, but only add the target if they aren't active
+            # Not complete, but only list the target if they are active
             if target.is_active():
                 combined_item = [target, False]
                 combined_list_incomplete.append(combined_item)
@@ -931,7 +940,9 @@ def tasks_details(request, task_id):
         'urgent': task.is_urgent(),
         'combined_list_complete': combined_list_complete,
         'combined_list_incomplete': combined_list_incomplete,
-        'percentage_complete': percentage_complete
+        'percentage_complete': percentage_complete,
+        'show_completions': show_completions,
+        'can_manage': task.can_manage(viewer),
     }
     return HttpResponse(template.render(context, request))
 
@@ -1016,12 +1027,20 @@ def tasks_completion(request, task_id, staff_id):
     # TODO: check staff is in *open* targets
     task = get_object_or_404(Task, pk=task_id)
     staff = get_object_or_404(Staff, pk=staff_id)
-    all_targets = task.get_all_targets()
 
-    # check the staff member is that currently logged in
-    # or a user with permission to edit completions
+    # Only the task's targets can be marked complete
+    if not task.is_target(staff):
+        logger.info("[%s] %s is not a target of task %s" % (request.user, staff, task))
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    # People record their own completion; others need permission to edit completions,
+    # and only for tasks they can manage (not other Schools' tasks)
     is_current_user = (request.user == staff.user)
-    can_override = request.user.has_perm('loads.add_taskcompletion')
+    try:
+        viewer = Staff.objects.get(user=request.user)
+    except Staff.DoesNotExist:
+        viewer = None
+    can_override = request.user.has_perm('loads.add_taskcompletion') and task.can_manage(viewer)
     if not (is_current_user or can_override):
         logger.info("[%s] not the target user and has no override permission to complete task" % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
@@ -2137,96 +2156,95 @@ class DeleteActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, D
         return super().dispatch(request, *args, **kwargs)
 
 
+TASK_FIELDS = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups', 'targets_see_completion']
+
+
+def task_target_choices(staff, package):
+    """
+    Who a task in this package may be aimed at, as (staff, groups) querysets.
+
+    Superusers may aim tasks at anyone. Those with permission to add or change tasks may
+    aim them at the package's staff and groups. Anyone else may only set tasks for themselves.
+    """
+    user = staff.user
+    if user.is_superuser:
+        return Staff.objects.all().order_by('user__last_name'), Group.objects.all().order_by('name')
+    if package and (user.has_perm('loads.add_task') or user.has_perm('loads.change_task')):
+        return package.get_all_staff(), package.groups.all().order_by('name')
+    return Staff.objects.filter(pk=staff.pk), Group.objects.none()
+
+
 class CreateTaskView(LoginRequiredMixin, CreateView):
-    """View for creating a task"""
+    """
+    View for creating a task. The task belongs to the person setting it (its owner),
+    and to their current work package.
+    """
     model = Task
+    form_class = TaskForm
     success_url = reverse_lazy('tasks_index')
     template_name = 'loads/tasks/task_form.html'
-    fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups']
-
-    def get_form(self, form_class=TaskForm):
-        """
-        We need to restrict form querysets
-        """
-        form = super(CreateTaskView, self).get_form(form_class)
-
-        # Work out the correct package and the staff within in
-        staff = get_object_or_404(Staff, user=self.request.user)
-        package = staff.package
-        package_staff = package.get_all_staff()
-
-        # Get all the groups this person might use, by aggregating them from packages.
-        packages = staff.get_all_packages()
-        groups = Group.objects.all().filter(workpackage__in=packages).distinct()
-
-        # Check if the staff member has permission to make tasks (in the admin interface)
-        if staff.user.has_perm('loads.add_task'):
-            # They are, so don't restrict the targets or groups any further
-            form.fields['targets'].queryset = package_staff
-            form.fields['groups'].queryset = groups
-        else:
-            # They are not, so the only allowable target is oneself
-            form.fields['targets'].queryset = Staff.objects.all().filter(user=staff.user)
-            form.fields['groups'].queryset = Group.objects.none()
-        return form
-
-
-class UpdateTaskView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
-    """
-    View for editing a task.
-
-    Tasks have no package; they belong to their target staff and groups. A user can edit
-    a task aimed at anyone in their packages (or at no one yet), and saving never removes
-    targets or groups from outside their packages, which they can't see on the form.
-    """
-    permission_required = 'loads.change_task'
-    model = Task
-    success_url = reverse_lazy('tasks_index')
-    template_name = 'loads/tasks/task_form.html'
-    fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups']
 
     def get_form(self, form_class=None):
-        """We need to restrict form querysets"""
-        form = super(UpdateTaskView, self).get_form(form_class)
-
-        # Work out the correct package and the staff within in
+        form = super().get_form(form_class)
         staff = get_object_or_404(Staff, user=self.request.user)
-        package = staff.package
-        package_staff = package.get_all_staff()
-
-        # Get all the groups this person might use, by aggregating them from packages.
-        packages = staff.get_all_packages()
-        groups = Group.objects.all().filter(workpackage__in=packages).distinct()
-
-        form.fields['targets'].queryset = package_staff
-        form.fields['groups'].queryset = groups
+        form.fields['targets'].queryset, form.fields['groups'].queryset = task_target_choices(staff, staff.package)
         return form
+
+    def form_valid(self, form):
+        staff = get_object_or_404(Staff, user=self.request.user)
+        form.instance.owner = staff
+        form.instance.package = staff.package
+        logger.info("[%s] created task %s in package %s" % (self.request.user, form.instance, staff.package))
+        return super().form_valid(form)
+
+
+class UpdateTaskView(LoginRequiredMixin, UpdateView):
+    """
+    View for editing a task, by those who can manage it: its owner (no special permission
+    needed), package administrators (change_task, in the task's package) and superusers.
+    See Task.can_manage(). Anything else is a 404.
+
+    Saving never removes targets or groups the editor can't see on the form (for example,
+    other Schools' staff on a task a superuser set), instead of silently dropping them.
+    """
+    model = Task
+    form_class = TaskForm
+    success_url = reverse_lazy('tasks_index')
+    template_name = 'loads/tasks/task_form.html'
 
     def get_queryset(self):
         queryset = super().get_queryset()
         if self.request.user.is_superuser:
             return queryset
         staff = get_object_or_404(Staff, user=self.request.user)
-        packages = staff.get_all_packages(include_hidden=True)
-        groups = Group.objects.filter(workpackage__in=packages)
-        package_staff = staff.get_all_staff_in_all_packages(include_hidden=True)
-        return queryset.filter(Q(groups__in=groups) | Q(targets__in=package_staff) |
-                               Q(groups__isnull=True, targets__isnull=True)).distinct()
+        manageable = Q(owner=staff)
+        if self.request.user.has_perm('loads.change_task'):
+            packages = staff.get_all_packages(include_hidden=True)
+            groups = Group.objects.filter(workpackage__in=packages)
+            package_staff = staff.get_all_staff_in_all_packages(include_hidden=True)
+            manageable |= Q(package__in=packages)
+            # Older tasks without a package: those aimed at the user's packages, or at no one yet
+            manageable |= Q(package__isnull=True) & (Q(groups__in=groups) | Q(targets__in=package_staff) |
+                                                     Q(groups__isnull=True, targets__isnull=True))
+        return queryset.filter(manageable).distinct()
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        staff = get_object_or_404(Staff, user=self.request.user)
+        package = self.object.package or staff.package
+        form.fields['targets'].queryset, form.fields['groups'].queryset = task_target_choices(staff, package)
+        return form
 
     def form_valid(self, form):
         # Remember the targets and groups this user can't see on the form, and put them back
         task = self.get_object()
-        hidden_targets = task.targets.exclude(pk__in=form.fields['targets'].queryset.values('pk'))
-        hidden_groups = task.groups.exclude(pk__in=form.fields['groups'].queryset.values('pk'))
-        hidden_targets, hidden_groups = list(hidden_targets), list(hidden_groups)
+        hidden_targets = list(task.targets.exclude(pk__in=form.fields['targets'].queryset.values('pk')))
+        hidden_groups = list(task.groups.exclude(pk__in=form.fields['groups'].queryset.values('pk')))
         response = super().form_valid(form)
         self.object.targets.add(*hidden_targets)
         self.object.groups.add(*hidden_groups)
+        logger.info("[%s] updated task %s" % (self.request.user, self.object))
         return response
-
-    # @method_decorator(permission_required('loads.change_task', raise_exception=True))
-    # def dispatch(self, request):
-    #    return super(UpdateTaskView, self).dispatch(request)
 
 
 class CreateModuleView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
