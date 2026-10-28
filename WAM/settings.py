@@ -74,8 +74,10 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.admindocs',
     'django.contrib.humanize',
+    # loads comes before fancy_formset so that its patched copy of fancy_formset/formset.js
+    # (which keeps deleted rows in TOTAL_FORMS, so Django can delete them) wins over the package's
+    'loads',
     'fancy_formset',
-    'loads'
 )
 
 MIDDLEWARE = (
@@ -139,11 +141,19 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.8/howto/static-files/
-
+# https://docs.djangoproject.com/en/stable/howto/static-files/
+#
+# Each app's static/ folder (including loads/static) is found automatically, so there is no
+# STATICFILES_DIRS. In development (DEBUG = True with runserver) they are served from there.
+#
+# In production, set STATIC_ROOT in local_settings.py to an empty folder OUTSIDE the source
+# tree, run "python manage.py collectstatic" after each deploy, and have the web server serve
+# that folder at STATIC_URL. Never point STATIC_ROOT at loads/static: collectstatic would copy
+# every app's files (Django admin etc.) into the source tree. For example:
+#   STATIC_ROOT = '/var/www/wam-static'
+#   (Apache: Alias /wam/static /var/www/wam-static, with STATIC_URL = '/wam/static/')
 STATIC_URL = '/static/'
-# This ensures local files are searched first
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'loads/static')]
+STATIC_ROOT = None
 
 # Where do we store media
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
