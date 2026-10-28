@@ -189,3 +189,68 @@ class GraphDirectorySourceTestCase(TestCase):
         from django.core.exceptions import ImproperlyConfigured
         with self.assertRaises(ImproperlyConfigured):
             GraphDirectorySource().get_token()
+
+
+class SystemNameLookupTestCase(TestCase):
+    """Campus / Faculty / School.get_or_create, used at login and when onboarding"""
+
+    def setUp(self):
+        # Campuses created by hand often have no system name
+        for name in ("Belfast", "Coleraine", "Derry~Londonderry", "Magee"):
+            Campus.objects.create(name=name)
+        self.belfast = Campus.objects.create(name="Belfast campus", system_name="BT")
+
+    def test_missing_system_name_matches_nothing(self):
+        """Production error: get(system_name=None) matched all four unnamed campuses"""
+        for blank in (None, '', '   '):
+            self.assertIsNone(Campus.get_or_create(blank))
+        self.assertEqual(Campus.objects.count(), 5, "nothing is created for a blank name")
+
+    def test_match_ignores_case_and_spaces(self):
+        self.assertEqual(Campus.get_or_create('bt '), self.belfast)
+
+    def test_duplicates_use_the_oldest(self):
+        Campus.objects.create(name="Duplicate", system_name="BT")
+        with self.assertLogs('loads.models', 'WARNING'):
+            self.assertEqual(Campus.get_or_create('BT'), self.belfast)
+
+    def test_created_when_allowed(self):
+        campus = Campus.get_or_create(' CE ')
+        self.assertEqual((campus.system_name, campus.name), ('CE', 'CE'))
+        self.assertEqual(Campus.get_or_create('CE'), campus)
+
+    def test_not_created_when_disallowed(self):
+        with mock.patch('loads.models.WAM_AUTO_CREATE_CAMPUS', False):
+            self.assertIsNone(Campus.get_or_create('CE'))
+        self.assertFalse(Campus.objects.filter(system_name='CE').exists())
+
+    def test_school_and_faculty(self):
+        School.objects.create(name="Unnamed school")
+        Faculty.objects.create(name="Unnamed faculty")
+        self.assertIsNone(School.get_or_create(None))
+        self.assertIsNone(Faculty.get_or_create(None))
+        faculty = Faculty.get_or_create('CEBE')
+        school = School.get_or_create('Computing', faculty)
+        self.assertEqual(school.faculty, faculty)
+
+
+class MissingDirectoryValuesTestCase(TestCase):
+
+    def test_missing_values_leave_existing_data_alone(self):
+        staff, created = onboard_staff_record(dict(RECORDS[0]))
+        manual = Campus.objects.create(name="Set by hand", system_name="MANUAL")
+        staff.campus = manual
+        staff.save()
+
+        record = dict(RECORDS[0], campus=None, school='', job_title=None, first_name=None)
+        staff = apply_staff_record(staff.user, record)
+        self.assertEqual(staff.campus, manual)
+        self.assertEqual(staff.school.system_name, 'School of Computing')
+        self.assertEqual(staff.job_title, 'Lecturer')
+        self.assertEqual(staff.user.first_name, 'Ann')
+
+    def test_person_with_no_campus_can_be_onboarded(self):
+        Campus.objects.create(name="Unnamed A")
+        Campus.objects.create(name="Unnamed B")
+        staff, created = onboard_staff_record(dict(RECORDS[0], campus=None))
+        self.assertIsNone(staff.campus)

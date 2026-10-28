@@ -21,8 +21,11 @@ here works with a *staff record*: a plain dict using WAM's own vocabulary.
     campus          /  matched or, if WAM_AUTO_CREATE_* allow, created
     is_external     True for External Examiners / associates (default False)
 
-Only the keys present in a record are applied, so a source that knows nothing
-about campuses will not wipe an existing campus.
+Only the keys present in a record, with a value, are applied. A missing or None
+value means "unknown", so a source that knows nothing about campuses, or a person
+with no campus in the directory, will not wipe a campus already set in WAM. The
+same goes for a School, Faculty or Campus name that matches nothing (and isn't
+created, see WAM_AUTO_CREATE_*).
 
 Institution specific code (an authentication backend, or a DirectorySource
 subclass) translates its own attributes into a staff record, and calls
@@ -64,8 +67,8 @@ def apply_staff_record(user, record):
     # User fields
     user_changed = False
     for field in ('first_name', 'last_name', 'email'):
-        if field in record:
-            setattr(user, field, record[field] or '')
+        if record.get(field) is not None:
+            setattr(user, field, record[field])
             user_changed = True
     if user_changed:
         user.save()
@@ -80,18 +83,22 @@ def apply_staff_record(user, record):
 
     if record.get('staff_number'):
         staff.staff_number = record['staff_number']
-    if 'job_title' in record:
+    if record.get('job_title') is not None:
         staff.job_title = record['job_title']
-    if 'is_external' in record:
+    if record.get('is_external') is not None:
         staff.is_external = bool(record['is_external'])
 
-    # Organisational structure, matched (or created if so configured) by system name
-    if 'faculty' in record:
-        staff.faculty = Faculty.get_or_create(record['faculty'])
-    if 'school' in record:
-        staff.school = School.get_or_create(record['school'], staff.faculty)
-    if 'campus' in record:
-        staff.campus = Campus.get_or_create(record['campus'])
+    # Organisational structure, matched (or created if so configured) by system name.
+    # A name that is missing, or matches nothing, leaves the existing value alone.
+    faculty = Faculty.get_or_create(record.get('faculty'))
+    if faculty:
+        staff.faculty = faculty
+    school = School.get_or_create(record.get('school'), staff.faculty)
+    if school:
+        staff.school = school
+    campus = Campus.get_or_create(record.get('campus'))
+    if campus:
+        staff.campus = campus
 
     staff.save()
     logger.debug("updated staff %s: school=%s faculty=%s campus=%s external=%s",
