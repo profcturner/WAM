@@ -829,10 +829,23 @@ def render_task_lists(request, archived):
     my_tasks = staff.get_all_tasks(archived=archived)
     set_tasks = Task.objects.filter(owner=staff, archive=archived).order_by('deadline')
 
+    # Those who manage tasks in their current package (superusers, and package admins with
+    # change_task) also see all of its tasks, including older ones aimed at its people
+    package = staff.package
+    package_tasks = []
+    if package and (request.user.is_superuser or (request.user.has_perm('loads.change_task') and
+                                                  package in staff.get_all_packages(include_hidden=True))):
+        package_tasks = Task.objects.filter(
+            Q(package=package) |
+            Q(package__isnull=True) & (Q(groups__in=package.groups.all()) | Q(targets__in=package.get_all_staff()))
+        ).filter(archive=archived).distinct().order_by('deadline')
+
     template = loader.get_template('loads/tasks/index.html')
     context = {
         'augmented_tasks': task_rows(my_tasks, staff),
         'set_tasks': task_rows(set_tasks, staff),
+        'package_tasks': task_rows(package_tasks, staff),
+        'package': package,
         'tasks_menu': True,
         'archived': archived,
     }

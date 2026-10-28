@@ -105,6 +105,43 @@
     </table>
 </div>
 {% endif %}
+{% if package_tasks %}
+<h4 class="mt-5 mb-3">All {% if archived %}archived {% endif %}tasks in {{ package.name }}</h4>
+<div class="table-responsive small">
+    <table class="table table-sm table-striped table-hover">
+        <thead>
+            <tr>
+                <th scope="col">Task name</th>
+                <th scope="col">Set by</th>
+                <th scope="col">Deadline</th>
+                <th scope="col">Status</th>
+                <th scope="col" class="wam-hide-on-print">Completion</th>
+                <th scope="col" class="wam-hide-on-print">Edit</th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            {% for task, urgent, overdue, manageable in package_tasks %}
+            <tr>
+                <td>{{ task.name }}</td>
+                <td>{% if task.owner %}{{ task.owner }}{% else %}<span class="text-body-secondary">Not recorded</span>{% endif %}</td>
+                <td>{{ task.deadline }}</td>
+                <td>
+                    {% if overdue %}<span class="badge text-bg-danger">Overdue</span>
+                    {% elif urgent %}<span class="badge text-bg-warning">Urgent</span>
+                    {% else %}Pending{% endif %}
+                </td>
+                <td class="wam-hide-on-print">
+                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'tasks_details' task.id %}">Who's completed it</a>
+                </td>
+                <td class="wam-hide-on-print">
+                    {% if manageable %}<a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'update task' task.id %}">Edit</a>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
 <div class="mt-5 wam-hide-on-print">
     <h4>
         Create a new task

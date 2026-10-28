@@ -294,6 +294,16 @@ class GeneratorTestCase(TestCase):
         project.generate_activities()
         self.assertEqual(self.lecturer.total_hours(self.package), 228)
 
+    def test_project_hours_are_rounded(self):
+        """3 hours a week over 45.6 working weeks is 136.8: rounded to 137, not truncated to 136"""
+        body = Body.objects.create(name="Research Council", details="")
+        project = Project.objects.create(name="Grant", body=body, activity_type=self.activity_type,
+                                         start=self.package.startdate, end=self.package.enddate)
+        ProjectStaff.objects.create(staff=self.lecturer, project=project, hours_per_week=3,
+                                    start=self.package.startdate, end=self.package.enddate)
+        project.generate_activities()
+        self.assertEqual(self.lecturer.total_hours(self.package), 137)
+
     def test_project_outside_package(self):
         body = Body.objects.create(name="Research Council", details="")
         project = Project.objects.create(name="Old grant", body=body, activity_type=self.activity_type,
