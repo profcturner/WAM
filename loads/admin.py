@@ -112,9 +112,10 @@ class StaffAdmin(admin.ModelAdmin):
 
 
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'deadline')
-    list_filter = ('archive', 'category')
+    list_display = ('name', 'category', 'deadline', 'owner', 'package')
+    list_filter = ('archive', 'category', 'package')
     search_fields = ['name']
+    autocomplete_fields = ['owner']
 
 
 class TaskCompletionAdmin(admin.ModelAdmin):

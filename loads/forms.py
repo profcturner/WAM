@@ -328,7 +328,7 @@ class TaskForm(ModelForm):
 
     class Meta:
         model = Task
-        fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups']
+        fields = ['name', 'category', 'details', 'deadline', 'archive', 'targets', 'groups', 'targets_see_completion']
         widgets = {'deadline': DateTimeInput}
 
 

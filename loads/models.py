@@ -1387,6 +1387,14 @@ class Task(models.Model):
     deadline    the time by which the task should be completed
     archive     whether the task is completed / archived
     targets     those staff the task is allocated to
+    groups      groups of staff the task is allocated to
+    owner       the member of staff who set the task (empty for older tasks)
+    package     the work package the task belongs to, by default the owner's current
+                package when it was set (empty for older tasks it couldn't be worked out for)
+    targets_see_completion  whether the task's targets can see each other's completion
+
+    The targets of a task are its individual targets plus the members of its groups.
+    Who may see and manage a task is decided by can_manage(), can_view_completions() and can_view().
 
     See also the TaskCompletion model. Note that targets should not be removed
     on completion.
@@ -1402,6 +1410,14 @@ class Task(models.Model):
                                      help_text="Hold down ctrl or cmd to select multiple users")
     groups = models.ManyToManyField(Group, blank=True,
                                     help_text="Hold down ctrl or cmd to select multiple groups")
+    owner = models.ForeignKey(Staff, null=True, blank=True, on_delete=models.SET_NULL,
+                              related_name='owned_tasks', help_text="The member of staff who set the task")
+    package = models.ForeignKey('WorkPackage', null=True, blank=True, on_delete=models.SET_NULL,
+                                related_name='tasks', help_text="The work package the task belongs to")
+    targets_see_completion = models.BooleanField(
+        default=True, verbose_name="Targets can see each other's completion",
+        help_text="If unticked, each person sees only their own completion. "
+                  "The task's owner and package administrators always see everyone's.")
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
@@ -1428,6 +1444,47 @@ class Task(models.Model):
         all_targets = all_targets.distinct()
 
         return all_targets
+
+    def is_target(self, staff):
+        """Whether staff is one of the task's targets: named individually, or in one of its groups"""
+        if staff is None:
+            return False
+        return (self.targets.filter(pk=staff.pk).exists() or
+                self.groups.filter(user=staff.user).exists())
+
+    def is_in_packages_of(self, staff):
+        """Whether the task belongs to one of the staff member's packages
+
+        Older tasks without a package count as belonging to any package that one
+        of their targets or groups is in (or to any, if they have no targets yet)."""
+        packages = staff.get_all_packages(include_hidden=True)
+        if self.package_id:
+            return packages.filter(pk=self.package_id).exists()
+        package_groups = Group.objects.filter(workpackage__in=packages)
+        package_staff = staff.get_all_staff_in_all_packages(include_hidden=True)
+        return (self.groups.filter(pk__in=package_groups).exists() or
+                self.targets.filter(pk__in=package_staff).exists() or
+                (not self.groups.exists() and not self.targets.exists()))
+
+    def can_manage(self, staff):
+        """Whether staff may edit the task and see everyone's completion: superusers, the
+        task's owner, and package administrators (change_task permission, in the task's package)"""
+        if staff is None:
+            return False
+        if staff.user.is_superuser:
+            return True
+        if self.owner_id and self.owner_id == staff.pk:
+            return True
+        return staff.user.has_perm('loads.change_task') and self.is_in_packages_of(staff)
+
+    def can_view_completions(self, staff):
+        """Whether staff may see everyone's completion of the task: those who can manage it,
+        and its targets if targets_see_completion is set"""
+        return self.can_manage(staff) or (self.targets_see_completion and self.is_target(staff))
+
+    def can_view(self, staff):
+        """Whether staff may see the task at all (its targets always can, with their own status)"""
+        return self.can_view_completions(staff) or self.is_target(staff)
 
     def is_urgent(self):
         """returns True is the task is 7 days away or less, False otherwise"""
