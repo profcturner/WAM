@@ -1911,9 +1911,9 @@ class ProjectStaff(models.Model):
             working_weeks = working_days / package.days_in_week
             hours = working_weeks * self.hours_per_week
 
-            # Now create the Activity
+            # Now create the Activity. Activity hours are whole numbers, so round (rather than truncate)
             activity = Activity(name=str(self.project),
-                                hours=hours,
+                                hours=round(hours),
                                 percentage=0,
                                 hours_percentage=Activity.HOURS,
                                 semester='1,2,3',

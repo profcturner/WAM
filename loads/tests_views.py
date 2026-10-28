@@ -1181,3 +1181,43 @@ class TaskOwnershipTests(ViewTestCase):
         self.login(self.group_member)  # a target by group
         self.client.post(reverse('tasks_completion', args=[self.task.pk, self.group_member.pk]), {'comment': 'Done'})
         self.assertTrue(TaskCompletion.objects.filter(staff=self.group_member).exists())
+
+
+class PackageTaskListTests(ViewTestCase):
+    """Superusers and package admins see all tasks in their current package"""
+
+    def setUp(self):
+        super().setUp()
+        self.category = Category.objects.create(name="Admin", abbreviation="admin", colour="blue")
+
+        def task(name, **kwargs):
+            return Task.objects.create(name=name, details="", deadline=timezone.now(), category=self.category, **kwargs)
+
+        self.ours = task("Ours", owner=self.coordinator, package=self.package)
+        self.legacy = task("Legacy, aimed at our staff")
+        self.legacy.targets.add(self.lecturer)
+        self.theirs = task("Theirs", owner=self.outsider, package=self.other_package)
+        self.archived = task("Archived", owner=self.coordinator, package=self.package, archive=True)
+
+    def package_tasks(self, staff, archived=False):
+        self.login(staff)
+        response = self.client.get(reverse('archived_tasks_index' if archived else 'tasks_index'))
+        return [row[0] for row in response.context['package_tasks']]
+
+    def test_superuser_sees_all_tasks_in_their_package(self):
+        """The reported gap: superusers couldn't see tasks they hadn't set"""
+        self.assertCountEqual(self.package_tasks(self.superuser), [self.ours, self.legacy])
+        self.assertEqual(self.package_tasks(self.superuser, archived=True), [self.archived])
+
+    def test_package_admin_sees_their_package(self):
+        admin = make_staff('schooladmin', package=self.package, group=self.group, permissions=['loads.change_task'])
+        self.assertCountEqual(self.package_tasks(admin), [self.ours, self.legacy])
+
+    def test_others_dont_get_the_list(self):
+        self.assertEqual(self.package_tasks(self.lecturer), [])
+        self.assertEqual(self.package_tasks(self.coordinator), [])  # owners see theirs under "Tasks you've set"
+
+    def test_admin_of_another_package_doesnt_see_ours(self):
+        other_admin = make_staff('otheradmin', package=self.other_package, permissions=['loads.change_task'])
+        other_admin.user.groups.add(*self.other_package.groups.all())
+        self.assertEqual(self.package_tasks(other_admin), [self.theirs])
