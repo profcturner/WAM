@@ -35,9 +35,9 @@
         <tbody class="table-group-divider">
             {% for outcome, type, name in changes %}
             <tr>
-                <th>{{ outcome|safe }}</th>
-                <td>{{ type|safe }}</td>
-                <td>{{ name|safe }}</td>
+                <th>{{ outcome }}</th>
+                <td>{{ type }}</td>
+                <td>{{ name }}</td>
             </tr>
             {% endfor %}
         </tbody>

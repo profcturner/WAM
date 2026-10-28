@@ -940,3 +940,78 @@ class ActionsNeedAFormTests(ViewTestCase):
             self.assertIn(f'action="{action}"', content, page)
             self.assertNotIn(f'href="{action}"', content, page)
             self.assertIn('csrfmiddlewaretoken', content, page)
+
+
+@override_settings(MEDIA_ROOT=MEDIA_ROOT)
+class AuditQuickFixTests(ViewTestCase):
+    """Smaller items from the security audit"""
+
+    def test_module_details_refuses_users_without_staff(self):
+        """Item 4: this used to show any module"""
+        user = User.objects.create_user('nostaff')
+        Staff.objects.filter(user=user).delete()
+        self.client.force_login(user)
+        self.assertForbidden(self.client.get(reverse('modules_details', args=[self.module.pk])))
+
+    def test_migration_results_escape_names(self):
+        """Item 5: a module name containing script was output unescaped to the superuser"""
+        self.module.module_name = '<script>alert(1)</script>'
+        self.module.save()
+        allocate(self.lecturer, self.module)
+        next_year = make_package("2018/19", group=self.group)
+        self.login(self.superuser)
+        response = self.client.post(reverse('workpackage_migrate'), {
+            'source_package': self.package.pk, 'destination_package': next_year.pk,
+            'copy_programmes': 'on', 'copy_modules': 'on'})
+        self.assertNotContains(response, '<script>alert(1)</script>')
+        self.assertContains(response, '&lt;script&gt;')
+
+    def test_team_members_and_assessment_staff_can_upload(self):
+        """Their access was checked by comparing different kinds of record, so they always got 403"""
+        allocate(self.lecturer, self.module)
+        assessor = make_staff('assessor', package=self.package, group=self.group)
+        add_assessment_staff(assessor, self.package)
+        resource_type = make_resource_type()
+        for staff in (self.lecturer, assessor):
+            self.login(staff)
+            response = self.client.post(reverse('add_assessment_resource', args=[self.module.pk]),
+                                        {'name': f'By {staff}', 'details': '', 'resource_type': resource_type.pk,
+                                         'resource': SimpleUploadedFile('paper.pdf', b'%PDF')})
+            self.assertEqual(response.status_code, 302, staff)
+        self.assertEqual(AssessmentResource.objects.count(), 2)
+
+    def test_others_still_cannot_upload(self):
+        colleague = make_staff('colleague', package=self.package, group=self.group)
+        self.login(colleague)
+        self.assertEqual(self.client.get(reverse('add_assessment_resource', args=[self.module.pk])).status_code, 403)
+
+    def test_assessment_team_only_accepts_package_staff(self):
+        """Item 8: the staff choices were only restricted when the page was shown, not when submitted"""
+        admin = make_staff('schooladmin', package=self.package, group=self.group,
+                           permissions=['loads.view_assessmentstaff', 'loads.add_assessmentstaff'])
+        self.login(admin)
+        response = self.client.post(reverse('assessmentstaff_index'),
+                                    {'staff': self.outsider.pk, 'package': self.package.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('staff', response.context['form'].errors)
+        self.assertFalse(AssessmentStaff.objects.exists())
+
+        self.client.post(reverse('assessmentstaff_index'), {'staff': self.lecturer.pk, 'package': self.package.pk})
+        self.assertTrue(AssessmentStaff.objects.filter(staff=self.lecturer, package=self.package).exists())
+
+    def test_loads_by_modules_checks_the_package(self):
+        """Item 7: the same check as the other loads pages"""
+        self.lecturer.package = self.other_package
+        self.lecturer.save()
+        self.login(self.lecturer)
+        response = self.client.get(reverse('loads_modules', args=['']))
+        self.assertRedirects(response, reverse('workpackage_change'), fetch_redirect_response=False)
+
+        self.lecturer.package = None
+        self.lecturer.save()
+        response = self.client.get(reverse('loads_modules', args=['']))
+        self.assertRedirects(response, reverse('workpackage_change'), fetch_redirect_response=False)
+
+        self.lecturer.package = self.package
+        self.lecturer.save()
+        self.assertEqual(self.client.get(reverse('loads_modules', args=[''])).status_code, 200)
