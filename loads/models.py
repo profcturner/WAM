@@ -411,6 +411,43 @@ class WorkPackage(models.Model):
         ordering = ['name', '-startdate']
 
 
+def get_or_create_by_system_name(model, system_name, auto_create, **create_fields):
+    """
+    Find a Campus, Faculty or School by the name internal systems (e.g. a directory) use for it,
+    or create it if that is allowed.
+
+    Matching ignores case and surrounding spaces. A blank or missing system name matches nothing:
+    it must not match the (often several) objects created by hand without a system name.
+    If several objects share a system name, the oldest is used, with a warning.
+
+    :param model:           Campus, Faculty or School
+    :param system_name:     the name used by internal systems
+    :param auto_create:     whether to create the object if none matches
+    :param create_fields:   further fields for a created object
+    :return: the matching or created object, or None
+    """
+    name = (system_name or '').strip()
+    if not name:
+        logger.debug("no %s system name given, so none matched", model.__name__)
+        return None
+
+    matches = model.objects.filter(system_name__iexact=name).order_by('pk')
+    match = matches.first()
+    if match is not None:
+        if matches.count() > 1:
+            logger.warning("%u %s objects have system name %s, using the oldest (%s)",
+                           matches.count(), model.__name__, name, match)
+        return match
+
+    if not auto_create:
+        logger.debug("no %s with system name %s, and not configured to create one", model.__name__, name)
+        return None
+
+    created = model.objects.create(system_name=name, name=name, **create_fields)
+    logger.info("created %s with system name %s", model.__name__, name)
+    return created
+
+
 class Campus(models.Model):
     """
     This indicates the campus or site that a module is delivered at, or is associated with another entity
@@ -429,33 +466,14 @@ class Campus(models.Model):
     @staticmethod
     def get_or_create(system_name):
         """
-        Normally used to map a system name to an ID, or automatically create a missing campus
+        Map a system name (e.g. "BT") to a Campus, creating it if WAM_AUTO_CREATE_CAMPUS is set.
 
-        This is normally called as a result of automatic authentication.
+        This is normally called as a result of automatic authentication or onboarding.
 
         :param system_name:     a name for the campus used by internal systems
         :return: A Campus object, if it exists or is created, and None otherwise
         """
-
-        # If it exists, just return it.
-        try:
-            logger.debug("checking for existence of campus with system name %s" % system_name)
-            campus = Campus.objects.get(system_name=system_name)
-            return campus
-        except Campus.DoesNotExist:
-            # Auto create if previously unseen, and WAM_AUTO_CREATE_CAMPUS setting is enabled
-            if WAM_AUTO_CREATE_CAMPUS:
-                logger.debug("campus does not exist, and configured to create with name %s" % system_name)
-                if not system_name:
-                    logger.debug("cannot create campus with name set to None")
-                    return None
-                else:
-                    campus = Campus.objects.create(system_name=system_name, name=system_name)
-                    logger.debug("campus created with name %s" % system_name)
-                return campus
-
-        # Last resort
-        return None
+        return get_or_create_by_system_name(Campus, system_name, WAM_AUTO_CREATE_CAMPUS)
 
     class Meta:
         verbose_name_plural = "campuses"
@@ -480,33 +498,14 @@ class Faculty(models.Model):
     @staticmethod
     def get_or_create(system_name):
         """
-        Normally used to map a system name to an ID, or automatically create a missing faculty
+        Map a system name to a Faculty, creating it if WAM_AUTO_CREATE_FACULTY is set.
 
-        This is normally called as a result of automatic authentication.
+        This is normally called as a result of automatic authentication or onboarding.
 
         :param system_name:     a name for the Faculty used by internal systems
         :return: A Faculty object, if it exists or is created, and None otherwise
         """
-
-        # If it exists, just return it.
-        try:
-            logger.debug("checking for existence of faculty with system name %s" % system_name)
-            faculty = Faculty.objects.get(system_name=system_name)
-            return faculty
-        except Faculty.DoesNotExist:
-            # Auto create if previously unseen, and WAM_AUTO_CREATE_FACULTY setting is enabled
-            if WAM_AUTO_CREATE_FACULTY:
-                logger.debug("faculty does not exist, and configured to create with name %s" % system_name)
-                if not system_name:
-                    logger.debug("cannot create faculty with name set to None")
-                    return None
-                else:
-                    faculty = Faculty.objects.create(system_name=system_name, name=system_name)
-                    logger.debug("faculty created with name %s" % system_name)
-                    return faculty
-
-        # Last resort
-        return None
+        return get_or_create_by_system_name(Faculty, system_name, WAM_AUTO_CREATE_FACULTY)
 
     class Meta:
         verbose_name_plural = "faculties"
@@ -533,34 +532,15 @@ class School(models.Model):
     @staticmethod
     def get_or_create(system_name, faculty=None):
         """
-        Normally used to map a system name to an ID, or automatically create a missing faculty
+        Map a system name to a School, creating it (in the given faculty) if WAM_AUTO_CREATE_SCHOOL is set.
 
-        This is normally called as a result of automatic authentication.
+        This is normally called as a result of automatic authentication or onboarding.
 
         :param system_name:     a name for the School used by internal systems
         :param faculty:         the faculty the School belongs to, if known
         :return: A School object, if it exists or is created, and None otherwise
         """
-
-        # If it exists, just return it.
-        try:
-            logger.debug("checking for existence of school with system name %s" % system_name)
-            school = School.objects.get(system_name=system_name)
-            return school
-        except School.DoesNotExist:
-            # Auto create if previously unseen, and WAM_AUTO_CREATE_SCHOOL setting is enabled
-            if WAM_AUTO_CREATE_SCHOOL:
-                logger.debug("school does not exist, and configured to create with name %s" % system_name)
-                if not system_name:
-                    logger.debug("cannot create school with name set to None")
-                    return None
-                else:
-                    school = School.objects.create(system_name=system_name, name=system_name, faculty=faculty)
-                    logger.debug("school created with name %s in faculty %s" % (system_name, faculty))
-                    return school
-
-        # Last resort
-        return None
+        return get_or_create_by_system_name(School, system_name, WAM_AUTO_CREATE_SCHOOL, faculty=faculty)
 
     def create_groups(self):
         """
