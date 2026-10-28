@@ -1,10 +1,11 @@
 import os
-import mimetypes
 import logging
 
 from django.core.mail import mail_admins
 from django.shortcuts import get_object_or_404, render
 from django.http import Http404
+
+from .validators import assessment_file_serving
 from django.urls import reverse, reverse_lazy
 from django.forms import modelformset_factory
 from fancy_formset import FancyModelFormSet, FancyInlineFormSet
@@ -21,7 +22,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from .decorators import staff_only, external_only, admin_only
 from django.utils.decorators import method_decorator
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import FileResponse, HttpResponse, HttpResponseRedirect
 from django.template import loader
 from django.contrib.auth.models import User, Group, Permission
 
@@ -193,26 +194,30 @@ def download_assessment_resource(request, resource_id):
         logger.info("[%s] forbidden from downloading resource, no permission for this resource." % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
-    resource.downloads += 1
-    resource.save()
-
-    # Get the base filename, and try and work out the type
     filename = os.path.basename(resource.resource.name)
-    file_mimetype = mimetypes.guess_type(filename)[0]
 
-    # Start a response
+    # Only a few known-safe types open in the browser, with a fixed content type; everything else
+    # (including any web page uploaded before uploads were restricted) downloads, so it can't run in WAM
+    content_type, as_attachment = assessment_file_serving(filename)
+
     try:
-        logger.info("[%s] downloading assessment resource %u" % (request.user, resource.id), extra={'resource': resource})
-        response = HttpResponse(resource.resource.file, content_type=file_mimetype)
+        file = resource.resource.open('rb')
     except FileNotFoundError:
         logger.critical("File %s, missing for existing resource id %u" % (filename, resource.pk), extra={'resource': resource})
         mail_admins("WAM error, missing file", "File %s, missing for existing resource id %u" % (filename, resource.pk))
         raise Http404("The requested file was not found.")
 
+    resource.downloads += 1
+    resource.save()
+    logger.info("[%s] %s assessment resource %u" % (request.user, "downloading" if as_attachment else "viewing",
+                                                    resource.id), extra={'resource': resource})
 
-    # Let's suggest the filename
-    response['Content-Disposition'] = 'inline; filename="%s"' % filename
-    response['Content-Length'] = len(resource.resource.file)
+    # FileResponse streams the file, sets Content-Length, and encodes the filename safely
+    response = FileResponse(file, content_type=content_type, as_attachment=as_attachment, filename=filename)
+    if not as_attachment and not content_type.startswith('application/pdf'):
+        # A backstop for images, video and text shown in the browser: no scripts, no access to WAM.
+        # (Not applied to PDFs, as some browsers' PDF viewers won't render under it.)
+        response['Content-Security-Policy'] = 'sandbox'
     return response
 
 

@@ -84,7 +84,7 @@ class AssessmentResourceViewTests(ViewTestCase):
         self.login(self.coordinator)
         response = self.download()
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, b'Question 1')
+        self.assertEqual(b''.join(response.streaming_content), b'Question 1')
         self.assertIn('exam', response['Content-Disposition'])
         self.resource.refresh_from_db()
         self.assertEqual(self.resource.downloads, 1)
@@ -137,6 +137,72 @@ class AssessmentResourceViewTests(ViewTestCase):
         self.login(self.superuser)
         self.delete(confirm=True)
         self.assertFalse(AssessmentResource.objects.filter(pk=self.resource.pk).exists())
+
+    def upload(self, name, content=b'data'):
+        self.login(self.coordinator)
+        return self.client.post(reverse('add_assessment_resource', args=[self.module.pk]),
+                                {'name': name, 'details': '', 'resource_type': self.resource.resource_type.pk,
+                                 'resource': SimpleUploadedFile(name, content)})
+
+    def test_upload_allowed_types(self):
+        for name in ('paper.docx', 'marking.pdf', 'capture.pcap', 'model.igs', 'notebook.ipynb', 'NOEXTENSION'):
+            response = self.upload(name)
+            self.assertEqual(response.status_code, 302, name)
+        self.assertEqual(AssessmentResource.objects.count(), 7)
+
+    def test_upload_refuses_dangerous_types(self):
+        for name in ('paper.html', 'PAPER.HTM', 'diagram.svg', 'run.exe', 'link.url', 'paper.pdf.html', 'macro.docm',
+                     'sheet.XLSM'):
+            response = self.upload(name)
+            self.assertEqual(response.status_code, 200, name)
+            self.assertIn('resource', response.context['form'].errors, name)
+        self.assertEqual(AssessmentResource.objects.count(), 1)
+
+    @override_settings(WAM_ASSESSMENT_MAX_UPLOAD_MB=1)
+    def test_upload_size_limit(self):
+        response = self.upload('big.pdf', b'x' * (1024 * 1024 + 1))
+        self.assertIn('at most 1 MB', str(response.context['form'].errors['resource']))
+        self.assertEqual(self.upload('small.pdf', b'x' * 1024).status_code, 302)
+
+    def serve(self, name):
+        resource = AssessmentResource.objects.create(
+            name=name, module=self.module, owner=self.lecturer, resource_type=self.resource.resource_type,
+            resource=SimpleUploadedFile(name, b'<script>alert(1)</script>'))
+        self.login(self.coordinator)
+        return self.client.get(reverse('download_assessment_resource', args=[resource.pk]))
+
+    def test_web_pages_always_download(self):
+        """Including any uploaded before uploads were restricted"""
+        for name in ('legacy.html', 'legacy.svg', 'legacy.xhtml'):
+            response = self.serve(name)
+            self.assertEqual(response['Content-Type'], 'application/octet-stream', name)
+            self.assertTrue(response['Content-Disposition'].startswith('attachment'), name)
+
+    def test_pdfs_and_images_open_in_the_browser(self):
+        response = self.serve('paper.pdf')
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertTrue(response['Content-Disposition'].startswith('inline'))
+        self.assertNotIn('Content-Security-Policy', response)
+
+        response = self.serve('figure.png')
+        self.assertEqual(response['Content-Type'], 'image/png')
+        self.assertEqual(response['Content-Security-Policy'], 'sandbox')
+
+    def test_code_is_shown_as_plain_text(self):
+        for name in ('solution.py', 'notebook.ipynb', 'data.json'):
+            response = self.serve(name)
+            self.assertEqual(response['Content-Type'], 'text/plain; charset=utf-8', name)
+            self.assertEqual(response['Content-Security-Policy'], 'sandbox', name)
+
+    def test_office_files_download(self):
+        response = self.serve('paper.docx')
+        self.assertEqual(response['Content-Type'], 'application/octet-stream')
+        self.assertTrue(response['Content-Disposition'].startswith('attachment'))
+
+    def test_awkward_filenames_are_encoded(self):
+        response = self.serve('Exam "final" résumé.pdf')
+        self.assertNotIn('"final"', response['Content-Disposition'])
+        self.assertIn("filename*=utf-8''", response['Content-Disposition'])
 
     def delete_sign_off(self, signoff):
         return self.client.get(reverse('delete_assessment_sign_off', args=[signoff.pk]) + '/confirm')
