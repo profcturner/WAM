@@ -337,3 +337,67 @@ class GeneratorTestCase(TestCase):
                                     start=project.start, end=project.end)
         project.generate_activities()
         self.assertEqual(self.lecturer.total_hours(self.package), 0)
+
+
+class ExplainHoursTestCase(TestCase):
+    """Module.explain_hours(), shown when hovering over figures on the module details page (issue #5)"""
+
+    def setUp(self):
+        logging.disable(logging.CRITICAL)
+        self.package = make_package(contact_formula='credits * 3.6', admin_formula='contact * 0',
+                                    assessment_formula='contact * assessment_scaling',
+                                    coordinator_formula='15 + students * 0.01')
+        self.module = make_module(self.package, code='NUT102', credits=20, number_students=10,
+                                  coordinator=make_staff('coordinator'))
+
+    def test_formulas_show_their_values(self):
+        """The query that prompted this: 15.10 coordinator hours, from 0.01 (not 0.1) per student"""
+        explained = self.module.explain_hours()
+        self.assertEqual(explained['coordinator'],
+                         "From the package formula 15 + students * 0.01, with students = 10, giving 15.1.")
+        self.assertEqual(explained['assessment'],
+                         "From the package formula contact * assessment_scaling, with contact = 72, "
+                         "assessment_scaling = 1, giving 72.")
+        self.assertEqual(explained['contact'], "From the package formula credits * 3.6, with credits = 20, giving 72.")
+        self.assertEqual(explained['total'],
+                         "Contact + assessment + other admin + coordinator hours: 72 + 72 + 0 + 15.1 = 159.1.")
+
+    def test_values_set_on_the_module(self):
+        self.module.assessment_hours = 10
+        self.module.coordinator_hours = 16
+        explained = self.module.explain_hours()
+        self.assertEqual(explained['assessment'], "Set on this module as 10 hours, which overrides the package formula.")
+        self.assertIn("Set on this module as 16 hours", explained['coordinator'])
+
+    def test_no_coordinator(self):
+        self.module.coordinator = None
+        self.assertEqual(self.module.explain_hours()['coordinator'],
+                         "This module has no coordinator, so there are no coordinator hours.")
+
+    def test_older_scaling_factors(self):
+        """Packages with no formulas use their scaling factors"""
+        self.package.contact_formula = self.package.admin_formula = self.package.assessment_formula = ''
+        self.package.coordinator_formula = ''
+        self.package.save()
+        explained = self.module.explain_hours()
+        self.assertEqual(explained['contact'], "From the package's contact scaling: credits × 2.5 = 20 × 2.5, giving 50.")
+        self.assertEqual(explained['admin'], "From the package's admin scaling: contact × 1 = 50 × 1, giving 50.")
+        self.assertIn("no coordinator formula", explained['coordinator'])
+
+    def test_only_variables_in_the_formula_are_listed(self):
+        """'students' mustn't match inside another name, and unused variables aren't listed"""
+        self.package.assessment_formula = 'students'
+        self.package.save()
+        self.assertEqual(self.module.explain_hours()['assessment'],
+                         "From the package formula students, with students = 10, giving 10.")
+
+    def test_explanations_match_the_figures(self):
+        """Each explanation's result is the figure shown"""
+        self.module.contact_hours = 12
+        explained = self.module.explain_hours()
+        for key, value in (('contact', self.module.get_contact_hours()), ('admin', self.module.get_admin_hours()),
+                           ('assessment', self.module.get_assessment_hours()),
+                           ('coordinator', self.module.get_coordinator_hours()),
+                           ('total', self.module.get_all_hours())):
+            shown = f"{value:.4f}".rstrip('0').rstrip('.')
+            self.assertIn(shown, explained[key], key)

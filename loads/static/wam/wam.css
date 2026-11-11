@@ -279,3 +279,17 @@ div.wam-formset-grid div input[type=checkbox]:before {
     }
 }
 /*@media (prefers-color-scheme: dark) { color: #ea868f; }*/
+
+/* Module hour figures that explain how they were worked out (popover on hover, focus or tap) */
+.wam-explained-hours {
+    text-decoration: underline dotted;
+    text-underline-offset: 0.2em;
+    cursor: help;
+    font-size: inherit;
+    line-height: inherit;
+    vertical-align: baseline;
+}
+.wam-explained-hours:hover,
+.wam-explained-hours:focus-visible {
+    text-decoration-style: solid;
+}

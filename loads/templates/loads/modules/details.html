@@ -54,14 +54,13 @@
         <div class="col-12 col-md-3 fw-bold">
             Hours
         </div>
-        <div class="col-9 font-monospace text-nowrap">
-            Total hours: {{ total_hours|stringformat:".2f" }}; Contact hours: {{ contact_hours|stringformat:".2f" }};
+        <div class="col-9 font-monospace">
+            {% include "loads/modules/explained_hours.html" with label="Total hours" value=total_hours explanation=hours_explained.total %}; {% include "loads/modules/explained_hours.html" with label="Contact hours" value=contact_hours explanation=hours_explained.contact %};
             <br/>
-            Coordinator hours {{ module.get_coordinator_hours|stringformat:".2f" }}; Assessment hours {{ assessment_hours|stringformat:".2f" }};
+            {% include "loads/modules/explained_hours.html" with label="Coordinator hours" value=module.get_coordinator_hours explanation=hours_explained.coordinator %}; {% include "loads/modules/explained_hours.html" with label="Assessment hours" value=assessment_hours explanation=hours_explained.assessment %};
             <br />
-            Other Admin hours {{ admin_hours|stringformat:".2f" }};
-
-
+            {% include "loads/modules/explained_hours.html" with label="Other Admin hours" value=admin_hours explanation=hours_explained.admin %};
+            <div class="form-text font-sans-serif wam-hide-on-print" style="font-family: var(--bs-body-font-family);">Hover over or tap a figure to see how it was worked out.</div>
         </div>
     </div>
     {% if module.details %}

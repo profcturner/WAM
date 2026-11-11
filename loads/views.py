@@ -1526,6 +1526,7 @@ def modules_details(request, module_id):
         'module': module,
         'moderators': module.moderators.all(),
         'total_hours': module.get_all_hours(),
+        'hours_explained': module.explain_hours(),
         'contact_hours': module.get_contact_hours(),
         'admin_hours': module.get_admin_hours(),
         'assessment_hours': module.get_assessment_hours(),

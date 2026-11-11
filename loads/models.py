@@ -4,6 +4,7 @@
 
 import datetime
 import logging
+import re
 
 # Django imports
 
@@ -1336,6 +1337,92 @@ class Module(models.Model):
     def get_coordinator_hours_by_semester(self):
         """Coordinator admin is distributed across the module's own semesters."""
         return divide_by_semesters(self.get_coordinator_hours(), self.semester)
+
+    def explain_hours(self):
+        """
+        Where each of the module's hour figures comes from, in plain language, for the
+        module details page: a value set on the module itself, a package formula (with
+        the values it used), or the package's older scaling factors.
+
+        :return: a dict with keys contact, admin, assessment, coordinator and total
+        """
+        package = self.package
+        students = self._student_count()
+        contact = self.get_contact_hours()
+        admin = self.get_admin_hours()
+        assessment = self.get_assessment_hours()
+        coordinator = self.get_coordinator_hours()
+
+        def number(value):
+            """20 rather than 20.00, but 15.1 and 0.01 as they are"""
+            text = f"{float(value):.4f}".rstrip('0').rstrip('.')
+            return text if text != '-0' else '0'
+
+        values = {
+            'credits': self.credits, 'students': students, 'contact': contact, 'admin': admin,
+            'contact_scaling': package.credit_contact_scaling, 'admin_scaling': package.contact_admin_scaling,
+            'assessment_scaling': package.contact_assessment_scaling,
+        }
+
+        def described(name):
+            if name == 'students' and self.number_students is None:
+                return f"students = {number(students)} (estimated from the module size)"
+            return f"{name} = {number(values[name])}"
+
+        def from_formula(formula, result, names):
+            used = [name for name in names if re.search(rf'\b{name}\b', formula)]
+            using = f", with {', '.join(described(name) for name in used)}" if used else ""
+            return f"From the package formula {formula}{using}, giving {number(result)}."
+
+        def set_on_module(result):
+            return f"Set on this module as {number(result)} hours, which overrides the package formula."
+
+        explanations = {}
+
+        if self.contact_hours is not None:
+            explanations['contact'] = set_on_module(contact)
+        elif package.contact_formula:
+            explanations['contact'] = from_formula(package.contact_formula, contact,
+                                                   ['credits', 'students', 'contact_scaling'])
+        else:
+            explanations['contact'] = (f"From the package's contact scaling: credits × {number(package.credit_contact_scaling)} "
+                                       f"= {number(self.credits)} × {number(package.credit_contact_scaling)}, "
+                                       f"giving {number(contact)}.")
+
+        if self.admin_hours is not None:
+            explanations['admin'] = set_on_module(admin)
+        elif package.admin_formula:
+            explanations['admin'] = from_formula(package.admin_formula, admin,
+                                                 ['credits', 'students', 'contact', 'admin_scaling',
+                                                  'assessment_scaling'])
+        else:
+            explanations['admin'] = (f"From the package's admin scaling: contact × {number(package.contact_admin_scaling)} "
+                                     f"= {number(contact)} × {number(package.contact_admin_scaling)}, giving {number(admin)}.")
+
+        if self.assessment_hours is not None:
+            explanations['assessment'] = set_on_module(assessment)
+        elif package.assessment_formula:
+            explanations['assessment'] = from_formula(package.assessment_formula, assessment,
+                                                      ['credits', 'students', 'contact', 'admin', 'admin_scaling',
+                                                       'assessment_scaling'])
+        else:
+            explanations['assessment'] = (f"From the package's assessment scaling: contact × "
+                                          f"{number(package.contact_assessment_scaling)} = {number(contact)} × "
+                                          f"{number(package.contact_assessment_scaling)}, giving {number(assessment)}.")
+
+        if self.coordinator is None:
+            explanations['coordinator'] = "This module has no coordinator, so there are no coordinator hours."
+        elif self.coordinator_hours is not None:
+            explanations['coordinator'] = set_on_module(coordinator)
+        elif package.coordinator_formula:
+            explanations['coordinator'] = from_formula(package.coordinator_formula, coordinator, ['credits', 'students'])
+        else:
+            explanations['coordinator'] = "The package has no coordinator formula, so there are no coordinator hours."
+
+        explanations['total'] = (f"Contact + assessment + other admin + coordinator hours: {number(contact)} + "
+                                 f"{number(assessment)} + {number(admin)} + {number(coordinator)} = "
+                                 f"{number(contact + assessment + admin + coordinator)}.")
+        return explanations
 
     def get_all_hours(self):
         """Returns total hours for the module including coordinator hours."""
