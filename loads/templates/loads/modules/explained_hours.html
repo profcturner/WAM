@@ -1,0 +1,8 @@
+{% comment %}
+One hour figure on the module details page, which explains how it was worked out when
+hovered over, focused or tapped (a Bootstrap popover; the explanation is plain text).
+Expects: label, value, explanation
+{% endcomment %}{{ label }}: <button type="button" class="wam-explained-hours btn btn-link p-0 align-baseline font-monospace text-reset"
+    data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="top"
+    data-bs-title="{{ label }}" data-bs-content="{{ explanation }}"
+    aria-label="{{ label }}: {{ value|stringformat:'.2f' }}. {{ explanation }}">{{ value|stringformat:".2f" }}</button>

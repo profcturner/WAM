@@ -742,6 +742,15 @@ class ModuleDetailsViewTests(ViewTestCase):
         self.assertNotContains(response, ">None<")
         self.assertContains(response, str(self.module.number_students))
 
+    def test_hour_figures_explain_themselves(self):
+        """Issue #5: each figure opens a popover saying how it was worked out"""
+        self.login(self.coordinator)
+        response = self.client.get(reverse('modules_details', args=[self.module.pk]))
+        self.assertEqual(set(response.context['hours_explained']),
+                         {'contact', 'admin', 'assessment', 'coordinator', 'total'})
+        self.assertContains(response, 'data-bs-toggle="popover"', count=5)
+        self.assertContains(response, 'From the package formula 15 + students * 0.01')
+
 
 class ProjectDetailsViewTests(ViewTestCase):
 
