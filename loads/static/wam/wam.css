@@ -297,9 +297,12 @@ div.wam-formset-grid div input[type=checkbox]:before {
 /*
  * Frozen table headers, like freezing the top row in a spreadsheet.
  * Put class "wam-frozen-header" on the element wrapping a table (instead of Bootstrap's
- * "table-responsive"). On wide screens the page scrolls and the header row sticks just below
- * the fixed navigation bar. On narrower screens the table scrolls inside its own box (both
- * ways, as wide tables need sideways scrolling there), with the header row stuck to its top.
+ * "table-responsive"). The page scrolls and the header row sticks just below the fixed
+ * navigation bar. This needs no scrolling element between the table and the page, so tables
+ * using it must fit the page; WAM's loads tables wrap to fit from tablet width upwards.
+ * On phones (below 768px), where they can't, the table instead scrolls inside its own box
+ * (both ways), with the header row stuck to the box's top. That's only reliable when scrolling
+ * over the table, so it's kept to phones, where touch scrolling over the table is the norm.
  */
 :root {
     --wam-navbar-height: 80px;  /* the fixed navigation bar at the top */
@@ -312,10 +315,12 @@ div.wam-formset-grid div input[type=checkbox]:before {
     background-color: var(--bs-body-bg);
     box-shadow: inset 0 -2px 0 var(--bs-border-color);
 }
-@media (max-width: 1199.98px) {
+@media (max-width: 767.98px) {
     .wam-frozen-header {
         overflow: auto;
         max-height: calc(100vh - var(--wam-navbar-height) - var(--wam-footer-height) - 1rem);
+        /* Reaching the end of the table doesn't carry on scrolling the page (and the headings away) */
+        overscroll-behavior: contain;
     }
     .wam-frozen-header > table > thead > tr > th {
         top: 0;
