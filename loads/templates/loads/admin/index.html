@@ -11,6 +11,14 @@
 <h3 class="mt-5">Actions</h3>
 
 <ul class="wam-menu-list">
+    {% if can_manage_school_groups %}
+    <li>
+        <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'school_groups' %}">
+            Manage School group membership (e.g. Academic Staff, Admin Staff)
+        </a>
+    </li>
+    {% endif %}
+    {% if django_admin %}
     <li>
         <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{%url 'create staff user' %}">
             Create new Staff user
@@ -31,6 +39,7 @@
             Configure Assessment Team members
         </a>
     </li>
+    {% endif %}
 </ul>
 
 {% endblock content %}

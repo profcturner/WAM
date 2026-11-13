@@ -22,7 +22,8 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 
 # Permission decorators
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
-from .decorators import staff_only, external_only, admin_only
+from .decorators import staff_only, external_only, admin_only, admin_area, admin_permission_required, has_admin_permission
+from .school_groups import SchoolGroupScope
 from django.utils.decorators import method_decorator
 from django.http import FileResponse, HttpResponse, HttpResponseRedirect
 from django.template import loader
@@ -962,13 +963,79 @@ def tasks_details(request, task_id):
 
 @login_required
 @staff_only
-@admin_only
+@admin_area
 def custom_admin_index(request):
-    """The beginnings of a more integrated admin menu"""
+    """The Admin menu, showing each person the actions their permissions and roles allow"""
 
     logger.info("[%s] (admin) custom admin menu viewed" % request.user)
     template = loader.get_template('loads/admin/index.html')
-    return HttpResponse(template.render({}, request))
+    context = {
+        'django_admin': request.user.is_staff or request.user.is_superuser,
+        'can_manage_school_groups': has_admin_permission(request.user, 'can_manage_school_groups'),
+    }
+    return HttpResponse(template.render(context, request))
+
+
+@login_required
+@admin_permission_required(permission='can_manage_school_groups')
+def school_groups(request):
+    """
+    Add staff to, and remove them from, the groups local admins may manage, one School at a
+    time, as a grid of staff by groups. See loads.school_groups for exactly who and what is in scope.
+    """
+    from django.contrib.admin.models import CHANGE, LogEntry
+    from django.contrib.contenttypes.models import ContentType
+
+    scope = SchoolGroupScope(request.user, school_id=request.GET.get('school'),
+                             widen=request.GET.get('widen') == '1', all_groups=request.GET.get('all_groups') == '1')
+
+    if request.method == 'POST':
+        allowed = scope.allowed_pairs()
+        current = scope.membership()
+        ticked = set()
+        for key in request.POST:
+            parts = key.split('-')
+            if len(parts) == 3 and parts[0] == 'm' and parts[1].isdigit() and parts[2].isdigit():
+                ticked.add((int(parts[1]), int(parts[2])))
+        # Anything outside the scope is ignored, whatever was submitted
+        ticked &= allowed
+        to_add = ticked - current
+        to_remove = (allowed & current) - ticked
+
+        staff_by_pk = {staff.pk: staff for staff in scope.people}
+        group_by_pk = {group.pk: group for group in scope.groups}
+        user_type = ContentType.objects.get_for_model(User)
+        for pairs, verb in ((to_add, 'Added to'), (to_remove, 'Removed from')):
+            for staff_pk, group_pk in sorted(pairs):
+                staff, group = staff_by_pk[staff_pk], group_by_pk[group_pk]
+                if verb == 'Added to':
+                    staff.user.groups.add(group)
+                else:
+                    staff.user.groups.remove(group)
+                message = f"{verb} group {group.name} (School groups page)"
+                logger.info("[%s] %s: %s" % (request.user, staff, message))
+                LogEntry.objects.create(user=request.user, content_type=user_type, object_id=str(staff.user.pk),
+                                        object_repr=str(staff.user)[:200], action_flag=CHANGE,
+                                        change_message=message)
+
+        if to_add or to_remove:
+            messages.success(request, f"Saved: {len(to_add)} added, {len(to_remove)} removed.")
+        else:
+            messages.info(request, "No changes to save.")
+        return HttpResponseRedirect(request.get_full_path())
+
+    current = scope.membership()
+    groups = list(scope.groups)
+    rows = [(staff, [(group, (staff.pk, group.pk) in current) for group in groups]) for staff in scope.people]
+
+    logger.info("[%s] (admin) viewed School groups for %s" % (request.user, scope.school))
+    template = loader.get_template('loads/admin/school_groups.html')
+    context = {
+        'scope': scope,
+        'columns': [(group, scope.short_name(group)) for group in groups],
+        'rows': rows,
+    }
+    return HttpResponse(template.render(context, request))
 
 
 @login_required

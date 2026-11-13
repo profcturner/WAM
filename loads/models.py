@@ -579,10 +579,13 @@ class School(models.Model):
         group_academics, created = Group.objects.get_or_create(name=f"{self.name} Academic Staff")
         if created:
             logger.debug("auto created group %s" % group_academics)
+            # Subgroups like this may be managed by local admins
+            GroupSettings.objects.update_or_create(group=group_academics, defaults={'locally_managed': True})
 
         group_admin, created = Group.objects.get_or_create(name=f"{self.name} Admin Staff")
         if created:
             logger.debug("auto created group %s" % group_admin)
+            GroupSettings.objects.update_or_create(group=group_admin, defaults={'locally_managed': True})
 
         group_externals, created = Group.objects.get_or_create(name=f"{self.name} External Examiners")
         if created:
@@ -785,6 +788,17 @@ class Staff(models.Model):
         """Calculate the total allocated hours"""
         hours_by_semester = self.hours_by_semester(package)
         return hours_by_semester[0]
+
+    def has_admin_permission(self, permission):
+        """
+        Whether this member of staff holds an AdminRole granting the named capability,
+        e.g. 'can_manage_school_groups'. Superusers have every capability.
+
+        Like the rest of WAM, what they can do with it is limited to their own work packages.
+        """
+        if self.user.is_superuser:
+            return True
+        return StaffAdminRole.objects.filter(staff=self, **{f'role__{permission}': True}).exists()
 
     def is_active(self):
         """Maps to whether the underlying user is active"""
@@ -2053,3 +2067,77 @@ class ActivitySet(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class AdminRole(models.Model):
+    """
+    A role granting administrative capabilities in WAM, held by members of staff through
+    StaffAdminRole. Each capability is a yes/no field below. Capabilities apply within the
+    holder's own work packages.
+
+    These replace relying on Django's "staff status" (is_staff), which also opens the
+    Django admin site, for local administration.
+
+    name                        the role's name, e.g. "School administrator"
+    can_manage_school_groups    can add staff in their packages to, and remove them from, the groups
+                                that local admins may manage (see GroupSettings)
+    """
+    name = models.CharField(max_length=100, unique=True)
+    can_manage_school_groups = models.BooleanField(
+        default=False, verbose_name="Can manage School group membership",
+        help_text="Add staff in their work packages to, and remove them from, groups that local admins may manage")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['name']
+
+
+class StaffAdminRole(models.Model):
+    """
+    Grants an AdminRole to a member of staff
+
+    staff       the member of staff holding the role
+    role        the role
+    granted_at  when it was granted
+    granted_by  who granted it, if known
+    """
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='admin_roles')
+    role = models.ForeignKey(AdminRole, on_delete=models.CASCADE, related_name='holders')
+    granted_at = models.DateTimeField(auto_now_add=True)
+    granted_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+
+    def __str__(self):
+        return f"{self.staff}: {self.role}"
+
+    class Meta:
+        verbose_name = "staff admin role"
+        constraints = [models.UniqueConstraint(fields=['staff', 'role'], name='unique_staff_admin_role')]
+
+
+class GroupSettings(models.Model):
+    """
+    WAM's settings for a Django group
+
+    group               the group
+    locally_managed     whether local admins (with can_manage_school_groups) may add people to the group
+                        and remove them from it. Typically set for a School's subgroups such as
+                        Academic Staff, but not for the main School Staff group, which gives access
+                        to work packages. Groups with permissions of their own are never managed
+                        locally, whatever this says.
+    """
+    group = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='wam_settings')
+    locally_managed = models.BooleanField(
+        default=False, verbose_name="Local admins may manage membership",
+        help_text="Local admins (with the 'Can manage School group membership' role) may add staff in their "
+                  "packages to this group and remove them. Use for subgroups like Academic Staff, not the "
+                  "main School Staff group. Ignored for groups with permissions.")
+
+    def __str__(self):
+        return f"Settings for {self.group}"
+
+    class Meta:
+        verbose_name = "WAM group settings"
+        verbose_name_plural = "WAM group settings"
+
