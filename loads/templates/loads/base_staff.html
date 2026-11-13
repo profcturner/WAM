@@ -98,7 +98,7 @@
                        target="WAMhelp" title="click to access section: Help">Help</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link{% if request.resolver_match.view_name == "custom_admin_index" or request.resolver_match.view_name == "create staff user" or request.resolver_match.view_name == "create external examiner" or request.resolver_match.view_name == "workpackage_migrate" or request.resolver_match.view_name == "assessmentstaff_index" %} active fw-bold{% endif %}"
+                    <a class="nav-link{% if request.resolver_match.view_name == "custom_admin_index" or request.resolver_match.view_name == "create staff user" or request.resolver_match.view_name == "create external examiner" or request.resolver_match.view_name == "workpackage_migrate" or request.resolver_match.view_name == "assessmentstaff_index" or request.resolver_match.view_name == "school_groups" %} active fw-bold{% endif %}"
                         href="{% url 'custom_admin_index' %}"
                        title="click to access section: Admin">Admin</a>
                 </li>

@@ -123,6 +123,7 @@ urlpatterns = [
     re_path(r'^admin/doc/', include('django.contrib.admindocs.urls')),
     re_path(r'^admin/', admin.site.urls),
     re_path(r'^cadmin/$', views.custom_admin_index, name='custom_admin_index'),
+    re_path(r'^cadmin/school_groups/$', views.school_groups, name='school_groups'),
     re_path(r'^cadmin/create_staff_user', views.create_staff_user, name='create staff user'),
     re_path(r'^cadmin/create_external_examiner', views.create_external_examiner, name='create external examiner'),
     re_path(r'^cadmin/assessment_staff/index/$', views.assessmentstaff_index, name='assessmentstaff_index'),

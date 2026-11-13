@@ -2,14 +2,16 @@ from django.contrib import admin
 
 # Importing some extra stuff to allow us to extend User
 
+from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 
 # Register your models here.
 
 # Import given models
 
 from .models import Activity
+from .models import AdminRole, GroupSettings, StaffAdminRole
 from .models import ActivitySet
 from .models import ActivityType
 from .models import ActivityGenerator
@@ -172,6 +174,46 @@ admin.site.register(Task, TaskAdmin)
 admin.site.register(TaskCompletion, TaskCompletionAdmin)
 admin.site.register(Resource)
 admin.site.register(WorkPackage, WorkPackageAdmin)
+
+class AdminRoleAdmin(admin.ModelAdmin):
+    list_display = ('name', 'can_manage_school_groups')
+    search_fields = ['name']
+
+
+class StaffAdminRoleAdmin(admin.ModelAdmin):
+    list_display = ('staff', 'role', 'granted_at', 'granted_by')
+    list_filter = ('role',)
+    search_fields = ['staff__user__username', 'staff__user__first_name', 'staff__user__last_name']
+    autocomplete_fields = ['staff']
+    readonly_fields = ('granted_at', 'granted_by')
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.granted_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+class GroupSettingsInline(admin.StackedInline):
+    model = GroupSettings
+    can_delete = False
+    verbose_name_plural = "WAM settings"
+
+
+class GroupAdmin(BaseGroupAdmin):
+    """Django's group admin, with WAM's settings (such as local management) on each group"""
+    inlines = [GroupSettingsInline]
+    list_display = ('name', 'locally_managed')
+
+    @admin.display(boolean=True, description="Local admins may manage")
+    def locally_managed(self, obj):
+        settings = getattr(obj, 'wam_settings', None)
+        return bool(settings and settings.locally_managed)
+
+
+admin.site.register(AdminRole, AdminRoleAdmin)
+admin.site.register(StaffAdminRole, StaffAdminRoleAdmin)
+admin.site.unregister(Group)
+admin.site.register(Group, GroupAdmin)
 
 # Re-register UserAdmin
 # See https://docs.djangoproject.com/en/6.0/topics/auth/customizing/#extending-user

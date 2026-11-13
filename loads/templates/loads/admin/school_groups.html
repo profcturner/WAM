@@ -1,0 +1,111 @@
+{% extends "loads/base_automatic.html" %} {% block content %}
+
+<h2 class="my-3">School groups</h2>
+
+<p>
+    Tick to add someone to a group, untick to remove them, then save. Only groups that local admins may manage
+    are shown; the main School Staff group isn't, as it gives access to work packages.
+</p>
+
+<form method="get" class="row g-3 align-items-end mb-4 wam-hide-on-print" id="school-groups-options">
+    <div class="col-auto">
+        <label for="id_school" class="form-label">School</label>
+        <select name="school" id="id_school" class="form-select"{% if scope.widen %} disabled{% endif %}>
+            {% for school in scope.schools %}
+            <option value="{{ school.pk }}"{% if school == scope.school %} selected{% endif %}>{{ school.name }}</option>
+            {% empty %}
+            <option value="">No Schools in your work packages</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="widen" value="1" id="id_widen"{% if scope.widen %} checked{% endif %}>
+            <label class="form-check-label" for="id_widen">Everyone in my work packages</label>
+        </div>
+        {% if scope.is_superuser %}
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="all_groups" value="1" id="id_all_groups"{% if scope.all_groups %} checked{% endif %}>
+            <label class="form-check-label" for="id_all_groups">Show all groups (superusers only)</label>
+        </div>
+        {% endif %}
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary">Show</button>
+    </div>
+</form>
+
+{% if not columns %}
+<p class="alert alert-secondary">
+    There are no groups you can manage{% if scope.school and not scope.widen %} for {{ scope.school.name }}{% endif %}.
+    A superuser can mark a group as one that local admins may manage in Django admin, under Groups.
+</p>
+{% elif not rows %}
+<p class="alert alert-secondary">There are no staff to show.</p>
+{% else %}
+<form method="post">
+    {% csrf_token %}
+    <div class="row g-3 align-items-center mb-2 wam-hide-on-print">
+        <div class="col-auto">
+            <label for="id_filter" class="visually-hidden">Filter by name</label>
+            <input type="search" id="id_filter" class="form-control form-control-sm" placeholder="Filter by name"
+                   autocomplete="off">
+        </div>
+        <div class="col-auto small text-body-secondary" id="filter-count">{{ rows|length }} staff</div>
+    </div>
+
+    <div class="wam-frozen-header small">
+        <table class="table table-sm table-striped table-hover" id="school-groups-table">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    {% if scope.widen %}<th scope="col">School</th>{% endif %}
+                    {% for group, label in columns %}
+                    <th scope="col" class="text-center" title="{{ group.name }}">{{ label }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+                {% for staff, cells in rows %}
+                <tr data-name="{{ staff.user.last_name|lower }} {{ staff.user.first_name|lower }} {{ staff.user.username|lower }}">
+                    <th scope="row" class="fw-normal">{{ staff }} <span class="text-body-secondary">({{ staff.user.username }})</span></th>
+                    {% if scope.widen %}<td>{{ staff.school|default:"" }}</td>{% endif %}
+                    {% for group, member in cells %}
+                    <td class="text-center">
+                        <input class="form-check-input" type="checkbox" name="m-{{ staff.pk }}-{{ group.pk }}"
+                               id="m-{{ staff.pk }}-{{ group.pk }}"{% if member %} checked{% endif %}
+                               aria-label="{{ staff }}: {{ group.name }}">
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="my-3 wam-hide-on-print">
+        <button type="submit" class="btn btn-primary">Save changes</button>
+    </div>
+</form>
+
+<script>
+    // Filter the rows by name, without affecting what's saved (hidden rows keep their ticks)
+    (function () {
+        const input = document.getElementById('id_filter');
+        const rows = document.querySelectorAll('#school-groups-table tbody tr');
+        const count = document.getElementById('filter-count');
+        input.addEventListener('input', function () {
+            const terms = input.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+            let shown = 0;
+            rows.forEach(function (row) {
+                const match = terms.every(function (term) { return row.dataset.name.includes(term); });
+                row.hidden = !match;
+                if (match) { shown++; }
+            });
+            count.textContent = shown + ' of ' + rows.length + ' staff';
+        });
+    })();
+</script>
+{% endif %}
+
+{% endblock content %}

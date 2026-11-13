@@ -92,3 +92,36 @@ class TaskOwnerPackageBackfillTests(TransactionTestCase):
         self.assertEqual(owner["Via admin"], self.admin_staff.pk)
         self.assertIsNone(owner["By group"])
         self.assertTrue(all(t.targets_see_completion for t in Task.objects.all()))
+
+
+class MarkSchoolSubgroupsTests(TransactionTestCase):
+    """0059 lets local admins manage each School's existing Academic Staff and Admin Staff groups"""
+    before = [('loads', '0058_task_owner_package_visibility')]
+    after = [('loads', '0059_admin_roles_group_settings')]
+
+    def setUp(self):
+        executor = MigrationExecutor(connection)
+        executor.migrate(self.before)
+        apps = executor.loader.project_state(self.before).apps
+        Group = apps.get_model('auth', 'Group')
+        School = apps.get_model('loads', 'School')
+        School.objects.create(name="School of Biomedical Sciences")
+        for suffix in ("Staff", "Academic Staff", "Admin Staff", "External Examiners"):
+            Group.objects.create(name=f"School of Biomedical Sciences {suffix}")
+        Group.objects.create(name="Unrelated Academic Staff")
+
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()
+        executor.migrate(self.after)
+        self.apps = executor.loader.project_state(self.after).apps
+
+    def tearDown(self):
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()
+        executor.migrate(executor.loader.graph.leaf_nodes())
+
+    def test_subgroups_marked(self):
+        GroupSettings = self.apps.get_model('loads', 'GroupSettings')
+        marked = set(GroupSettings.objects.filter(locally_managed=True).values_list('group__name', flat=True))
+        self.assertEqual(marked, {"School of Biomedical Sciences Academic Staff",
+                                  "School of Biomedical Sciences Admin Staff"})

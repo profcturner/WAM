@@ -1,7 +1,11 @@
 # Custom decorators for this project
 
-from django.core.exceptions import PermissionDenied
-from .models import Staff
+from functools import wraps
+
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied
+
+from .models import Staff, StaffAdminRole
 
 
 def staff_only(function):
@@ -70,3 +74,71 @@ def admin_only(function):
     wrapper.__doc__ = function.__doc__
     wrapper.__name__ = function.__name__
     return wrapper
+
+
+def get_internal_staff(user):
+    """The internal (not external) Staff object for a logged in user, or None"""
+    if not user.is_authenticated:
+        return None
+    staff = Staff.objects.filter(user=user).first()
+    if staff is None or staff.is_external:
+        return None
+    return staff
+
+
+def has_admin_permission(user, permission):
+    """Whether the user is a superuser, or internal staff holding an AdminRole granting the capability"""
+    if user.is_authenticated and user.is_superuser:
+        return True
+    staff = get_internal_staff(user)
+    return staff is not None and staff.has_admin_permission(permission)
+
+
+def admin_permission_required(view_func=None, *, permission):
+    """
+    Restricts a view to superusers and internal staff holding an AdminRole that grants the
+    named capability, e.g. @admin_permission_required(permission='can_manage_school_groups').
+    Anyone else gets 403.
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            if not has_admin_permission(request.user, permission):
+                raise PermissionDenied("You do not have permission to access this page.")
+            return view_func(request, *args, **kwargs)
+        return wrapper
+
+    if view_func is not None:
+        return decorator(view_func)
+    return decorator
+
+
+class AdminPermissionRequiredMixin(UserPassesTestMixin):
+    """Class-based view equivalent of admin_permission_required: set the permission attribute"""
+    permission = None
+
+    def test_func(self):
+        if not self.permission:
+            raise ImproperlyConfigured("AdminPermissionRequiredMixin requires the 'permission' attribute to be set.")
+        return has_admin_permission(self.request.user, self.permission)
+
+    def handle_no_permission(self):
+        raise PermissionDenied("You do not have permission to access this page.")
+
+
+def admin_area(function):
+    """
+    For the Admin menu: users with Django's staff status (is_staff) or superusers, as before,
+    and also internal staff holding any AdminRole
+    """
+    @wraps(function)
+    def wrapper(request, *args, **kwargs):
+        user = request.user
+        if user.is_staff or user.is_superuser:
+            return function(request, *args, **kwargs)
+        staff = get_internal_staff(user)
+        if staff is not None and StaffAdminRole.objects.filter(staff=staff).exists():
+            return function(request, *args, **kwargs)
+        raise PermissionDenied("You do not have admin permissions.")
+    return wrapper
+
