@@ -1,30 +1,64 @@
 name: Django CI
 
+# Run on pull requests, and on pushes to master that didn't come from a pull request
+# (a merged pull request was already tested). Changes that can't affect the tests,
+# such as documentation, don't trigger a run.
 on:
   push:
     branches: [ "master" ]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE.TXT"
+      - ".gitignore"
   pull_request:
     branches: [ "master" ]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE.TXT"
+      - ".gitignore"
+  # A monthly check against the next Python version, for early warning; can also be run by hand
+  schedule:
+    - cron: "17 6 1 * *"
+  workflow_dispatch:
+
+# A newer push to the same branch or pull request cancels a run still in progress
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
-  build:
-
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    # Skip the push run for a pull request's merge commit, as the pull request was already tested
+    if: >-
+      github.event_name != 'push' ||
+      !startsWith(github.event.head_commit.message, 'Merge pull request')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
-      max-parallel: 4
       matrix:
-        python-version: [3.12, 3.13, 3.14]
+        # Production and development run 3.13. The scheduled (or manual) run also tries 3.14.
+        python-version: ${{ fromJSON(contains(fromJSON('["schedule", "workflow_dispatch"]'), github.event_name) && '["3.13", "3.14"]' || '["3.13"]') }}
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    - name: Run Tests
-      run: |
-        python manage.py test
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python manage.py test

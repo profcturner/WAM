@@ -185,3 +185,8 @@ try:
     from WAM.local_settings import *
 except ImportError:
     pass
+# When running the test suite, use a fast password hasher: real hashers are deliberately slow,
+# which tests don't need. (Never applies outside "manage.py test".)
+import sys
+if len(sys.argv) > 1 and sys.argv[1] == 'test':
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
