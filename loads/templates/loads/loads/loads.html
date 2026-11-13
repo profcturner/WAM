@@ -34,10 +34,10 @@
   {% for group, group_list, group_total, group_average, group_allocated_staff, group_allocated_average in group_data %}
   <h4 class="mt-4 mb-3">{{group}}</h4>
     {% if group_list %}
-    <div class="table-responsive small">
+    <div class="wam-frozen-header small">
         {# add class "table-sm" after "table" if we want less spacing/padding #}
         <table class="table table-sm table-striped table-hover">
-            <thead class="sticky-top">
+            <thead>
                 <tr>
                     <th scope="col">Staff name</th>
                     <th scope="col">First semester</th>

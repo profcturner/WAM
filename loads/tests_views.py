@@ -1230,3 +1230,16 @@ class PackageTaskListTests(ViewTestCase):
         other_admin = make_staff('otheradmin', package=self.other_package, permissions=['loads.change_task'])
         other_admin.user.groups.add(*self.other_package.groups.all())
         self.assertEqual(self.package_tasks(other_admin), [self.theirs])
+
+
+class FrozenTableHeaderTests(ViewTestCase):
+    """The loads tables keep their column headings in view while scrolling (UCU pilot request)"""
+
+    def test_loads_tables_use_frozen_headers(self):
+        allocate(self.lecturer, self.module)
+        self.login(self.superuser)
+        for url in (reverse('loads'), reverse('loads_modules', args=[''])):
+            response = self.client.get(url)
+            self.assertContains(response, 'class="wam-frozen-header', msg_prefix=url)
+            # Bootstrap's sticky-top on the thead fought the fixed navigation bar
+            self.assertNotContains(response, '<thead class="sticky-top">', msg_prefix=url)
