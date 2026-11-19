@@ -53,6 +53,12 @@ class StaffHomeTests(HomePageTestCase):
         self.assertEqual(summary['hours']['total'], 30)
         self.assertEqual(summary['hours']['semester1'] + summary['hours']['semester2'], 30)
         self.assertContains(response, reverse('activities', args=[self.lecturer.pk]))
+        # By category, in the category's colour as in the load charts; empty categories are left out
+        Category.objects.create(name="Unused", abbreviation="unused", colour="green")
+        response = self.home(self.lecturer)
+        self.assertEqual([(item['category'].name, item['hours']) for item in response.context['summary']['categories']],
+                         [("Education", 30)])
+        self.assertContains(response, "background-color: red")
 
     def test_no_workload_for_a_package_they_cannot_see(self):
         self.lecturer.package = self.other_package
@@ -144,3 +150,12 @@ class NextAssessmentStatesTests(HomePageTestCase):
                                               signed_by=self.coordinator.user, notes="")
         self.assertEqual(self.module.get_latest_signoff().assessment_state, ready)
         self.assertEqual(list(self.module.get_next_assessment_states(self.coordinator)), [approved])
+
+
+class LoginRedirectTests(HomePageTestCase):
+
+    def test_signing_in_returns_to_the_home_page(self):
+        self.lecturer.user.set_password('secret-password')
+        self.lecturer.user.save()
+        response = self.client.post(reverse('login'), {'username': 'lecturer', 'password': 'secret-password'})
+        self.assertRedirects(response, reverse('index'), fetch_redirect_response=False)

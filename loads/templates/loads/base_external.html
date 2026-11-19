@@ -23,12 +23,12 @@
                 title="Navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <a class="navbar-brand float-start" href="{% url 'index' %}external/">
+        <a class="navbar-brand d-flex align-items-center gap-2 me-3" href="{% url 'index' %}external/">
             {# TODO: We need to make this logo, and link, customizable #}
             {# The max-height should, however, remain as to not disrupt the layout, etc #}
-            <img src="{% static 'logos/wam-mark.svg' %}" class="wam-brand-mark"
+            <img src="{% static 'logos/wam-mark.svg' %}" class="wam-brand-mark" width="44" height="44"
                  title="Workload and Assessment Modeller" alt="" />
-            <span class="wam-brand-name">WAM</span>
+            <span class="wam-brand-name fw-bold">WAM</span>
             {# <pre>|{{ request.resolver_match.view_name }}|</pre> #}
         </a>
         <div class="offcanvas offcanvas-start" id="navbarWAM" tabindex="-1">

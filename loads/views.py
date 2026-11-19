@@ -118,6 +118,9 @@ def home_summary(staff):
         total, semester1, semester2, semester3, activity_count = staff.hours_by_semester(package)
         summary['hours'] = {'total': total, 'semester1': semester1, 'semester2': semester2,
                             'semester3': semester3}
+        # By category, in the same colours as the load charts
+        summary['categories'] = [{'category': category, 'hours': hours}
+                                 for category, hours in staff.hours_by_category(package).items() if hours]
 
         # Modules they coordinate, moderate or teach, with whether a sign off is waiting for them
         roles = {}

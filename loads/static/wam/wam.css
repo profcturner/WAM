@@ -345,26 +345,15 @@ div.wam-formset-grid div input[type=checkbox]:before {
     --wam-navy-hover: #0c3c63;
     --wam-gold: #c49e58;
     --wam-gold-soft: #f6eddc;
-    --wam-semester-1: #0f4a7a;
-    --wam-semester-2: #c49e58;
-    --wam-semester-3: #9aa5b1;
 }
 [data-bs-theme="dark"] {
     --wam-navy: #6ea8dc;
     --wam-navy-hover: #8fbde6;
     --wam-gold: #d9b878;
     --wam-gold-soft: #3a3020;
-    --wam-semester-1: #6ea8dc;
-    --wam-semester-2: #d9b878;
-    --wam-semester-3: #8b96a3;
 }
 
-/* Navigation bar brand: the mark and the name */
-.navbar-brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-}
+/* Navigation bar brand: the mark and the name. (The layout itself uses Bootstrap classes in the markup, so it holds even with a cached stylesheet) */
 .wam-brand-mark {
     height: 44px;
     width: 44px;
@@ -461,33 +450,30 @@ div.wam-formset-grid div input[type=checkbox]:before {
     font-weight: 400;
     color: var(--bs-secondary-color);
 }
-.wam-semester-bar {
+.wam-load-bar {
     display: flex;
     height: 10px;
     border-radius: 5px;
     overflow: hidden;
     background: var(--bs-secondary-bg);
 }
-.wam-semester-bar > span {
+.wam-load-bar > span {
     flex-basis: 0;
 }
-.wam-semester-1 { background: var(--wam-semester-1); }
-.wam-semester-2 { background: var(--wam-semester-2); }
-.wam-semester-3 { background: var(--wam-semester-3); }
-.wam-semester-legend {
+.wam-load-legend {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem 1.5rem;
 }
-.wam-semester-legend > div {
+.wam-load-legend > div {
     display: flex;
     gap: 0.4rem;
 }
-.wam-semester-legend dt {
+.wam-load-legend dt {
     font-weight: 400;
     color: var(--bs-secondary-color);
 }
-.wam-semester-legend dd {
+.wam-load-legend dd {
     margin: 0;
     font-weight: 600;
     font-variant-numeric: tabular-nums;

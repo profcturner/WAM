@@ -27,20 +27,28 @@
                     <h2 class="h6 wam-home-label" id="home-workload">Your workload</h2>
                     <p class="wam-home-figure mb-1">{{ summary.hours.total|floatformat:0 }} <span class="wam-home-unit">hours</span></p>
                     {% with h=summary.hours %}
-                    {% if h.total %}
-                    <div class="wam-semester-bar my-3" role="img"
-                         aria-label="Semester 1: {{ h.semester1|floatformat:0 }} hours, semester 2: {{ h.semester2|floatformat:0 }} hours, semester 3: {{ h.semester3|floatformat:0 }} hours">
-                        <span class="wam-semester-1" style="flex-grow: {{ h.semester1|floatformat:2 }}"></span>
-                        <span class="wam-semester-2" style="flex-grow: {{ h.semester2|floatformat:2 }}"></span>
-                        <span class="wam-semester-3" style="flex-grow: {{ h.semester3|floatformat:2 }}"></span>
-                    </div>
-                    {% endif %}
-                    <dl class="wam-semester-legend small mb-3">
-                        <div><dt><span class="wam-swatch wam-semester-1"></span>Semester 1</dt><dd>{{ h.semester1|floatformat:0 }}</dd></div>
-                        <div><dt><span class="wam-swatch wam-semester-2"></span>Semester 2</dt><dd>{{ h.semester2|floatformat:0 }}</dd></div>
-                        <div><dt><span class="wam-swatch wam-semester-3"></span>Semester 3</dt><dd>{{ h.semester3|floatformat:0 }}</dd></div>
-                    </dl>
+                    <p class="small text-body-secondary mb-0">
+                        <span class="text-nowrap">Semester 1: <strong>{{ h.semester1|floatformat:0 }}</strong></span> &middot;
+                        <span class="text-nowrap">Semester 2: <strong>{{ h.semester2|floatformat:0 }}</strong></span> &middot;
+                        <span class="text-nowrap">Semester 3: <strong>{{ h.semester3|floatformat:0 }}</strong></span>
+                    </p>
                     {% endwith %}
+                    {% if summary.categories %}
+                    <div class="wam-load-bar my-3" role="img"
+                         aria-label="{% for item in summary.categories %}{{ item.category.name }}: {{ item.hours|floatformat:0 }} hours{% if not forloop.last %}, {% endif %}{% endfor %}">
+                        {% for item in summary.categories %}
+                        <span style="flex-grow: {{ item.hours|floatformat:'2u' }}; background-color: {{ item.category.colour }}"
+                              title="{{ item.category.name }}: {{ item.hours|floatformat:0 }} hours"></span>
+                        {% endfor %}
+                    </div>
+                    <dl class="wam-load-legend small mb-3">
+                        {% for item in summary.categories %}
+                        <div><dt><span class="wam-swatch" style="background-color: {{ item.category.colour }}"></span>{{ item.category.name }}</dt><dd>{{ item.hours|floatformat:0 }}</dd></div>
+                        {% endfor %}
+                    </dl>
+                    {% else %}
+                    <div class="mb-3"></div>
+                    {% endif %}
                     <p class="small mb-0">
                         <a class="link-offset-2" href="{% url 'activities' logged_in_staff.pk %}">Your activities</a> &middot;
                         <a class="link-offset-2" href="{% url 'loads' %}">Everyone's loads</a>
