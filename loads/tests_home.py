@@ -113,6 +113,23 @@ class StaffHomeTests(HomePageTestCase):
         self.assertEqual((item['state'], item['awaiting_you'], item['roles']), (ready, True, ['Moderator']))
         self.assertFalse(self.home(self.coordinator).context['summary']['modules'][0]['awaiting_you'])
 
+    def test_waiting_sign_offs_are_counted_named_and_first(self):
+        make_state("Ready", actors="coordinator")
+        first = make_module(self.package, code="AAA100")  # sorts first by code, but isn't waiting
+        allocate(self.coordinator, first)
+        response = self.home(self.coordinator)
+        summary = response.context['summary']
+        self.assertEqual([item['module'] for item in summary['modules']], [self.module, first])
+        self.assertEqual(summary['awaiting_count'], 1)
+        self.assertEqual([state.name for state in summary['modules'][0]['next_states']], ["Ready"])
+        self.assertContains(response, "1 assessment sign-off<")
+        self.assertContains(response, "Sign off as Ready")
+
+    def test_nothing_waiting(self):
+        response = self.home(self.lecturer)
+        self.assertEqual(response.context['summary'].get('awaiting_count'), 0)
+        self.assertNotContains(response, "Waiting for you:")
+
     def test_states_anyone_can_set_are_not_flagged(self):
         make_state("Comment", actors="anyone")
         self.assertFalse(self.home(self.coordinator).context['summary']['modules'][0]['awaiting_you'])

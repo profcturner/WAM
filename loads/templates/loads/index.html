@@ -17,6 +17,18 @@
                 <a class="link-offset-2" href="{% url 'workpackage_change' %}">Choose a work package</a> to see your workload and modules.
             {% endif %}
         </p>
+        {% if summary.awaiting_count or summary.overdue_count %}
+        <div class="wam-home-attention mt-3" role="status">
+            <strong>Waiting for you:</strong>
+            {% if summary.awaiting_count %}
+            <a class="link-offset-2" href="#home-modules">{{ summary.awaiting_count }} assessment sign-off{{ summary.awaiting_count|pluralize }}</a>
+            {% endif %}
+            {% if summary.awaiting_count and summary.overdue_count %}and{% endif %}
+            {% if summary.overdue_count %}
+            <a class="link-offset-2" href="#home-tasks">{{ summary.overdue_count }} overdue task{{ summary.overdue_count|pluralize }}</a>
+            {% endif %}
+        </div>
+        {% endif %}
     </header>
 
     <div class="row g-4">
@@ -93,7 +105,10 @@
         <section class="col-12" aria-labelledby="home-modules">
             <div class="card wam-home-card">
                 <div class="card-body">
-                    <h2 class="h6 wam-home-label" id="home-modules">Your modules</h2>
+                    <h2 class="h6 wam-home-label" id="home-modules">
+                        Your modules
+                        {% if summary.awaiting_count %}<span class="badge text-bg-primary ms-1">{{ summary.awaiting_count }} waiting for you</span>{% endif %}
+                    </h2>
                     {% if summary.modules %}
                     <div class="table-responsive">
                         <table class="table table-sm align-middle mb-0">
@@ -106,17 +121,18 @@
                             </thead>
                             <tbody>
                                 {% for item in summary.modules %}
-                                <tr>
+                                <tr{% if item.awaiting_you %} class="wam-home-awaiting"{% endif %}>
                                     <td>
                                         <a class="link-offset-2" href="{% url 'modules_details' item.module.id %}">{{ item.module.module_code }}</a>
                                         <span class="text-body-secondary">{{ item.module.module_name }}</span>
                                     </td>
                                     <td class="small">{{ item.roles|join:", " }}</td>
                                     <td class="small">
-                                        {% if item.awaiting_you %}
-                                        <a class="badge text-bg-primary text-decoration-none text-wrap text-start" href="{% url 'add_assessment_sign_off' item.module.id %}">Sign-off waiting for you</a>
-                                        {% endif %}
                                         <span class="text-body-secondary">{{ item.state.name|default:"Not started" }}</span>
+                                        {% if item.awaiting_you %}
+                                        <a class="btn btn-sm btn-primary wam-btn-brand ms-md-2 mt-1 mt-md-0"
+                                           href="{% url 'add_assessment_sign_off' item.module.id %}">Sign off as {% for state in item.next_states %}{{ state.name }}{% if not forloop.last %} or {% endif %}{% endfor %}</a>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}

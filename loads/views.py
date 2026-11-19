@@ -133,13 +133,20 @@ def home_summary(staff):
         modules = []
         for module in sorted(roles, key=lambda m: m.module_code):
             latest = module.get_latest_signoff()
+            # States only they (in their role) can move it on to, rather than ones anyone may add
+            next_states = list(module.get_next_assessment_states(staff).exclude(actors='anyone')
+                               .order_by('priority'))
             modules.append({
                 'module': module,
                 'roles': roles[module],
                 'state': latest.assessment_state if latest else None,
-                'awaiting_you': module.get_next_assessment_states(staff).exclude(actors='anyone').exists(),
+                'next_states': next_states,
+                'awaiting_you': bool(next_states),
             })
+        # Those waiting for them first
+        modules.sort(key=lambda item: not item['awaiting_you'])
         summary['modules'] = modules
+        summary['awaiting_count'] = sum(1 for item in modules if item['awaiting_you'])
     else:
         summary['package'] = None
 

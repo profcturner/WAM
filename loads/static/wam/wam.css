@@ -501,3 +501,22 @@ div.wam-formset-grid div input[type=checkbox]:before {
     flex-wrap: wrap;
     gap: 0.5rem 1.5rem;
 }
+
+/* Home page: what's waiting for the signed in member of staff */
+.wam-home-attention {
+    display: inline-block;
+    padding: 0.5rem 0.9rem;
+    border-left: 4px solid var(--wam-gold);
+    border-radius: 0.25rem;
+    background: var(--wam-gold-soft);
+}
+.wam-home-awaiting > * {
+    box-shadow: inset 0 0 0 9999px rgba(var(--bs-primary-rgb), 0.06);
+}
+.wam-home-awaiting > :first-child {
+    border-left: 3px solid var(--wam-navy);
+}
+/* Links to a card from "Waiting for you" shouldn't land under the fixed navbar */
+.wam-home [id] {
+    scroll-margin-top: calc(var(--wam-navbar-height, 80px) + 1rem);
+}
