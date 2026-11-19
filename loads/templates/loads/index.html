@@ -157,16 +157,6 @@
     </nav>
 </div>
 
-{% elif logged_in_staff.is_external %}
-{# ------------------------------------------------------------------------------------------ #}
-{# Signed in External Examiner                                                                #}
-{# ------------------------------------------------------------------------------------------ #}
-<div class="my-5 text-center">
-    <h1 class="h2">Welcome{% if user.first_name %}, {{ user.first_name }}{% endif %}</h1>
-    <p class="lead">Your modules and assessment materials are on the External Examiner pages.</p>
-    <a class="btn btn-primary btn-lg wam-btn-brand" href="{% url 'external_index' %}">Go to External Examiner home</a>
-</div>
-
 {% else %}
 {# ------------------------------------------------------------------------------------------ #}
 {# Signed out: what WAM is, and how to sign in                                                #}

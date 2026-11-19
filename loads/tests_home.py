@@ -153,12 +153,97 @@ class StaffHomeTests(HomePageTestCase):
                 self.assertEqual(greeting(), expected)
 
 
-class ExternalHomeTests(HomePageTestCase):
+class ExaminerTestCase(HomePageTestCase):
+    """A module moderated and waiting for its External Examiner, once signed off as moderated"""
 
-    def test_examiners_are_sent_to_their_pages(self):
-        response = self.home(self.examiner)
+    def setUp(self):
+        super().setUp()
+        moderated = make_state("Moderated", actors="moderator")
+        self.approved = make_state("Approved by External Examiner", actors="external", initial_state=False)
+        moderated.next_states.add(self.approved)
+        self.moderated = moderated
+        self.other_module = make_module(self.package, code="COM999")  # not examined by them
+
+    def external_home(self, staff=None):
+        if staff:
+            self.login(staff)
+        return self.client.get(reverse('external_index'))
+
+    def sign_off(self, state):
+        return AssessmentStateSignOff.objects.create(module=self.module, assessment_state=state,
+                                                     signed_by=self.coordinator.user, notes="")
+
+
+
+class ExternalHomeTests(ExaminerTestCase):
+
+    def test_examiners_are_sent_to_their_home_page(self):
+        self.assertRedirects(self.home(self.examiner), reverse('external_index'), fetch_redirect_response=False)
+
+    def test_modules_they_examine(self):
+        summary = self.external_home(self.examiner).context['summary']
+        self.assertEqual([item['module'] for item in summary['modules']], [self.module])
+        item = summary['modules'][0]
+        self.assertTrue(item['lead'])
+        self.assertFalse(item['awaiting_you'])
+        self.assertEqual(summary['awaiting_count'], 0)
+
+    def test_waiting_for_their_sign_off(self):
+        self.sign_off(self.moderated)
+        response = self.external_home(self.examiner)
+        item = response.context['summary']['modules'][0]
+        self.assertEqual((item['state'], item['next_states'], item['awaiting_you']),
+                         (self.moderated, [self.approved], True))
+        self.assertContains(response, "1 module to review and sign off")
+        self.assertContains(response, "Review and sign off")
+
+    def test_for_information_only(self):
+        self.module.lead_programme = None
+        self.module.save()
+        self.module.programmes.add(self.examiner.get_examined_programmes().get())
+        item = self.external_home(self.examiner).context['summary']['modules'][0]
+        self.assertFalse(item['lead'])
+
+    def test_signed_out(self):
+        response = self.external_home()
         self.assertNotIn('summary', response.context)
-        self.assertContains(response, reverse('external_index'))
+        self.assertContains(response, reverse('login') + '?next=' + reverse('external_index'))
+        self.assertNotContains(response, reverse('tasks_index'))  # no menu
+
+    def test_staff_get_the_introduction(self):
+        response = self.external_home(self.lecturer)
+        self.assertNotIn('summary', response.context)
+
+
+class ModulePageTests(ExaminerTestCase):
+    """What the module page shows examiners and staff"""
+
+    def page(self, staff):
+        self.login(staff)
+        return self.client.get(reverse('modules_details', args=[self.module.pk]))
+
+    def test_examiners_see_assessment_but_not_workload(self):
+        response = self.page(self.examiner)
+        self.assertContains(response, self.module.module_name)
+        self.assertContains(response, 'id="assessment"')
+        for internal in ("Total hours", "Module staff allocations", "Custom activities", "Related activity"):
+            self.assertNotContains(response, internal, msg_prefix=internal)
+        response = self.page(self.coordinator)
+        self.assertContains(response, "Module staff allocations")
+
+    def test_waiting_prompt(self):
+        self.assertNotContains(self.page(self.examiner), "Waiting for you")
+        self.sign_off(self.moderated)
+        response = self.page(self.examiner)
+        self.assertContains(response, "Waiting for you")
+        self.assertContains(response, "Approved by External Examiner")
+
+    def test_delete_links_only_for_those_who_may(self):
+        self.sign_off(self.moderated)
+        delete = reverse('delete_assessment_sign_off', args=[AssessmentStateSignOff.objects.get().pk])
+        self.assertNotContains(self.page(self.examiner), delete)
+        self.assertNotContains(self.page(self.coordinator), delete)
+        self.assertContains(self.page(self.superuser), delete)
 
 
 class NextAssessmentStatesTests(HomePageTestCase):

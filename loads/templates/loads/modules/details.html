@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h4>Details for module {{ module.name }}{% if logged_in_staff and not logged_in_staff.is_external %}<span class="small wam-hide-on-print"><a class="btn btn-sm btn-secondary ms-1" role="button" href="{% url 'update module' module.pk %}">Edit</a></span>{% endif %}</h4>
+<h4>{{ module.module_code }} {{ module.module_name }}{% if logged_in_staff and not logged_in_staff.is_external %}<span class="small wam-hide-on-print"><a class="btn btn-sm btn-secondary ms-1" role="button" href="{% url 'update module' module.pk %}">Edit</a></span>{% endif %}</h4>
 
 <div class="mt-4">
     <div class="row mb-2">
@@ -50,6 +50,7 @@
             {{ module.semester }}
         </div>
     </div>
+    {% if not logged_in_staff.is_external %}{# Workload details are internal #}
     <div class="row mb-2">
         <div class="col-12 col-md-3 fw-bold">
             Hours
@@ -63,6 +64,7 @@
             <div class="form-text font-sans-serif wam-hide-on-print" style="font-family: var(--bs-body-font-family);">Hover over or tap a figure to see how it was worked out.</div>
         </div>
     </div>
+    {% endif %}
     {% if module.details %}
     <div class="row mb-2">
         <div class="col-12 col-md-3 fw-bold">
@@ -95,6 +97,7 @@
     {% endif %}
 </div>
 
+{% if not logged_in_staff.is_external %}{# Workload, allocations and activities are internal #}
 <div class="mt-5">
     <h5>Related activity information</h5>
     <p class="mb-3">
@@ -191,16 +194,28 @@
         <p class="text-info-emphasis">No custom activities recorded for this module.</p>
     {% endif %}
 </div>
+{% endif %}
 
 <div class="mt-5">
-    <h5>Assessment resources</h5>
+    <h5 id="assessment">Assessment resources</h5>
+    {% if waiting_states %}
+    <div class="wam-home-attention my-3" role="status">
+        <strong>Waiting for you:</strong> this module's assessment is ready for you to sign off as
+        {% for state in waiting_states %}<em>{{ state.name }}</em>{% if not forloop.last %} or {% endif %}{% endfor %}.
+        <a class="btn btn-sm btn-primary wam-btn-brand ms-2" href="{% url 'add_assessment_sign_off' module.id %}">Sign off</a>
+    </div>
+    {% endif %}
     {% if assessment_signoffs.0.assessment_state.next_states_guidance %}
     <p class="text-info-emphasis">
         {{ assessment_signoffs.0.assessment_state.next_states_guidance|safe }}
     </p>
     {%  else %}
     <p class="fst-italic">
+        {% if logged_in_staff.is_external %}
+        Please review the assessment items below, and sign them off when satisfied. You can add files of your own too, such as a report.
+        {% else %}
         Please upload assessment items below, and sign them off when satisfied.
+        {% endif %}
     </p>
     {% endif %}
 
@@ -234,9 +249,11 @@
             {# if forloop.first #}
             {# This won't work since we may have a resource without signoff #}
             <div class="col-2 wam-hide-on-print p-0 pe-2 text-end">
+                {% if can_delete_signoffs %}
                 <a class="btn btn-sm btn-danger" role="button" href="{% url 'delete_assessment_sign_off' signoff.id %}">
                     delete
                 </a>
+                {% endif %}
             </div>
             {# endif #}
         </div>
@@ -270,7 +287,12 @@
                                 <td>{{ resource.owner }}</td>
                                 <td><span title="{{ resource.created }}">{{ resource.created|date:"SHORT_DATETIME_FORMAT" }}</span></td>
                                 <td class="wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'download_assessment_resource' resource.id %}">View</a></td>
-                                <td class="wam-hide-on-print"><a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'delete_assessment_resource' resource.id %}">Delete</a></td>
+                                <td class="wam-hide-on-print">
+                                    {# As delete_assessment_resource checks: superusers, or the owner or coordinator before it's signed off #}
+                                    {% if user.is_superuser or not signoff and resource.owner == logged_in_staff or not signoff and module.coordinator == logged_in_staff %}
+                                    <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'delete_assessment_resource' resource.id %}">Delete</a>
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>

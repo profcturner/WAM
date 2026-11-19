@@ -173,7 +173,10 @@ def index(request):
     }
 
     staff = Staff.objects.filter(user=request.user).first() if request.user.is_authenticated else None
-    if staff and not staff.is_external:
+    if staff and staff.is_external:
+        # External Examiners have their own home page
+        return HttpResponseRedirect(reverse('external_index'))
+    if staff:
         context['summary'] = home_summary(staff)
         context['greeting'] = greeting()
         context['can_use_admin'] = (request.user.is_staff or request.user.is_superuser or
@@ -208,15 +211,51 @@ def about(request):
     return HttpResponse(template.render(context, request))
 
 
-def external_index(request):
-    """The main home page for External Examiners"""
+def external_summary(external):
+    """
+    What an External Examiner's home page shows: the modules they examine in their current
+    work package, how far each has got, and which are waiting for them to sign off.
+    """
+    examined = external.get_examined_programmes()
+    modules = Module.objects.filter(package=external.package).filter(
+        Q(lead_programme__in=examined) | Q(programmes__in=examined)).distinct().order_by('module_code')
+    items = []
+    for module in modules.select_related('lead_programme'):
+        latest = module.get_latest_signoff()
+        next_states = list(module.get_next_assessment_states(external).order_by('priority'))
+        items.append({
+            'module': module,
+            'lead': module.lead_programme in examined,
+            'state': latest.assessment_state if latest else None,
+            'updated': latest.created if latest else None,
+            'next_states': next_states,
+            'awaiting_you': bool(next_states),
+        })
+    # Those waiting for them first
+    items.sort(key=lambda item: not item['awaiting_you'])
+    return {
+        'package': external.package,
+        'programmes': examined,
+        'modules': items,
+        'awaiting_count': sum(1 for item in items if item['awaiting_you']),
+    }
 
+
+def external_index(request):
+    """
+    The home page for External Examiners: signed in, the modules they examine; otherwise
+    what these pages are for, and how to sign in.
+    """
     template = loader.get_template('loads/external/index.html')
     context = {
         'home_page': True,
         'admin_name': WAM_ADMIN_CONTACT_NAME,
         'admin_email': WAM_ADMIN_CONTACT_EMAIL,
     }
+    external = Staff.objects.filter(user=request.user).first() if request.user.is_authenticated else None
+    if external and external.is_external:
+        context['summary'] = external_summary(external)
+        context['greeting'] = greeting()
     logger.info("[%s] visiting external examiners home page" % request.user)
     return HttpResponse(template.render(context, request))
 
@@ -1680,6 +1719,11 @@ def modules_details(request, module_id):
         'total_admin_proportion': total_admin_proportion,
         'total_assessment_proportion': total_assessment_proportion,
         'unsigned_items': unsigned_items,
+        # Sign offs this person can make now, by their role on the module
+        'waiting_states': module.get_next_assessment_states(staff, superuser_override=False).exclude(
+            actors='anyone').order_by('priority'),
+        # As delete_assessment_sign_off checks
+        'can_delete_signoffs': staff.user.is_superuser or request.user.has_perm('loads.del_assessmentstatesignoff'),
     }
     return HttpResponse(template.render(context, request))
 
