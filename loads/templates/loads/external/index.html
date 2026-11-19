@@ -4,27 +4,115 @@
 
 {% block content %}
 
-<div class="my-3 row align-items-start justify-content-around">
-    <div class="col-4 text-center">
-        <h3>Welcome!</h3>
-        <img class="img-fluid" src="{% static 'logos/apple-touch-icon-180x180.png' %}" alt="WAM logo" />
-    </div>
-    <div class="col-7 align-self-center">
-        <p>
-            Welcome to <strong>WAM</strong>.
+{% if summary %}
+{# ------------------------------------------------------------------------------------------ #}
+{# Signed in External Examiner: the modules they examine, and what's waiting for them         #}
+{# ------------------------------------------------------------------------------------------ #}
+<div class="wam-home my-4">
+    <header class="mb-4">
+        <h1 class="h2 mb-1">{{ greeting }}{% if user.first_name %}, {{ user.first_name }}{% endif %}</h1>
+        <p class="text-body-secondary mb-0">
+            External Examiner{% if summary.programmes %} for {% for programme in summary.programmes %}{{ programme.programme_name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}
+            {% if summary.package %}&middot; {{ summary.package.name }}{% endif %}
         </p>
-        <p>
-            WAM is a tool for modelling allocation of workload, tracking task
-            completions, and providing quality assurance around the setting of
-            assessments.
+        {% if summary.awaiting_count %}
+        <div class="wam-home-attention mt-3" role="status">
+            <strong>Waiting for you:</strong>
+            <a class="link-offset-2" href="#home-modules">{{ summary.awaiting_count }} module{{ summary.awaiting_count|pluralize }} to review and sign off</a>
+        </div>
+        {% endif %}
+    </header>
+
+    <section aria-labelledby="home-modules">
+        <div class="card wam-home-card">
+            <div class="card-body">
+                <h2 class="h6 wam-home-label" id="home-modules">
+                    Your modules
+                    {% if summary.awaiting_count %}<span class="badge text-bg-primary ms-1">{{ summary.awaiting_count }} waiting for you</span>{% endif %}
+                </h2>
+                {% if summary.modules %}
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Module</th>
+                                <th scope="col">Your role</th>
+                                <th scope="col">Assessment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in summary.modules %}
+                            <tr{% if item.awaiting_you %} class="wam-home-awaiting"{% endif %}>
+                                <td>
+                                    <a class="link-offset-2" href="{% url 'modules_details' item.module.id %}">{{ item.module.module_code }}</a>
+                                    <span class="text-body-secondary">{{ item.module.module_name }}</span>
+                                </td>
+                                <td class="small">
+                                    {% if item.lead %}Lead External Examiner{% else %}For information{% endif %}
+                                </td>
+                                <td class="small">
+                                    <span class="text-body-secondary">
+                                        {{ item.state.name|default:"Not started" }}{% if item.updated %}, {{ item.updated|date:"j M" }}{% endif %}
+                                    </span>
+                                    {% if item.awaiting_you %}
+                                    <a class="btn btn-sm btn-primary wam-btn-brand ms-md-2 mt-1 mt-md-0"
+                                       href="{% url 'modules_details' item.module.id %}#assessment">Review and sign off</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-body-secondary mb-0">
+                    There are no modules for you to examine{% if summary.package %} in {{ summary.package.name }}{% endif %} yet.
+                    If you think this is wrong, please contact <a class="link-offset-2" href="mailto:{{ admin_email }}">{{ admin_name }}</a>.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="mt-4 small text-body-secondary" aria-label="How this works">
+        <p class="mb-1">
+            Open a module to see its assessment materials and their history. When you've reviewed them, sign off
+            to approve them or to ask for changes; the module team is told either way.
         </p>
-        <p>
-            Please report issues to <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="mailto:{{ admin_email }}">{{ admin_name }}</a>
-        </p>
-        <p>
-            If you are an internal member of staff, please visit the <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'index' %}">internal</a> home page.
-        </p>
-    </div>
+    </section>
+
+    <nav class="mt-3 small wam-home-links" aria-label="Quick links">
+        <a class="link-offset-2" href="{% url 'external_modules_index' semesters='' %}">All your modules, with filters</a>
+        <a class="link-offset-2" href="{% url 'programmes_index' %}">Programmes</a>
+        <a class="link-offset-2" href="mailto:{{ admin_email }}">Help: {{ admin_name }}</a>
+    </nav>
 </div>
+
+{% else %}
+{# ------------------------------------------------------------------------------------------ #}
+{# Not signed in as an External Examiner                                                      #}
+{# ------------------------------------------------------------------------------------------ #}
+<section class="wam-hero my-4 my-md-5" aria-labelledby="wam-title">
+    <img class="wam-hero-logo" src="{% static 'logos/WAM_logo.png' %}" alt="" width="160" height="160" />
+    <div>
+        <h1 class="wam-hero-title" id="wam-title">External Examiners</h1>
+        <p class="wam-hero-subtitle">WAM &middot; Workload and Assessment Modeller</p>
+        <p class="lead wam-hero-lead">
+            Review the assessment materials for the modules you examine, see how each has been
+            checked so far, and sign them off or ask for changes.
+        </p>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            {% if user.is_authenticated %}
+            <a class="btn btn-primary btn-lg wam-btn-brand" href="{% url 'index' %}">Go to the staff home page</a>
+            {% else %}
+            <a class="btn btn-primary btn-lg wam-btn-brand" href="{% if wam_external_adfs_auth %}{% url 'django_auth_adfs:login' %}{% else %}{% url 'login' %}{% endif %}?next={% url 'external_index' %}">Sign in</a>
+            {% endif %}
+            <span class="text-body-secondary small">
+                Problems signing in? Contact <a class="link-offset-2" href="mailto:{{ admin_email }}">{{ admin_name }}</a>.
+            </span>
+        </div>
+    </div>
+</section>
+{% endif %}
 
 {% endblock %}

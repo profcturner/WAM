@@ -189,9 +189,11 @@ class Command(BaseCommand):
     def add_categories_activities(self):
         """Add some basic Categories and ActivityTypes"""
 
-        admin_category = Category.objects.create(name="Administration", abbreviation="admin", colour="#00007e")
-        research_category = Category.objects.create(name="Research and Impact", abbreviation="R&I", colour="#007e00")
-        education_category = Category.objects.create(name="Learning and Teaching", abbreviation="L&T", colour="#7e0000")
+        # Colours from the WAM logo, in tones that stay clear in both light and dark mode
+        education_category = Category.objects.create(name="Learning and Teaching", abbreviation="L&T", colour="#3577b2")
+        research_category = Category.objects.create(name="Research and Impact", abbreviation="R&I", colour="#2e978b")
+        admin_category = Category.objects.create(name="Administration", abbreviation="admin", colour="#b08a3e")
+        other_category = Category.objects.create(name="Other", abbreviation="other", colour="#8a96a3")
 
         ActivityType.objects.create(name="Lectures and Tutorials", category=education_category)
         ActivityType.objects.create(name="General Administration", category=admin_category)
@@ -200,6 +202,7 @@ class Command(BaseCommand):
         ActivityType.objects.create(name="Research Administration", category=research_category)
         ActivityType.objects.create(name="Research Grant", category=research_category)
         ActivityType.objects.create(name="Teaching Administration", category=education_category)
+        ActivityType.objects.create(name="Other Activity", category=other_category)
 
 
     def add_campus(self):

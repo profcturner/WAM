@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="WAM">
+  <title>WAM</title>
+  <style>
+    .navy { stroke: #0f4a7a; } .halo { stroke: #ffffff; }
+    @media (prefers-color-scheme: dark) { .navy { stroke: #6ea8dc; } .halo { stroke: #343a40; } }
+  </style>
+  <!-- A simplified WAM mark for small sizes, after the full logo: the triangle (balanced allocation),
+       the W that ends in a tick (completion) and the open book (academia), in flat navy, gold and silver -->
+  <!-- The triangle: navy left side, gold right side -->
+  <path d="M50 9 L86 71" fill="none" stroke="#d4ad66" stroke-width="9" stroke-linecap="round"/>
+  <path d="M14 71 L50 9" fill="none" class="navy" stroke-width="9" stroke-linecap="round"/>
+  <!-- The W ending in a tick, with a white gap where it crosses the triangle -->
+  <path d="M17 44 L35 69 L50 51 L61 66 L90 30" fill="none" class="halo" stroke-width="17"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M17 44 L35 69 L50 51 L61 66 L90 30" fill="none" class="navy" stroke-width="8"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M17 44 L35 69" fill="none" stroke="#b9bec4" stroke-width="8" stroke-linecap="round"/>
+  <!-- The open book -->
+  <path d="M8 79 Q30 72 50 84 Q70 72 92 79" fill="none" class="navy" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M11 89 Q30 82 50 93 Q70 82 89 89" fill="none" stroke="#d4ad66" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

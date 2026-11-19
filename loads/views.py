@@ -12,6 +12,7 @@ from django.urls import reverse, reverse_lazy
 from django.forms import modelformset_factory
 from fancy_formset import FancyModelFormSet, FancyInlineFormSet
 from django.contrib import messages
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMixin
@@ -106,17 +107,93 @@ def next_page_pop(request, backup_url=None):
         logger.debug("[%s] popping next page %s from session" % (request.user, url))
         return url
 
-def index(request):
-    """Main index page for non admin views"""
+def home_summary(staff):
+    """
+    What the home page shows a signed in member of staff: their workload, tasks and modules
+    in their current work package. Nothing here is beyond what they could already see in WAM.
+    """
+    summary = {'package': staff.package}
+    package = staff.package
+    if package and (staff.user.is_superuser or package in staff.get_all_packages()):
+        total, semester1, semester2, semester3, activity_count = staff.hours_by_semester(package)
+        summary['hours'] = {'total': total, 'semester1': semester1, 'semester2': semester2,
+                            'semester3': semester3}
+        # By category, in the same colours as the load charts
+        summary['categories'] = [{'category': category, 'hours': hours}
+                                 for category, hours in staff.hours_by_category(package).items() if hours]
 
+        # Modules they coordinate, moderate or teach, with whether a sign off is waiting for them
+        roles = {}
+        for module in Module.objects.filter(package=package, coordinator=staff):
+            roles.setdefault(module, []).append('Coordinator')
+        for module in Module.objects.filter(package=package, moderators=staff):
+            roles.setdefault(module, []).append('Moderator')
+        for allocation in ModuleStaff.objects.filter(package=package, staff=staff).select_related('module'):
+            roles.setdefault(allocation.module, []).append('Teaching')
+        modules = []
+        for module in sorted(roles, key=lambda m: m.module_code):
+            latest = module.get_latest_signoff()
+            # States they can move it on to because of their role (so not as a superuser), other than ones anyone may add
+            next_states = list(module.get_next_assessment_states(staff, superuser_override=False).exclude(actors='anyone')
+                               .order_by('priority'))
+            modules.append({
+                'module': module,
+                'roles': roles[module],
+                'state': latest.assessment_state if latest else None,
+                'next_states': next_states,
+                'awaiting_you': bool(next_states),
+            })
+        # Those waiting for them first
+        modules.sort(key=lambda item: not item['awaiting_you'])
+        summary['modules'] = modules
+        summary['awaiting_count'] = sum(1 for item in modules if item['awaiting_you'])
+    else:
+        summary['package'] = None
+
+    # Open tasks they haven't completed yet, soonest first
+    completed = TaskCompletion.objects.filter(staff=staff).values('task')
+    tasks = staff.get_all_tasks().exclude(pk__in=completed).distinct().order_by('deadline')
+    summary['tasks'] = [{'task': task, 'overdue': task.is_overdue(), 'urgent': task.is_urgent()}
+                        for task in tasks[:5]]
+    summary['task_count'] = tasks.count()
+    summary['overdue_count'] = sum(1 for task in tasks if task.is_overdue())
+    return summary
+
+
+def index(request):
+    """
+    The home page. Signed out, it introduces WAM and invites people to sign in. Signed in
+    members of staff get a summary of their own workload, tasks and modules.
+    """
     template = loader.get_template('loads/index.html')
     context = {
         'home_page': True,
         'admin_name': WAM_ADMIN_CONTACT_NAME,
         'admin_email': WAM_ADMIN_CONTACT_EMAIL,
     }
+
+    staff = Staff.objects.filter(user=request.user).first() if request.user.is_authenticated else None
+    if staff and staff.is_external:
+        # External Examiners have their own home page
+        return HttpResponseRedirect(reverse('external_index'))
+    if staff:
+        context['summary'] = home_summary(staff)
+        context['greeting'] = greeting()
+        context['can_use_admin'] = (request.user.is_staff or request.user.is_superuser or
+                                    staff.admin_roles.exists())
+
     logger.info("[%s] visiting home page" % request.user)
     return HttpResponse(template.render(context, request))
+
+
+def greeting():
+    """Good morning, afternoon or evening, in the server's time zone"""
+    hour = timezone.localtime().hour
+    if hour < 12:
+        return "Good morning"
+    if hour < 18:
+        return "Good afternoon"
+    return "Good evening"
 
 def about(request):
     """
@@ -134,15 +211,51 @@ def about(request):
     return HttpResponse(template.render(context, request))
 
 
-def external_index(request):
-    """The main home page for External Examiners"""
+def external_summary(external):
+    """
+    What an External Examiner's home page shows: the modules they examine in their current
+    work package, how far each has got, and which are waiting for them to sign off.
+    """
+    examined = external.get_examined_programmes()
+    modules = Module.objects.filter(package=external.package).filter(
+        Q(lead_programme__in=examined) | Q(programmes__in=examined)).distinct().order_by('module_code')
+    items = []
+    for module in modules.select_related('lead_programme'):
+        latest = module.get_latest_signoff()
+        next_states = list(module.get_next_assessment_states(external).order_by('priority'))
+        items.append({
+            'module': module,
+            'lead': module.lead_programme in examined,
+            'state': latest.assessment_state if latest else None,
+            'updated': latest.created if latest else None,
+            'next_states': next_states,
+            'awaiting_you': bool(next_states),
+        })
+    # Those waiting for them first
+    items.sort(key=lambda item: not item['awaiting_you'])
+    return {
+        'package': external.package,
+        'programmes': examined,
+        'modules': items,
+        'awaiting_count': sum(1 for item in items if item['awaiting_you']),
+    }
 
+
+def external_index(request):
+    """
+    The home page for External Examiners: signed in, the modules they examine; otherwise
+    what these pages are for, and how to sign in.
+    """
     template = loader.get_template('loads/external/index.html')
     context = {
         'home_page': True,
         'admin_name': WAM_ADMIN_CONTACT_NAME,
         'admin_email': WAM_ADMIN_CONTACT_EMAIL,
     }
+    external = Staff.objects.filter(user=request.user).first() if request.user.is_authenticated else None
+    if external and external.is_external:
+        context['summary'] = external_summary(external)
+        context['greeting'] = greeting()
     logger.info("[%s] visiting external examiners home page" % request.user)
     return HttpResponse(template.render(context, request))
 
@@ -1606,6 +1719,10 @@ def modules_details(request, module_id):
         'total_admin_proportion': total_admin_proportion,
         'total_assessment_proportion': total_assessment_proportion,
         'unsigned_items': unsigned_items,
+        # Sign offs this person can make now, by their role on the module
+        'waiting_states': module.get_next_assessment_states(staff, superuser_override=False).exclude(
+            actors='anyone').order_by('priority'),
+        'can_delete_signoffs': can_delete_sign_offs(staff, module),
     }
     return HttpResponse(template.render(context, request))
 
@@ -1630,21 +1747,10 @@ def add_assessment_sign_off(request, module_id):
         logger.info("[%s] has no staff object" % request.user)
         return HttpResponseRedirect(reverse('forbidden'))
 
-    # Get all signoffs to date
+    # All sign offs to date, for the page's history
     assessment_signoffs = AssessmentStateSignOff.objects.all().filter(module=module).order_by('-created')
-
-    # Have we any already?
-    if not len(assessment_signoffs):
-        # No, so get all allowed initial states
-        next_states = AssessmentState.objects.all().filter(initial_state=True)
-    else:
-        # There, are, so it's just the last object's sign off
-        next_states = assessment_signoffs[0].assessment_state.next_states.all()
-
-    # These are the possible successor states, but same may not be allowed to the current user
-    for state in next_states:
-        if not state.can_be_set_by(staff, module):
-            next_states = next_states.exclude(pk=state.pk)
+    # The states that may follow the latest sign off, and that this user is allowed to set
+    next_states = module.get_next_assessment_states(staff)
 
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
@@ -1687,9 +1793,20 @@ def add_assessment_sign_off(request, module_id):
     return HttpResponse(template.render(context, request))
 
 
+def can_delete_sign_offs(staff, module):
+    """
+    Whether someone may delete a module's assessment sign offs: superusers, or internal staff with the
+    delete permission, in one of their work packages. (Only the latest may be deleted, checked separately.)
+    """
+    if staff.user.is_superuser:
+        return True
+    return (not staff.is_external and staff.user.has_perm('loads.delete_assessmentstatesignoff')
+            and module.package in staff.get_all_packages(include_hidden=True))
+
+
 @login_required
 @staff_only
-@permission_required('loads.del_assessmentstatesignoff')
+@permission_required('loads.delete_assessmentstatesignoff')
 def delete_assessment_sign_off(request, signoff_id, confirm=None):
     """
     Provides an interface for deleting an Assessment State Signed Off
@@ -1716,11 +1833,7 @@ def delete_assessment_sign_off(request, signoff_id, confirm=None):
     # Assume a lack of permissions
     permission = False
 
-    if staff.user.is_superuser:
-        permission = True
-    elif staff.user.is_staff and request.user.has_perm('loads.del_assessmentstatesignoff'):
-        permission = True
-    elif signoff.module.package in staff.get_all_packages() and request.user.has_perm('loads.del_assessmentstatesignoff'):
+    if can_delete_sign_offs(staff, signoff.module):
         permission = True
 
     if not permission:

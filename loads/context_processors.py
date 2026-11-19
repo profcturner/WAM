@@ -1,5 +1,7 @@
 # Context Processors make custom variables in all templates
 
+from django.conf import settings
+
 from loads.models import Staff
 from WAM.settings import WAM_ADFS_AUTH
 
@@ -31,6 +33,9 @@ def auth_adfs(request):
     A context processor to expose if external authentication is enabled
     """
 
+    external = getattr(settings, 'WAM_EXTERNAL_ADFS_AUTH', None)
     return {
-        'wam_adfs_auth': WAM_ADFS_AUTH
+        'wam_adfs_auth': WAM_ADFS_AUTH,
+        # How External Examiners sign in
+        'wam_external_adfs_auth': WAM_ADFS_AUTH if external is None else external,
     }

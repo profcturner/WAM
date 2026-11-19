@@ -2,30 +2,211 @@
 
 {% load static %}
 
-<div class="my-3 row align-items-start justify-content-around">
-    <div class="col-4 text-center">
-        <h3>Welcome!</h3>
-        <img class="img-fluid" src="{% static 'logos/apple-touch-icon-180x180.png' %}" alt="WAM logo" />
+{% if summary %}
+{# ------------------------------------------------------------------------------------------ #}
+{# Signed in member of staff: their own workload, tasks and modules                           #}
+{# ------------------------------------------------------------------------------------------ #}
+<div class="wam-home my-4">
+    <header class="mb-4">
+        <h1 class="h2 mb-1">{{ greeting }}{% if user.first_name %}, {{ user.first_name }}{% endif %}</h1>
+        <p class="text-body-secondary mb-0">
+            {% if summary.package %}
+                Showing {{ summary.package.name }} &middot;
+                <a class="link-offset-2" href="{% url 'workpackage_change' %}">Change year</a>
+            {% else %}
+                <a class="link-offset-2" href="{% url 'workpackage_change' %}">Choose a work package</a> to see your workload and modules.
+            {% endif %}
+        </p>
+        {% if summary.awaiting_count or summary.overdue_count %}
+        <div class="wam-home-attention mt-3" role="status">
+            <strong>Waiting for you:</strong>
+            {% if summary.awaiting_count %}
+            <a class="link-offset-2" href="#home-modules">{{ summary.awaiting_count }} assessment sign-off{{ summary.awaiting_count|pluralize }}</a>
+            {% endif %}
+            {% if summary.awaiting_count and summary.overdue_count %}and{% endif %}
+            {% if summary.overdue_count %}
+            <a class="link-offset-2" href="#home-tasks">{{ summary.overdue_count }} overdue task{{ summary.overdue_count|pluralize }}</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </header>
+
+    <div class="row g-4">
+        {% if summary.hours %}
+        <section class="col-lg-5" aria-labelledby="home-workload">
+            <div class="card h-100 wam-home-card">
+                <div class="card-body">
+                    <h2 class="h6 wam-home-label" id="home-workload">Your workload</h2>
+                    <p class="wam-home-figure mb-1">{{ summary.hours.total|floatformat:0 }} <span class="wam-home-unit">hours</span></p>
+                    {% with h=summary.hours %}
+                    <p class="small text-body-secondary mb-0">
+                        <span class="text-nowrap">Semester 1: <strong>{{ h.semester1|floatformat:0 }}</strong></span> &middot;
+                        <span class="text-nowrap">Semester 2: <strong>{{ h.semester2|floatformat:0 }}</strong></span> &middot;
+                        <span class="text-nowrap">Semester 3: <strong>{{ h.semester3|floatformat:0 }}</strong></span>
+                    </p>
+                    {% endwith %}
+                    {% if summary.categories %}
+                    <div class="wam-load-bar my-3" role="img"
+                         aria-label="{% for item in summary.categories %}{{ item.category.name }}: {{ item.hours|floatformat:0 }} hours{% if not forloop.last %}, {% endif %}{% endfor %}">
+                        {% for item in summary.categories %}
+                        <span style="flex-grow: {{ item.hours|floatformat:'2u' }}; background-color: {{ item.category.colour }}"
+                              title="{{ item.category.name }}: {{ item.hours|floatformat:0 }} hours"></span>
+                        {% endfor %}
+                    </div>
+                    <dl class="wam-load-legend small mb-3">
+                        {% for item in summary.categories %}
+                        <div><dt><span class="wam-swatch" style="background-color: {{ item.category.colour }}"></span>{{ item.category.name }}</dt><dd>{{ item.hours|floatformat:0 }}</dd></div>
+                        {% endfor %}
+                    </dl>
+                    {% else %}
+                    <div class="mb-3"></div>
+                    {% endif %}
+                    <p class="small mb-0">
+                        <a class="link-offset-2" href="{% url 'activities' logged_in_staff.pk %}">Your activities</a> &middot;
+                        <a class="link-offset-2" href="{% url 'loads' %}">Everyone's loads</a>
+                    </p>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="{% if summary.hours %}col-lg-7{% else %}col-12{% endif %}" aria-labelledby="home-tasks">
+            <div class="card h-100 wam-home-card">
+                <div class="card-body">
+                    <h2 class="h6 wam-home-label" id="home-tasks">
+                        Your tasks
+                        {% if summary.overdue_count %}<span class="badge text-bg-danger ms-1">{{ summary.overdue_count }} overdue</span>{% endif %}
+                    </h2>
+                    {% if summary.tasks %}
+                    <ul class="list-unstyled wam-home-list mb-3">
+                        {% for item in summary.tasks %}
+                        <li>
+                            <a class="link-offset-2" href="{% url 'tasks_details' item.task.id %}">{{ item.task.name }}</a>
+                            <span class="text-body-secondary small text-nowrap">
+                                {% if item.overdue %}<span class="badge text-bg-danger">Overdue</span>
+                                {% elif item.urgent %}<span class="badge text-bg-warning">Urgent</span>{% endif %}
+                                due {{ item.task.deadline|date:"j M" }}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% if summary.task_count > summary.tasks|length %}
+                    <p class="small text-body-secondary mb-2">and {{ summary.task_count|add:"-5" }} more</p>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-body-secondary">You have no open tasks.</p>
+                    {% endif %}
+                    <p class="small mb-0"><a class="link-offset-2" href="{% url 'tasks_index' %}">All your tasks</a></p>
+                </div>
+            </div>
+        </section>
+
+        {% if summary.package %}
+        <section class="col-12" aria-labelledby="home-modules">
+            <div class="card wam-home-card">
+                <div class="card-body">
+                    <h2 class="h6 wam-home-label" id="home-modules">
+                        Your modules
+                        {% if summary.awaiting_count %}<span class="badge text-bg-primary ms-1">{{ summary.awaiting_count }} waiting for you</span>{% endif %}
+                    </h2>
+                    {% if summary.modules %}
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Module</th>
+                                    <th scope="col">Your role</th>
+                                    <th scope="col">Assessment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in summary.modules %}
+                                <tr{% if item.awaiting_you %} class="wam-home-awaiting"{% endif %}>
+                                    <td>
+                                        <a class="link-offset-2" href="{% url 'modules_details' item.module.id %}">{{ item.module.module_code }}</a>
+                                        <span class="text-body-secondary">{{ item.module.module_name }}</span>
+                                    </td>
+                                    <td class="small">{{ item.roles|join:", " }}</td>
+                                    <td class="small">
+                                        <span class="text-body-secondary">{{ item.state.name|default:"Not started" }}</span>
+                                        {% if item.awaiting_you %}
+                                        <a class="btn btn-sm btn-primary wam-btn-brand ms-md-2 mt-1 mt-md-0"
+                                           href="{% url 'add_assessment_sign_off' item.module.id %}">Sign off as {% for state in item.next_states %}{{ state.name }}{% if not forloop.last %} or {% endif %}{% endfor %}</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-body-secondary mb-0">You aren't coordinating, moderating or teaching any modules in {{ summary.package.name }}.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
     </div>
-    <div class="col-7 align-self-center">
-        <p>
-            Welcome to <strong>WAM</strong>.
-        </p>
-        <p>
-            WAM is a tool for modelling allocation of workload, tracking task
-            completions, and providing quality assurance around the setting of
-            assessments.
-        </p>
-        <p>
-            Please report issues to <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="mailto:{{ admin_email }}">{{ admin_name }}</a>
-        </p>
-        <p>
-            If you are an External Examiner, please visit the <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'external_index' %}">External Examiner</a> home page.
-        </p>
-    </div>
+
+    <nav class="mt-4 small wam-home-links" aria-label="Quick links">
+        <a class="link-offset-2" href="{% url 'loads_charts' %}">Workload charts</a>
+        <a class="link-offset-2" href="{% url 'loads_modules' semesters='' %}">Loads by modules</a>
+        <a class="link-offset-2" href="{% url 'modules_index' semesters='' %}">All modules</a>
+        {% if can_use_admin %}<a class="link-offset-2" href="{% url 'custom_admin_index' %}">Admin</a>{% endif %}
+        <a class="link-offset-2" href="mailto:{{ admin_email }}">Help: {{ admin_name }}</a>
+    </nav>
 </div>
 
+{% else %}
+{# ------------------------------------------------------------------------------------------ #}
+{# Signed out: what WAM is, and how to sign in                                                #}
+{# ------------------------------------------------------------------------------------------ #}
+<section class="wam-hero my-4 my-md-5" aria-labelledby="wam-title">
+    <img class="wam-hero-logo" src="{% static 'logos/WAM_logo.png' %}" alt="" width="160" height="160" />
+    <div>
+        <h1 class="wam-hero-title" id="wam-title">WAM</h1>
+        <p class="wam-hero-subtitle">Workload and Assessment Modeller</p>
+        <p class="lead wam-hero-lead">
+            Fair, transparent workload allocation for academic Schools, with quality assurance for
+            assessments and reminders for the tasks that keep a School running.
+        </p>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <a class="btn btn-primary btn-lg wam-btn-brand"
+               href="{% if wam_adfs_auth %}{% url 'django_auth_adfs:login' %}{% else %}{% url 'login' %}{% endif %}">
+                Sign in{% if wam_adfs_auth %} with your university account{% endif %}
+            </a>
+            <a class="link-offset-2" href="{% url 'external_index' %}">External Examiner? Start here</a>
+        </div>
+    </div>
+</section>
 
+<section class="row g-4 mb-5" aria-label="What WAM does">
+    <div class="col-md-4">
+        <div class="wam-feature h-100">
+            <h2 class="h5">Fair, open workload</h2>
+            <p class="mb-0">Teaching, administration and research are counted the same way for everyone, and
+                colleagues in a School see the same workload information.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="wam-feature h-100">
+            <h2 class="h5">Assessment quality assurance</h2>
+            <p class="mb-0">Module teams, moderators and External Examiners share and sign off assessment
+                materials, with a clear record of each step.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="wam-feature h-100">
+            <h2 class="h5">Tasks and reminders</h2>
+            <p class="mb-0">Short tasks with deadlines and reminders, so everyone knows what's needed and
+                when, and can mark it done.</p>
+        </div>
+    </div>
+</section>
 
+<p class="text-body-secondary small mb-5">
+    WAM is open source. For help, contact <a class="link-offset-2" href="mailto:{{ admin_email }}">{{ admin_name }}</a>.
+</p>
+{% endif %}
 
 {% endblock content %}

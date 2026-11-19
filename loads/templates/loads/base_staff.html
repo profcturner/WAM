@@ -28,11 +28,12 @@
                 title="Navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <a class="navbar-brand float-start" href="{% url 'index' %}">
+        <a class="navbar-brand d-flex align-items-center gap-2 me-3" href="{% url 'index' %}">
             {# TODO: We need to make this logo, and link, customizable #}
             {# The max-height should, however, remain as to not disrupt the layout, etc #}
-            <img src="{% static 'logos/WAM_logo.png' %}"
-                 style="max-height: 48px" title="Workload and Assessment Modeller" alt="WAM" />
+            <img src="{% static 'logos/wam-mark.svg' %}" class="wam-brand-mark" width="44" height="44"
+                 title="Workload and Assessment Modeller" alt="" />
+            <span class="wam-brand-name fw-bold">WAM</span>
             {# <pre>|{{ request.resolver_match.view_name }}|</pre> #}
         </a>
         <div class="offcanvas offcanvas-start" id="navbarWAM" tabindex="-1">
@@ -47,6 +48,7 @@
             {# That would make it a lot easier to highlight the active    #}
             {# top-level menu item correctly                              #}
             <ul class="navbar-nav me-auto mb-2 mb-lg-0 small">
+                {% if user.is_authenticated %}
                 <li class="nav-item">
                     <a class="nav-link{%if home_page %} active{% endif %}"
                        {% if home_page %}aria-current="page"{% endif %} href="{% url 'index' %}"
@@ -124,6 +126,12 @@
                         </li>
                         {% endif %}
                     {% endif %}
+                {% endif %}
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% if wam_adfs_auth %}{% url 'django_auth_adfs:login' %}{% else %}{% url 'login' %}{% endif %}"
+                       title="Sign in to WAM">Sign in</a>
+                </li>
                 {% endif %}
             </ul>
             </div>

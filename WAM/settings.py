@@ -36,6 +36,10 @@ WAM_DEFAULT_ACTIVITY_TYPE = 1
 # https://github.com/profcturner/WAM/wiki/ADFS---Azure-Authentication
 WAM_ADFS_AUTH = False
 
+# Whether External Examiners sign in the same way. None (the default) follows WAM_ADFS_AUTH; set it to
+# False if examiners have local WAM accounts while staff use ADFS / Entra ID, or True for the reverse
+WAM_EXTERNAL_ADFS_AUTH = None
+
 # The following settings are usually used with some form of external authentication as above
 # And if enabled, will create Campuses, Faculties and Schools for authenticated users belonging to unknown ones.
 # This allows WAM to automatically learn your University structure
@@ -164,6 +168,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
 LOGIN_URL = '/accounts/login/'
+# After signing in without a 'next' page, go to the home page rather than Django's /accounts/profile/
+LOGIN_REDIRECT_URL = 'index'
 LOGOUT_REDIRECT_URL = 'logged out'
 
 # New in Django 3.2, we should set an explicit automatic primary key type

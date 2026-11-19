@@ -258,16 +258,27 @@ class AssessmentResourceViewTests(ViewTestCase):
         self.delete_sign_off(signoff)
         self.assertTrue(AssessmentStateSignOff.objects.filter(pk=signoff.pk).exists())
 
-    @unittest.expectedFailure
     def test_staff_with_permission_can_delete_sign_off(self):
-        """BUG: the view checks 'loads.del_assessmentstatesignoff', but Django's permission is
-        'delete_assessmentstatesignoff', so only superusers can ever delete sign offs"""
         signoff = self.sign_off()
         admin = make_staff('schooladmin', group=self.group, is_staff=True,
                            permissions=['loads.delete_assessmentstatesignoff'])
         self.login(admin)
         self.delete_sign_off(signoff)
         self.assertFalse(AssessmentStateSignOff.objects.filter(pk=signoff.pk).exists())
+
+    def test_permission_without_staff_status(self):
+        signoff = self.sign_off()
+        self.login(make_staff('lead', group=self.group, permissions=['loads.delete_assessmentstatesignoff']))
+        self.delete_sign_off(signoff)
+        self.assertFalse(AssessmentStateSignOff.objects.filter(pk=signoff.pk).exists())
+
+    def test_permission_only_in_own_packages(self):
+        """Even with staff status, another School's sign offs can't be deleted"""
+        signoff = self.sign_off()
+        self.login(make_staff('elsewhere', package=self.other_package, is_staff=True,
+                              permissions=['loads.delete_assessmentstatesignoff']))
+        self.delete_sign_off(signoff)
+        self.assertTrue(AssessmentStateSignOff.objects.filter(pk=signoff.pk).exists())
 
 
 def account_post(**kwargs):
