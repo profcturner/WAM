@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .models import Activity, AssessmentStateSignOff, Category, Task, TaskCompletion
-from .testing import allocate, make_activity_type, make_module, make_state
+from .testing import allocate, make_activity_type, make_module, make_staff, make_state
 from .tests_views import ViewTestCase
 from .views import greeting
 
@@ -210,6 +210,17 @@ class ExternalHomeTests(ExaminerTestCase):
         self.assertContains(response, reverse('login') + '?next=' + reverse('external_index'))
         self.assertNotContains(response, reverse('tasks_index'))  # no menu
 
+    def test_examiners_sign_in_like_staff_unless_set_otherwise(self):
+        from django.test import override_settings
+        from .context_processors import auth_adfs
+        with override_settings(WAM_EXTERNAL_ADFS_AUTH=False):
+            self.assertContains(self.external_home(), reverse('login') + '?next=' + reverse('external_index'))
+        for staff_adfs, external, expected in ((True, None, True), (False, None, False),
+                                               (True, False, False), (False, True, True)):
+            with mock.patch('loads.context_processors.WAM_ADFS_AUTH', staff_adfs), \
+                    override_settings(WAM_EXTERNAL_ADFS_AUTH=external):
+                self.assertEqual(auth_adfs(None)['wam_external_adfs_auth'], expected, (staff_adfs, external))
+
     def test_staff_get_the_introduction(self):
         response = self.external_home(self.lecturer)
         self.assertNotIn('summary', response.context)
@@ -244,6 +255,8 @@ class ModulePageTests(ExaminerTestCase):
         self.assertNotContains(self.page(self.examiner), delete)
         self.assertNotContains(self.page(self.coordinator), delete)
         self.assertContains(self.page(self.superuser), delete)
+        self.assertContains(self.page(make_staff('lead', group=self.group,
+                                                 permissions=['loads.delete_assessmentstatesignoff'])), delete)
 
 
 class NextAssessmentStatesTests(HomePageTestCase):

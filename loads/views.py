@@ -1722,8 +1722,7 @@ def modules_details(request, module_id):
         # Sign offs this person can make now, by their role on the module
         'waiting_states': module.get_next_assessment_states(staff, superuser_override=False).exclude(
             actors='anyone').order_by('priority'),
-        # As delete_assessment_sign_off checks
-        'can_delete_signoffs': staff.user.is_superuser or request.user.has_perm('loads.del_assessmentstatesignoff'),
+        'can_delete_signoffs': can_delete_sign_offs(staff, module),
     }
     return HttpResponse(template.render(context, request))
 
@@ -1794,9 +1793,20 @@ def add_assessment_sign_off(request, module_id):
     return HttpResponse(template.render(context, request))
 
 
+def can_delete_sign_offs(staff, module):
+    """
+    Whether someone may delete a module's assessment sign offs: superusers, or internal staff with the
+    delete permission, in one of their work packages. (Only the latest may be deleted, checked separately.)
+    """
+    if staff.user.is_superuser:
+        return True
+    return (not staff.is_external and staff.user.has_perm('loads.delete_assessmentstatesignoff')
+            and module.package in staff.get_all_packages(include_hidden=True))
+
+
 @login_required
 @staff_only
-@permission_required('loads.del_assessmentstatesignoff')
+@permission_required('loads.delete_assessmentstatesignoff')
 def delete_assessment_sign_off(request, signoff_id, confirm=None):
     """
     Provides an interface for deleting an Assessment State Signed Off
@@ -1823,11 +1833,7 @@ def delete_assessment_sign_off(request, signoff_id, confirm=None):
     # Assume a lack of permissions
     permission = False
 
-    if staff.user.is_superuser:
-        permission = True
-    elif staff.user.is_staff and request.user.has_perm('loads.del_assessmentstatesignoff'):
-        permission = True
-    elif signoff.module.package in staff.get_all_packages() and request.user.has_perm('loads.del_assessmentstatesignoff'):
+    if can_delete_sign_offs(staff, signoff.module):
         permission = True
 
     if not permission:

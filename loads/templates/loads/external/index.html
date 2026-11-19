@@ -105,7 +105,7 @@
             {% if user.is_authenticated %}
             <a class="btn btn-primary btn-lg wam-btn-brand" href="{% url 'index' %}">Go to the staff home page</a>
             {% else %}
-            <a class="btn btn-primary btn-lg wam-btn-brand" href="{% url 'login' %}?next={% url 'external_index' %}">Sign in</a>
+            <a class="btn btn-primary btn-lg wam-btn-brand" href="{% if wam_external_adfs_auth %}{% url 'django_auth_adfs:login' %}{% else %}{% url 'login' %}{% endif %}?next={% url 'external_index' %}">Sign in</a>
             {% endif %}
             <span class="text-body-secondary small">
                 Problems signing in? Contact <a class="link-offset-2" href="mailto:{{ admin_email }}">{{ admin_name }}</a>.
