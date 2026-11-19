@@ -21,7 +21,9 @@
     {# On with the show ... #}
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset='utf-8'>
-    <link rel="shortcut icon" type="image/png" href="{% static 'logos/favicon-64x64.png' %}" >
+    <link rel="icon" type="image/svg+xml" href="{% static 'logos/wam-mark.svg' %}">
+    <link rel="icon" type="image/png" sizes="64x64" href="{% static 'logos/favicon-64x64.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'logos/apple-touch-icon-180x180.png' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'bs5/css/bootstrap.min.css' %}" />
     <link rel="stylesheet" type="text/css" href="{% static 'wam/wam.css' %}" />
     <title>{% block title %}Workload and Assessment Modeller{% endblock %}</title>

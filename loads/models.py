@@ -1352,6 +1352,23 @@ class Module(models.Model):
         """Coordinator admin is distributed across the module's own semesters."""
         return divide_by_semesters(self.get_coordinator_hours(), self.semester)
 
+    def get_latest_signoff(self):
+        """The module's most recent assessment sign off, or None"""
+        return AssessmentStateSignOff.objects.filter(module=self).order_by('-created').first()
+
+    def get_next_assessment_states(self, staff):
+        """
+        The assessment states that staff may sign off next for this module: the next states after
+        the latest sign off (or the initial states, if there are none yet) that they're allowed to set.
+        """
+        latest = self.get_latest_signoff()
+        if latest is None:
+            candidates = AssessmentState.objects.filter(initial_state=True)
+        else:
+            candidates = latest.assessment_state.next_states.all()
+        allowed = [state.pk for state in candidates if state.can_be_set_by(staff, self)]
+        return candidates.filter(pk__in=allowed)
+
     def explain_hours(self):
         """
         Where each of the module's hour figures comes from, in plain language, for the

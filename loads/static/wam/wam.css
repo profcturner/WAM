@@ -335,3 +335,183 @@ div.wam-formset-grid div input[type=checkbox]:before {
         position: static;
     }
 }
+
+/*
+ * Brand colours, from the WAM logo. The navy is lightened in dark mode so it stays readable.
+ */
+:root,
+[data-bs-theme="light"] {
+    --wam-navy: #0f4a7a;
+    --wam-navy-hover: #0c3c63;
+    --wam-gold: #c49e58;
+    --wam-gold-soft: #f6eddc;
+    --wam-semester-1: #0f4a7a;
+    --wam-semester-2: #c49e58;
+    --wam-semester-3: #9aa5b1;
+}
+[data-bs-theme="dark"] {
+    --wam-navy: #6ea8dc;
+    --wam-navy-hover: #8fbde6;
+    --wam-gold: #d9b878;
+    --wam-gold-soft: #3a3020;
+    --wam-semester-1: #6ea8dc;
+    --wam-semester-2: #d9b878;
+    --wam-semester-3: #8b96a3;
+}
+
+/* Navigation bar brand: the mark and the name */
+.navbar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.wam-brand-mark {
+    height: 44px;
+    width: 44px;
+}
+.wam-brand-name {
+    font-weight: 700;
+    font-size: 1.35rem;
+    letter-spacing: 0.04em;
+    color: var(--wam-navy);
+}
+
+/* A primary button in the brand navy */
+.btn.wam-btn-brand {
+    --bs-btn-bg: #0f4a7a;
+    --bs-btn-border-color: #0f4a7a;
+    --bs-btn-hover-bg: #0c3c63;
+    --bs-btn-hover-border-color: #0c3c63;
+    --bs-btn-active-bg: #0a3354;
+    --bs-btn-active-border-color: #0a3354;
+    --bs-btn-color: #fff;
+    --bs-btn-hover-color: #fff;
+}
+
+/* Signed out home page */
+.wam-hero {
+    display: flex;
+    gap: 2.5rem;
+    align-items: center;
+}
+.wam-hero-logo {
+    flex: none;
+    width: 160px;
+    height: auto;
+}
+.wam-hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--wam-navy);
+    margin-bottom: 0;
+    line-height: 1.1;
+}
+.wam-hero-subtitle {
+    font-size: 1.15rem;
+    color: var(--wam-gold);
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+.wam-hero-lead {
+    max-width: 38rem;
+    margin-bottom: 1.5rem;
+}
+@media (max-width: 767.98px) {
+    .wam-hero {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    .wam-hero-logo {
+        width: 96px;
+    }
+    .wam-hero-title {
+        font-size: 2.4rem;
+    }
+}
+.wam-feature {
+    border-top: 3px solid var(--wam-gold);
+    padding-top: 1rem;
+}
+.wam-feature h2 {
+    color: var(--wam-navy);
+}
+
+/* Signed in home page */
+.wam-home-card {
+    border-color: var(--bs-border-color-translucent);
+}
+.wam-home-label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.78rem;
+    color: var(--bs-secondary-color);
+    margin-bottom: 0.75rem;
+}
+.wam-home-figure {
+    font-size: 2.5rem;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--wam-navy);
+    font-variant-numeric: tabular-nums;
+}
+.wam-home-unit {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--bs-secondary-color);
+}
+.wam-semester-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    background: var(--bs-secondary-bg);
+}
+.wam-semester-bar > span {
+    flex-basis: 0;
+}
+.wam-semester-1 { background: var(--wam-semester-1); }
+.wam-semester-2 { background: var(--wam-semester-2); }
+.wam-semester-3 { background: var(--wam-semester-3); }
+.wam-semester-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.5rem;
+}
+.wam-semester-legend > div {
+    display: flex;
+    gap: 0.4rem;
+}
+.wam-semester-legend dt {
+    font-weight: 400;
+    color: var(--bs-secondary-color);
+}
+.wam-semester-legend dd {
+    margin: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.wam-swatch {
+    display: inline-block;
+    width: 0.7em;
+    height: 0.7em;
+    border-radius: 2px;
+    margin-right: 0.35em;
+}
+.wam-home-list li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+.wam-home-list li:last-child {
+    border-bottom: 0;
+}
+.wam-home-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+}
