@@ -130,6 +130,13 @@ class StaffHomeTests(HomePageTestCase):
         self.assertEqual(response.context['summary'].get('awaiting_count'), 0)
         self.assertNotContains(response, "Waiting for you:")
 
+    def test_superusers_are_flagged_only_for_their_own_role(self):
+        make_state("Ready", actors="coordinator")
+        self.module.moderators.add(self.superuser)
+        item = self.home(self.superuser).context['summary']['modules'][0]
+        self.assertFalse(item['awaiting_you'])
+        self.assertTrue(self.module.get_next_assessment_states(self.superuser).exists())  # they still may, though
+
     def test_states_anyone_can_set_are_not_flagged(self):
         make_state("Comment", actors="anyone")
         self.assertFalse(self.home(self.coordinator).context['summary']['modules'][0]['awaiting_you'])

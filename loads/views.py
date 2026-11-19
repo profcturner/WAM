@@ -133,8 +133,8 @@ def home_summary(staff):
         modules = []
         for module in sorted(roles, key=lambda m: m.module_code):
             latest = module.get_latest_signoff()
-            # States only they (in their role) can move it on to, rather than ones anyone may add
-            next_states = list(module.get_next_assessment_states(staff).exclude(actors='anyone')
+            # States they can move it on to because of their role (so not as a superuser), other than ones anyone may add
+            next_states = list(module.get_next_assessment_states(staff, superuser_override=False).exclude(actors='anyone')
                                .order_by('priority'))
             modules.append({
                 'module': module,

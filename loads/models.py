@@ -1356,7 +1356,7 @@ class Module(models.Model):
         """The module's most recent assessment sign off, or None"""
         return AssessmentStateSignOff.objects.filter(module=self).order_by('-created').first()
 
-    def get_next_assessment_states(self, staff):
+    def get_next_assessment_states(self, staff, superuser_override=True):
         """
         The assessment states that staff may sign off next for this module: the next states after
         the latest sign off (or the initial states, if there are none yet) that they're allowed to set.
@@ -1366,7 +1366,7 @@ class Module(models.Model):
             candidates = AssessmentState.objects.filter(initial_state=True)
         else:
             candidates = latest.assessment_state.next_states.all()
-        allowed = [state.pk for state in candidates if state.can_be_set_by(staff, self)]
+        allowed = [state.pk for state in candidates if state.can_be_set_by(staff, self, superuser_override)]
         return candidates.filter(pk__in=allowed)
 
     def explain_hours(self):
@@ -1847,7 +1847,7 @@ class AssessmentState(models.Model):
         """Return a list of types of people to be notified when this state occurs"""
         return self.notify.split(',')
 
-    def can_be_set_by(self, staff, module):
+    def can_be_set_by(self, staff, module, superuser_override=True):
         """checks if a State can be set on a given module by a given person
 
             see is_downloadable_by_staff() or is_downloadable_by_external() for more details
@@ -1858,10 +1858,12 @@ class AssessmentState(models.Model):
         if staff.is_external:
             return self.can_be_set_by_external(staff, module)
         else:
-            return self.can_be_set_by_staff(staff, module)
+            return self.can_be_set_by_staff(staff, module, superuser_override)
 
-    def can_be_set_by_staff(self, staff, module):
+    def can_be_set_by_staff(self, staff, module, superuser_override=True):
         """determines if a member of staff can set this state for a module
+
+            superuser_override  if False, superusers are treated by their role on the module like anyone else
 
             returns True if permitted, False otherwise"""
 
@@ -1871,7 +1873,7 @@ class AssessmentState(models.Model):
         actors = self.get_actor_list()
 
         # SuperUser override
-        if staff.user.is_superuser:
+        if superuser_override and staff.user.is_superuser:
             return True
 
         # Anyone
