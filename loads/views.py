@@ -1334,6 +1334,103 @@ def add_assessment_resource(request, module_id):
                   {'form': form, 'staff': staff, 'module': module})
 
 
+def can_enter_hours_by_person(staff, module):
+    """
+    Whether someone may replace a module's hours and allocations from hours per person: superusers, or
+    staff in the module's work package who may change the module and its allocations.
+    """
+    user = staff.user
+    if user.is_superuser:
+        return True
+    needed = ('loads.change_module', 'loads.add_modulestaff', 'loads.change_modulestaff', 'loads.delete_modulestaff')
+    return (not staff.is_external and module.package in staff.get_all_packages(include_hidden=True)
+            and all(user.has_perm(permission) for permission in needed))
+
+
+@login_required
+@staff_only
+def module_hours_by_person(request, module_id):
+    """
+    Enter a module's workload as hours per person. Previewed first; confirming replaces the module's
+    contact, assessment and admin hours with the totals, and its staff allocations with each
+    person's share. See hours_converter.
+    """
+    from django.contrib.admin.models import CHANGE, LogEntry
+    from django.contrib.contenttypes.models import ContentType
+    from django.db import transaction
+
+    from .hours_converter import CATEGORIES, PersonHoursFormSet, Plan
+
+    staff = get_object_or_404(Staff, user=request.user)
+    module = get_object_or_404(Module, pk=module_id)
+    if not can_enter_hours_by_person(staff, module):
+        logger.info("[%s] may not enter hours by person for %s" % (request.user, module))
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    package = module.package
+    allocations = list(ModuleStaff.objects.filter(module=module).select_related('staff__user', 'activity_type')
+                       .order_by('staff__user__last_name', 'staff__user__first_name'))
+    # The package's staff, and anyone already on the module even if no longer in the package
+    staff_pks = set(package.get_all_staff().values_list('pk', flat=True)) | {a.staff_id for a in allocations}
+    staff_queryset = Staff.objects.filter(pk__in=staff_pks, is_external=False).select_related('user').order_by(
+        'user__last_name', 'user__first_name')
+
+    plan = None
+    if request.method == 'POST':
+        formset = PersonHoursFormSet(request.POST, prefix='hours',
+                                     form_kwargs={'staff_queryset': staff_queryset})
+        if formset.is_valid():
+            plan = Plan(module, formset.rows())
+            confirmed = request.POST.get('confirm') and request.POST.get('fingerprint') == plan.fingerprint()
+            if request.POST.get('confirm') and not confirmed:
+                messages.warning(request, "The figures changed after the preview. Please check them again before "
+                                          "confirming.")
+            if confirmed:
+                activity_types = {a.staff_id: a.activity_type_id for a in allocations}
+                with transaction.atomic():
+                    module.contact_hours = plan.totals['contact']
+                    module.assessment_hours = plan.totals['assessment']
+                    module.admin_hours = plan.totals['admin']
+                    module.save()
+                    ModuleStaff.objects.filter(module=module).delete()
+                    for person in plan.people:
+                        allocation = ModuleStaff(module=module, staff=person['staff'], package=package,
+                                                 contact_proportion=person['contact'],
+                                                 assessment_proportion=person['assessment'],
+                                                 admin_proportion=person['admin'])
+                        if person['staff'].pk in activity_types:
+                            allocation.activity_type_id = activity_types[person['staff'].pk]
+                        allocation.save()
+                    summary = "Hours entered per person: totals contact %(contact)s, assessment %(assessment)s, " \
+                              "admin %(admin)s; " % plan.totals + "; ".join(
+                                  "%s %s/%s/%s%%" % (p['staff'], p['contact'], p['assessment'], p['admin'])
+                                  for p in plan.people)
+                    LogEntry.objects.create(user=request.user, content_type=ContentType.objects.get_for_model(Module),
+                                            object_id=str(module.pk), object_repr=str(module)[:200],
+                                            action_flag=CHANGE, change_message=summary)
+                logger.info("[%s] replaced hours and allocations for %s from hours per person: %s"
+                            % (request.user, module, summary))
+                messages.success(request, "%s's hours and allocations have been updated." % module.module_code)
+                return HttpResponseRedirect(reverse('modules_details', args=[module.pk]))
+    else:
+        # Start from what's there now, as hours, to one decimal place
+        totals = {'contact': module.get_contact_hours(), 'assessment': module.get_assessment_hours(),
+                  'admin': module.get_admin_hours()}
+        initial = [{'staff': a.staff,
+                    'contact': round(totals['contact'] * a.contact_proportion / 100, 1),
+                    'assessment': round(totals['assessment'] * a.assessment_proportion / 100, 1),
+                    'admin': round(totals['admin'] * a.admin_proportion / 100, 1)} for a in allocations]
+        formset = PersonHoursFormSet(initial=initial, prefix='hours', form_kwargs={'staff_queryset': staff_queryset})
+
+    return render(request, 'loads/modules/hours_by_person.html', {
+        'module': module,
+        'package': package,
+        'formset': formset,
+        'plan': plan,
+        'categories': CATEGORIES,
+    })
+
+
 @login_required
 @staff_only
 def module_staff_allocation(request, module_id, package_id):
@@ -1723,6 +1820,7 @@ def modules_details(request, module_id):
         'waiting_states': module.get_next_assessment_states(staff, superuser_override=False).exclude(
             actors='anyone').order_by('priority'),
         'can_delete_signoffs': can_delete_sign_offs(staff, module),
+        'can_enter_hours': can_enter_hours_by_person(staff, module),
     }
     return HttpResponse(template.render(context, request))
 

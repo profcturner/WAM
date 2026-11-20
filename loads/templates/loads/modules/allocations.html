@@ -13,6 +13,10 @@
     <span class="fw-bold">Package</span><br/>
     <span class="font-monospace">{{package}}</span>
 </p>
+<p class="small">
+    Have hours for each person rather than percentages?
+    <a class="link-offset-2" href="{% url 'module_hours_by_person' module.id %}">Enter hours per person</a> instead.
+</p>
 
 {{ formset.media }}
 <div class="border border-secondary rounded-3 p-3">

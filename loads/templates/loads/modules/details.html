@@ -159,6 +159,9 @@
     {% if logged_in_staff and not logged_in_staff.is_external %}
     <p class="wam-hide-on-print">
         <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'module_staff_allocation' package.id module.id %}">Edit allocations</a>
+        {% if can_enter_hours %}
+        &middot; <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'module_hours_by_person' module.id %}">Enter hours per person</a>
+        {% endif %}
     </p>
     {% endif %}
     {% else %}
@@ -166,6 +169,9 @@
         <span class="text-info-emphasis">No allocations of staff recorded for this module</span>
         {% if logged_in_staff and not logged_in_staff.is_external %}
         <span class="small wam-hide-on-print"><a class="btn btn-sm btn-secondary ms-1" role="button" href="{% url 'module_staff_allocation' package.id module.id %}">Edit</a></span>
+        {% endif %}
+        {% if can_enter_hours %}
+        <span class="small wam-hide-on-print"><a class="btn btn-sm btn-outline-secondary ms-1" role="button" href="{% url 'module_hours_by_person' module.id %}">Enter hours per person</a></span>
         {% endif %}
     </p>
     {% endif %}

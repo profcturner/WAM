@@ -520,3 +520,25 @@ div.wam-formset-grid div input[type=checkbox]:before {
 .wam-home [id] {
     scroll-margin-top: calc(var(--wam-navbar-height, 80px) + 1rem);
 }
+
+/* Entering hours per person: on phones, the person on one line and their hours beneath, labelled */
+@media (max-width: 767.98px) {
+    div.wam-formset-grid.wam-hours-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+        gap: 0.25rem 0.5rem;
+    }
+    div.wam-formset-grid.wam-hours-grid > div {
+        min-width: 0;
+    }
+    div.wam-formset-grid.wam-hours-grid > div:first-child {
+        grid-column: 1 / -1;
+    }
+    div.wam-formset-grid.wam-hours-grid div label {
+        display: block;
+        font-size: 0.75rem;
+    }
+    div.wam-formset-grid.wam-hours-grid > div:first-child label,
+    div.wam-formset-grid.wam-hours-head {
+        display: none;
+    }
+}
