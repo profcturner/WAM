@@ -171,3 +171,40 @@ class BasePersonHoursFormSet(FancyFormSet):
 
 PersonHoursFormSet = forms.formset_factory(PersonHoursForm, formset=BasePersonHoursFormSet,
                                            extra=1, can_delete=True)
+
+
+def apply_plan(plan, user):
+    """
+    Save a plan: the module's contact, assessment and admin hours become its totals, and its staff
+    allocations are replaced by each person's shares. Existing people keep their activity type.
+    Logged against the module. Returns a one-line summary. Callers check permission first.
+    """
+    from django.contrib.admin.models import CHANGE, LogEntry
+    from django.contrib.contenttypes.models import ContentType
+    from django.db import transaction
+
+    from .models import Module, ModuleStaff
+
+    module = plan.module
+    with transaction.atomic():
+        activity_types = dict(ModuleStaff.objects.filter(module=module).values_list('staff_id', 'activity_type_id'))
+        module.contact_hours = plan.totals['contact']
+        module.assessment_hours = plan.totals['assessment']
+        module.admin_hours = plan.totals['admin']
+        module.save()
+        ModuleStaff.objects.filter(module=module).delete()
+        for person in plan.people:
+            allocation = ModuleStaff(module=module, staff=person['staff'], package=module.package,
+                                     contact_proportion=person['contact'],
+                                     assessment_proportion=person['assessment'],
+                                     admin_proportion=person['admin'])
+            if person['staff'].pk in activity_types:
+                allocation.activity_type_id = activity_types[person['staff'].pk]
+            allocation.save()
+        summary = ("Hours entered per person: totals contact %(contact)s, assessment %(assessment)s, admin %(admin)s; "
+                   % plan.totals) + "; ".join("%s %s/%s/%s%%" % (p['staff'], p['contact'], p['assessment'], p['admin'])
+                                               for p in plan.people)
+        LogEntry.objects.create(user=user, content_type=ContentType.objects.get_for_model(Module),
+                                object_id=str(module.pk), object_repr=str(module)[:200],
+                                action_flag=CHANGE, change_message=summary[:10000])
+    return summary

@@ -1,0 +1,170 @@
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
+
+<h3 class="mt-3 mb-1">Import hours per person</h3>
+<p class="text-body-secondary">
+    For modules in {{ package }} &middot;
+    <a class="link-offset-2" href="{% url 'workpackage_change' %}">Change year</a>
+</p>
+
+<p>
+    Use this when you have each person's hours on several modules in a spreadsheet. WAM adds up each
+    module's hours to make its totals, and works out everyone's percentage share. You'll see a preview
+    before anything is saved.
+</p>
+
+<details class="mb-3">
+    <summary>What the spreadsheet should look like</summary>
+    <div class="mt-2">
+        <p class="mb-2">One row per person per module. A header row is optional; with one, the columns can be in any order.</p>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered small w-auto">
+                <thead>
+                    <tr><th>Module code</th><th>Staff member</th><th>Contact hours</th><th>Assessment hours</th><th>Admin hours</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>COM101</td><td>Ann Lee</td><td>24</td><td>15</td><td>6</td></tr>
+                    <tr><td>COM101</td><td>a.lee2@example.ac.uk</td><td>12</td><td>7.5</td><td>0</td></tr>
+                    <tr><td>COM332</td><td>Lee, Ann</td><td>30</td><td>10</td><td></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <ul class="small">
+            <li>People can be given by name (including "A. Lee" or "Lee, Ann"), username, email address or staff number.</li>
+            <li>Blank hours count as 0. Coordinator hours aren't included and won't change.</li>
+            <li>Each module listed has <strong>all</strong> its hours and allocations replaced, so include everyone who works on it.
+                Modules not listed aren't changed.</li>
+        </ul>
+    </div>
+</details>
+
+<form method="POST" enctype="multipart/form-data" class="border border-secondary rounded-3 p-3 mb-4">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="id_pasted" class="form-label fw-bold">Paste cells from your spreadsheet</label>
+        <textarea class="form-control font-monospace small" id="id_pasted" name="pasted" rows="8"
+                  placeholder="Select the cells in Excel, copy, and paste here">{{ pasted }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label for="id_upload" class="form-label fw-bold">Or upload a file</label>
+        <input class="form-control" type="file" id="id_upload" name="upload" accept=".xlsx,.csv">
+        <div class="form-text">An Excel (.xlsx) file, using its first sheet, or a CSV file.</div>
+    </div>
+    <button class="btn btn-primary" type="submit" name="check" value="1">Check and preview</button>
+</form>
+
+{% if read_error %}
+<div class="alert alert-danger">{{ read_error }}</div>
+{% endif %}
+
+{% if result %}
+<section aria-labelledby="preview-title" class="mb-5">
+    <h4 id="preview-title">Preview</h4>
+    <p>
+        {{ result.rows|length }} row{{ result.rows|length|pluralize }}{% if result.has_header %} (after the header){% endif %}
+        for {{ result.modules|length }} module{{ result.modules|length|pluralize }}.
+        <strong>{{ result.ready|length }}</strong> ready to save{% if result.skipped or result.unmatched %};
+        <strong>{{ result.skipped|length }}</strong> module{{ result.skipped|length|pluralize }} with problems{% if result.unmatched %}, and {{ result.unmatched|length }} row{{ result.unmatched|length|pluralize }} for modules that weren't found{% endif %}{% endif %}.
+    </p>
+
+    {% if result.problem_rows or result.skipped %}
+    <h5 class="h6 mt-4">Problems</h5>
+    <p class="small text-body-secondary">These modules will be left as they are. Fix the spreadsheet and check it again to include them.</p>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle small">
+            <thead><tr><th scope="col">Row</th><th scope="col">Module</th><th scope="col">Staff member</th><th scope="col">Problem</th></tr></thead>
+            <tbody>
+                {% for row in result.problem_rows %}
+                <tr>
+                    <td>{{ row.line }}</td>
+                    <td>{{ row.module_text }}</td>
+                    <td>{{ row.person_text }}</td>
+                    <td class="text-danger-emphasis">{{ row.problems|join:" " }}</td>
+                </tr>
+                {% endfor %}
+                {% for item in result.skipped %}
+                {% for problem in item.problems %}{% if problem != "Some of its rows have problems." %}
+                <tr>
+                    <td></td>
+                    <td>{{ item.module.module_code }}</td>
+                    <td></td>
+                    <td class="text-danger-emphasis">{{ problem }}</td>
+                </tr>
+                {% endif %}{% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if result.ready %}
+    <h5 class="h6 mt-4">Ready to save</h5>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Module</th>
+                    <th scope="col" class="text-end">People</th>
+                    {% for key, label in categories %}<th scope="col" class="text-end">{{ label }}<br><span class="fw-normal small text-body-secondary">now &rarr; after</span></th>{% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in result.ready %}
+                <tr>
+                    <td>
+                        <a class="link-offset-2" href="{% url 'modules_details' item.module.id %}">{{ item.module.module_code }}</a>
+                        <span class="text-body-secondary small">{{ item.module.module_name }}</span>
+                    </td>
+                    <td class="text-end">{{ item.plan.people|length }}</td>
+                    {% for label, fixed, current, new, entered in item.plan.total_rows %}
+                    <td class="text-end">
+                        <span class="text-body-secondary">{{ current|floatformat:"-1" }}{% if fixed is None %}*{% endif %}</span>
+                        &rarr; <strong>{{ new|floatformat:"-1" }}</strong>
+                    </td>
+                    {% endfor %}
+                </tr>
+                <tr class="wam-import-detail">
+                    <td colspan="5" class="pt-0">
+                        <details>
+                            <summary class="small">Shares{% if item.plan.rounded %} (some hours rounded){% endif %}</summary>
+                            <table class="table table-sm table-borderless small mb-1 w-auto">
+                                {% for person in item.plan.people %}
+                                <tr>
+                                    <th scope="row" class="fw-normal pe-3">{{ person.staff }}</th>
+                                    {% for c in person.categories %}
+                                    <td class="text-end pe-3">{{ c.percentage|floatformat:"-2" }}% <span class="text-body-secondary">= {{ c.hours|floatformat:"-1" }} h{% if c.differs %} (entered {{ c.entered|floatformat:"-1" }}){% endif %}</span></td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </table>
+                            {% if item.plan.dropped %}<p class="small mb-1">No allocation for: {{ item.plan.dropped|join:", " }} (no hours).</p>{% endif %}
+                        </details>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="small text-body-secondary">* Worked out automatically now.</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="alert alert-warning">
+            <strong>Saving replaces the workload of the {{ result.ready|length }} module{{ result.ready|length|pluralize }} above.</strong>
+            Their contact, assessment and admin hours become these totals, and are fixed: they'll no longer be worked
+            out from credits and student numbers. All their staff allocations are replaced. Other modules aren't changed.
+        </div>
+        <input type="hidden" name="payload" value="{{ result.payload }}">
+        <input type="hidden" name="fingerprint" value="{{ result.fingerprint }}">
+        <button class="btn btn-danger" type="submit" name="confirm" value="1">
+            Replace hours and allocations for {{ result.ready|length }} module{{ result.ready|length|pluralize }}
+        </button>
+    </form>
+    {% elif result.modules or result.unmatched %}
+    <p class="alert alert-secondary">No modules are ready to save yet.</p>
+    {% endif %}
+</section>
+{% endif %}
+
+{% endblock content %}

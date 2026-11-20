@@ -1085,6 +1085,8 @@ def custom_admin_index(request):
     context = {
         'django_admin': request.user.is_staff or request.user.is_superuser,
         'can_manage_school_groups': has_admin_permission(request.user, 'can_manage_school_groups'),
+        'can_import_hours': request.user.is_superuser or all(request.user.has_perm(p) for p in (
+            'loads.change_module', 'loads.add_modulestaff', 'loads.change_modulestaff', 'loads.delete_modulestaff')),
     }
     return HttpResponse(template.render(context, request))
 
@@ -1355,11 +1357,7 @@ def module_hours_by_person(request, module_id):
     contact, assessment and admin hours with the totals, and its staff allocations with each
     person's share. See hours_converter.
     """
-    from django.contrib.admin.models import CHANGE, LogEntry
-    from django.contrib.contenttypes.models import ContentType
-    from django.db import transaction
-
-    from .hours_converter import CATEGORIES, PersonHoursFormSet, Plan
+    from .hours_converter import CATEGORIES, PersonHoursFormSet, Plan, apply_plan
 
     staff = get_object_or_404(Staff, user=request.user)
     module = get_object_or_404(Module, pk=module_id)
@@ -1386,28 +1384,7 @@ def module_hours_by_person(request, module_id):
                 messages.warning(request, "The figures changed after the preview. Please check them again before "
                                           "confirming.")
             if confirmed:
-                activity_types = {a.staff_id: a.activity_type_id for a in allocations}
-                with transaction.atomic():
-                    module.contact_hours = plan.totals['contact']
-                    module.assessment_hours = plan.totals['assessment']
-                    module.admin_hours = plan.totals['admin']
-                    module.save()
-                    ModuleStaff.objects.filter(module=module).delete()
-                    for person in plan.people:
-                        allocation = ModuleStaff(module=module, staff=person['staff'], package=package,
-                                                 contact_proportion=person['contact'],
-                                                 assessment_proportion=person['assessment'],
-                                                 admin_proportion=person['admin'])
-                        if person['staff'].pk in activity_types:
-                            allocation.activity_type_id = activity_types[person['staff'].pk]
-                        allocation.save()
-                    summary = "Hours entered per person: totals contact %(contact)s, assessment %(assessment)s, " \
-                              "admin %(admin)s; " % plan.totals + "; ".join(
-                                  "%s %s/%s/%s%%" % (p['staff'], p['contact'], p['assessment'], p['admin'])
-                                  for p in plan.people)
-                    LogEntry.objects.create(user=request.user, content_type=ContentType.objects.get_for_model(Module),
-                                            object_id=str(module.pk), object_repr=str(module)[:200],
-                                            action_flag=CHANGE, change_message=summary)
+                summary = apply_plan(plan, request.user)
                 logger.info("[%s] replaced hours and allocations for %s from hours per person: %s"
                             % (request.user, module, summary))
                 messages.success(request, "%s's hours and allocations have been updated." % module.module_code)
@@ -1429,6 +1406,64 @@ def module_hours_by_person(request, module_id):
         'plan': plan,
         'categories': CATEGORIES,
     })
+
+
+@login_required
+@staff_only
+def module_hours_import(request):
+    """
+    Import hours per person for many modules in the current work package, from a spreadsheet: pasted
+    cells or an uploaded .csv/.xlsx file. Previewed first; confirming replaces each listed module's
+    hours and allocations, as entering them on its own page would. See hours_import.
+    """
+    from django.db import transaction
+
+    from .hours_converter import CATEGORIES, apply_plan
+    from .hours_import import HoursImport, ReadError, fingerprint_plans, plans_from_payload, read_cells
+
+    staff = get_object_or_404(Staff, user=request.user)
+    package = staff.package
+    needed = ('loads.change_module', 'loads.add_modulestaff', 'loads.change_modulestaff', 'loads.delete_modulestaff')
+    if package is None or staff.is_external or not (
+            request.user.is_superuser or (package in staff.get_all_packages(include_hidden=True)
+                                          and all(request.user.has_perm(p) for p in needed))):
+        logger.info("[%s] may not import hours by person" % request.user)
+        return HttpResponseRedirect(reverse('forbidden'))
+
+    def may_change(module):
+        return can_enter_hours_by_person(staff, module)
+
+    staff_queryset = Staff.objects.filter(pk__in=package.get_all_staff().values_list('pk', flat=True),
+                                          is_external=False).select_related('user')
+    context = {'package': package, 'categories': CATEGORIES, 'pasted': ''}
+
+    if request.method == 'POST' and request.POST.get('confirm'):
+        plans = plans_from_payload(request.POST.get('payload'), package, staff_queryset, may_change)
+        if plans is None or fingerprint_plans(plans) != request.POST.get('fingerprint'):
+            messages.warning(request, "Something changed after the preview, so nothing was saved. Please check "
+                                      "the spreadsheet again.")
+            return HttpResponseRedirect(reverse('module_hours_import'))
+        with transaction.atomic():
+            for plan in plans:
+                summary = apply_plan(plan, request.user)
+                logger.info("[%s] imported hours by person for %s: %s" % (request.user, plan.module, summary))
+        messages.success(request, "Hours and allocations updated for %d module%s: %s." % (
+            len(plans), '' if len(plans) == 1 else 's', ', '.join(plan.module.module_code for plan in plans)))
+        return HttpResponseRedirect(reverse('module_hours_import'))
+
+    if request.method == 'POST':
+        context['pasted'] = request.POST.get('pasted', '')
+        try:
+            rows = read_cells(text=context['pasted'], upload=request.FILES.get('upload'))
+        except ReadError as error:
+            context['read_error'] = str(error)
+        else:
+            if not rows:
+                context['read_error'] = "There was nothing to import. Paste some cells, or choose a file."
+            else:
+                context['result'] = HoursImport(rows, package, staff_queryset, may_change)
+
+    return render(request, 'loads/modules/hours_import.html', context)
 
 
 @login_required

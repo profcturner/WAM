@@ -4,6 +4,8 @@ django
 django-utils
 django-fancy-formset
 python-dateutil
+# Reading .xlsx uploads of hours per person (loads.hours_import); optional, CSV and pasting work without it
+openpyxl
 simpleeval
 # Used by loads.directory_graph to onboard staff from Microsoft Entra ID
 msal
