@@ -14,6 +14,7 @@
     before anything is saved.
 </p>
 <p class="small text-body-secondary">
+    Several modules in a spreadsheet? <a class="link-offset-2" href="{% url 'module_hours_import' %}">Import them all at once</a>.
     Coordinator hours aren't included and won't change. To remove someone, use the bin icon or set their hours to 0.
 </p>
 
@@ -87,7 +88,7 @@
                     <tr>
                         <th scope="row" class="fw-normal">{{ label }}</th>
                         <td class="text-end">{{ current|floatformat:"-1" }}{% if fixed is None %} <span class="text-body-secondary small">(automatic)</span>{% endif %}</td>
-                        <td class="text-end fw-bold">{{ new }}{% if new != entered %} <span class="text-body-secondary small fw-normal">(from {{ entered|floatformat:"-1" }})</span>{% endif %}</td>
+                        <td class="text-end fw-bold">{{ new|floatformat:"-1" }}{% if new != entered %} <span class="text-body-secondary small fw-normal">(from {{ entered|floatformat:"-1" }})</span>{% endif %}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -109,9 +110,9 @@
                         <th scope="row" class="fw-normal">{{ person.staff }}</th>
                         {% for c in person.categories %}
                         <td class="text-end">
-                            <strong>{{ c.percentage }}%</strong>
+                            <strong>{{ c.percentage|floatformat:"-2" }}%</strong>
                             <span class="text-body-secondary small">
-                                = {{ c.hours|floatformat:"-1" }} h{% if c.hours != c.entered %} (entered {{ c.entered|floatformat:"-1" }}){% endif %}
+                                = {{ c.hours|floatformat:"-1" }} h{% if c.differs %} (entered {{ c.entered|floatformat:"-1" }}){% endif %}
                             </span>
                         </td>
                         {% endfor %}
@@ -122,8 +123,8 @@
         </div>
         {% if plan.rounded %}
         <p class="small text-body-secondary">
-            WAM stores module totals in whole hours and shares as whole percentages, so some hours differ
-            slightly from those entered. Each column's percentages add up to 100.
+            WAM stores module totals to a tenth of an hour and shares to two decimal places, so some hours
+            differ slightly from those entered. Each column's percentages add up to 100.
         </p>
         {% endif %}
 

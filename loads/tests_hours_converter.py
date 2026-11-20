@@ -7,7 +7,7 @@ from django.test import SimpleTestCase
 from WAM.settings import WAM_DEFAULT_ACTIVITY_TYPE
 from django.urls import reverse
 
-from .hours_converter import Plan, percentages, whole
+from .hours_converter import Plan, percentages, tenths
 from .models import ActivityType, Category, ModuleStaff
 from .testing import make_module, make_staff
 from .tests_views import ViewTestCase
@@ -19,9 +19,10 @@ PERMISSIONS = ['loads.change_module', 'loads.add_modulestaff', 'loads.change_mod
 class ArithmeticTests(SimpleTestCase):
 
     def test_percentages_add_up_to_100(self):
-        self.assertEqual(percentages([D(10), D(10), D(10)]), [34, 33, 33])
-        self.assertEqual(percentages([D(1), D(2)]), [33, 67])
+        self.assertEqual(percentages([D(10), D(10), D(10)]), [D('33.34'), D('33.33'), D('33.33')])
+        self.assertEqual(percentages([D(1), D(2)]), [D('33.33'), D('66.67')])
         self.assertEqual(percentages([D('7.5'), D('2.5')]), [75, 25])
+        self.assertEqual(percentages([D(12), D(50)]), [D('19.35'), D('80.65')])
         for hours in ([D(1)] * 7, [D(3), D(5), D(11), D(13)], [D('0.5'), D(99)]):
             self.assertEqual(sum(percentages(hours)), 100, hours)
 
@@ -29,8 +30,9 @@ class ArithmeticTests(SimpleTestCase):
         self.assertEqual(percentages([D(0), D(0)]), [0, 0])
         self.assertEqual(percentages([]), [])
 
-    def test_whole_hours_round_halves_up(self):
-        self.assertEqual([whole(D('2.5')), whole(D('3.5')), whole(D('3.4'))], [3, 4, 3])
+    def test_tenths_round_halves_up(self):
+        self.assertEqual([tenths(D('2.25')), tenths(D('3.35')), tenths(D('3.34')), tenths(D(4))],
+                         [D('2.3'), D('3.4'), D('3.3'), D(4)])
 
 
 class HoursByPersonTestCase(ViewTestCase):
@@ -67,14 +69,18 @@ class PlanTests(HoursByPersonTestCase):
         plan = Plan(self.module, [(self.coordinator, {'contact': D(10), 'assessment': D('7.5'), 'admin': D(0)}),
                                   (self.lecturer, {'contact': D(20), 'assessment': D(0), 'admin': D(0)}),
                                   (self.admin, {'contact': D(0), 'assessment': D(0), 'admin': D(0)})])
-        self.assertEqual(plan.totals, {'contact': 30, 'assessment': 8, 'admin': 0})
+        self.assertEqual(plan.totals, {'contact': 30, 'assessment': D('7.5'), 'admin': 0})
         self.assertEqual([(p['contact'], p['assessment'], p['admin']) for p in plan.people],
-                         [(33, 100, 0), (67, 0, 0)])
+                         [(D('33.33'), 100, 0), (D('66.67'), 0, 0)])
         self.assertEqual(plan.dropped, [self.admin])
-        self.assertTrue(plan.rounded)
+        self.assertFalse(plan.rounded)  # 10/30 is 33.33%, which is 10.0 hours to a tenth
         exact = Plan(self.module, [(self.coordinator, {'contact': D(25), 'assessment': D(5), 'admin': D(2)}),
                                    (self.lecturer, {'contact': D(75), 'assessment': D(15), 'admin': D(2)})])
         self.assertFalse(exact.rounded)
+        # Hours that aren't a whole share of the total still come out as entered, to a tenth of an hour
+        fair = Plan(self.module, [(self.coordinator, {'contact': D(12), 'assessment': D(0), 'admin': D(0)}),
+                                  (self.lecturer, {'contact': D(50), 'assessment': D(0), 'admin': D(0)})])
+        self.assertFalse(fair.rounded)
 
 
 class HoursByPersonPageTests(HoursByPersonTestCase):
@@ -140,6 +146,18 @@ class HoursByPersonPageTests(HoursByPersonTestCase):
         self.assertEqual(lecturer.activity_type, old_type)  # kept
         self.assertEqual(coordinator.package, self.package)
         self.assertIn("Hours entered per person", LogEntry.objects.get().change_message)
+
+    def test_hours_survive_saving_and_reopening(self):
+        self.login(self.admin)
+        self.confirm([(self.coordinator, 12, '7.5', 4), (self.lecturer, 24, 15, 6), (self.admin, 26, 0, 0)])
+        allocation = ModuleStaff.objects.get(module=self.module, staff=self.coordinator)
+        self.assertEqual((allocation.contact_proportion, allocation.assessment_proportion), (D('19.35'), D('33.33')))
+        initial = {row['staff']: row for row in self.client.get(self.url).context['formset'].initial}
+        self.assertEqual((initial[self.coordinator]['contact'], initial[self.coordinator]['assessment']), (12.0, 7.5))
+        self.assertEqual(initial[self.lecturer]['contact'], 24.0)
+        # And the person's load uses them
+        total, *_ = self.coordinator.hours_by_semester(self.package)
+        self.assertGreaterEqual(total, 12 + 7.5 + 4 - 0.1)
 
     def test_people_with_no_hours_get_no_allocation(self):
         self.login(self.admin)

@@ -18,6 +18,13 @@
         </a>
     </li>
     {% endif %}
+    {% if can_import_hours %}
+    <li>
+        <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'module_hours_import' %}">
+            Import hours per person for modules, from a spreadsheet
+        </a>
+    </li>
+    {% endif %}
     {% if django_admin %}
     <li>
         <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{%url 'create staff user' %}">

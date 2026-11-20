@@ -2,13 +2,13 @@
 Enter a module's workload as hours per person, and turn it into what WAM stores.
 
 WAM keeps a module's contact, assessment and admin hours as totals on the module, and each
-person's share as a whole-number percentage of each (ModuleStaff). Some admin staff have the
+person's share as a percentage of each, to two decimal places (ModuleStaff). Some admin staff have the
 figures the other way round: hours per person. This converts them:
 
-  - each column's total becomes the module's (fixed) total for that category, rounded to whole
-    hours, as the module stores them;
-  - each person's percentage is their share of the total, rounded so that each column still
-    adds up to exactly 100 (largest remainder), or 0 throughout for a column with no hours.
+  - each column's total becomes the module's (fixed) total for that category, to a tenth of an
+    hour, as the module stores them;
+  - each person's percentage is their share of the total, to two decimal places, rounded so that
+    each column still adds up to exactly 100 (largest remainder), or 0 throughout for a column with no hours.
 
 Rounding means the hours WAM then works out for someone can differ slightly from what was
 entered, so the plan records both, for the preview.
@@ -28,26 +28,27 @@ CATEGORIES = (
 )
 
 
-def whole(value):
-    """Round to whole hours, halves up (as people expect, unlike Python's round)"""
-    return int(Decimal(value).quantize(Decimal(1), rounding=ROUND_HALF_UP))
+def tenths(value):
+    """Round to a tenth of an hour, as modules store their hours; halves up, as people expect"""
+    return Decimal(value).quantize(Decimal('0.1'), rounding=ROUND_HALF_UP)
 
 
 def percentages(hours):
     """
-    Each value's whole-number share of the total, adding up to exactly 100 (or all 0 if the total is 0).
-    The largest remainders get the spare points; ties go to the earlier entry.
+    Each value's share of the total, as a percentage to two decimal places, adding up to exactly 100
+    (or all 0 if the total is 0). The largest remainders get the spare hundredths; ties go to the earlier entry.
     """
     total = sum(hours)
     if not total:
-        return [0 for _ in hours]
-    exact = [Decimal(h) * 100 / Decimal(total) for h in hours]
+        return [Decimal(0) for _ in hours]
+    # Work in hundredths of a percent, so 10000 is the whole
+    exact = [Decimal(h) * 10000 / Decimal(total) for h in hours]
     shares = [int(e) for e in exact]
-    spare = 100 - sum(shares)
+    spare = 10000 - sum(shares)
     by_remainder = sorted(range(len(hours)), key=lambda i: (-(exact[i] - shares[i]), i))
     for i in by_remainder[:spare]:
         shares[i] += 1
-    return shares
+    return [Decimal(share) / 100 for share in shares]
 
 
 class Plan:
@@ -66,7 +67,7 @@ class Plan:
 
         self.entered_totals = {key: sum((entered[key] for _, entered in self.rows), Decimal(0))
                                for key, _ in CATEGORIES}
-        self.totals = {key: whole(total) for key, total in self.entered_totals.items()}
+        self.totals = {key: tenths(total) for key, total in self.entered_totals.items()}
         shares = {key: percentages([entered[key] for _, entered in self.rows]) for key, _ in CATEGORIES}
 
         self.people = []
@@ -74,12 +75,15 @@ class Plan:
             person = {'staff': staff, 'categories': []}
             for key, label in CATEGORIES:
                 share = shares[key][index]
+                hours = self.totals[key] * share / 100
                 person[key] = share
                 person['categories'].append({
                     'key': key,
                     'entered': entered[key],
                     'percentage': share,
-                    'hours': Decimal(self.totals[key] * share) / 100,
+                    'hours': hours,
+                    # Within a twentieth of an hour shows as the same, to one decimal place
+                    'differs': abs(hours - entered[key]) >= Decimal('0.05'),
                 })
             self.people.append(person)
 
@@ -93,9 +97,9 @@ class Plan:
     @property
     def rounded(self):
         """Whether any total or anyone's hours differ from what was entered"""
-        if any(Decimal(self.totals[key]) != self.entered_totals[key] for key, _ in CATEGORIES):
+        if any(self.totals[key] != self.entered_totals[key] for key, _ in CATEGORIES):
             return True
-        return any(c['hours'] != c['entered'] for person in self.people for c in person['categories'])
+        return any(c['differs'] for person in self.people for c in person['categories'])
 
     def total_rows(self):
         """(label, current fixed value or None, current value, new total, entered total) per category"""
@@ -167,3 +171,40 @@ class BasePersonHoursFormSet(FancyFormSet):
 
 PersonHoursFormSet = forms.formset_factory(PersonHoursForm, formset=BasePersonHoursFormSet,
                                            extra=1, can_delete=True)
+
+
+def apply_plan(plan, user):
+    """
+    Save a plan: the module's contact, assessment and admin hours become its totals, and its staff
+    allocations are replaced by each person's shares. Existing people keep their activity type.
+    Logged against the module. Returns a one-line summary. Callers check permission first.
+    """
+    from django.contrib.admin.models import CHANGE, LogEntry
+    from django.contrib.contenttypes.models import ContentType
+    from django.db import transaction
+
+    from .models import Module, ModuleStaff
+
+    module = plan.module
+    with transaction.atomic():
+        activity_types = dict(ModuleStaff.objects.filter(module=module).values_list('staff_id', 'activity_type_id'))
+        module.contact_hours = plan.totals['contact']
+        module.assessment_hours = plan.totals['assessment']
+        module.admin_hours = plan.totals['admin']
+        module.save()
+        ModuleStaff.objects.filter(module=module).delete()
+        for person in plan.people:
+            allocation = ModuleStaff(module=module, staff=person['staff'], package=module.package,
+                                     contact_proportion=person['contact'],
+                                     assessment_proportion=person['assessment'],
+                                     admin_proportion=person['admin'])
+            if person['staff'].pk in activity_types:
+                allocation.activity_type_id = activity_types[person['staff'].pk]
+            allocation.save()
+        summary = ("Hours entered per person: totals contact %(contact)s, assessment %(assessment)s, admin %(admin)s; "
+                   % plan.totals) + "; ".join("%s %s/%s/%s%%" % (p['staff'], p['contact'], p['assessment'], p['admin'])
+                                               for p in plan.people)
+        LogEntry.objects.create(user=user, content_type=ContentType.objects.get_for_model(Module),
+                                object_id=str(module.pk), object_repr=str(module)[:200],
+                                action_flag=CHANGE, change_message=summary[:10000])
+    return summary
