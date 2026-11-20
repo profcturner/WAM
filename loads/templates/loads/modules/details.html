@@ -142,16 +142,16 @@
                 {% for allocation in modulestaff %}
                 <tr>
                     <th class="col-7">{{ allocation.staff }}</th>
-                    <td class="font-monospace" style="white-space: pre;">{{ allocation.contact_proportion|stringformat:"6.f" }}%</td>
-                    <td class="font-monospace" style="white-space: pre;">{{ allocation.admin_proportion|stringformat:"6.f" }}%</td>
-                    <td class="font-monospace" style="white-space: pre;">{{ allocation.assessment_proportion|stringformat:"6.f" }}%</td>
+                    <td class="font-monospace" style="white-space: pre;">{{ allocation.contact_proportion|floatformat:"-2" }}%</td>
+                    <td class="font-monospace" style="white-space: pre;">{{ allocation.admin_proportion|floatformat:"-2" }}%</td>
+                    <td class="font-monospace" style="white-space: pre;">{{ allocation.assessment_proportion|floatformat:"-2" }}%</td>
                 </tr>
                 {% endfor %}
                 <tr>
                     <th class="col-7">Total</th>
-                    <th style="white-space: pre;" class="font-monospace{% if total_contact_proportion != 100 %} text-bg-danger{% endif %}" {% if total_contact_proportion != 100 %}title="Less than 100%"{% endif %}>{{ total_contact_proportion|stringformat:"6.f" }}%</th>
-                    <th style="white-space: pre;" class="font-monospace{% if total_admin_proportion != 100 %} text-bg-danger{% endif %}" {% if total_admin_proportion != 100 %}title="Less than 100%"{% endif %}>{{ total_admin_proportion|stringformat:"6.f" }}%</th>
-                    <th style="white-space: pre;" class="font-monospace{% if total_assessment_proportion != 100 %} text-bg-danger{% endif %}" {% if total_assessment_proportion != 100 %}title="Less than 100%"{% endif %}>{{ total_assessment_proportion|stringformat:"6.f" }}%</th>
+                    <th style="white-space: pre;" class="font-monospace{% if total_contact_proportion != 100 %} text-bg-danger{% endif %}" {% if total_contact_proportion != 100 %}title="Less than 100%"{% endif %}>{{ total_contact_proportion|floatformat:"-2" }}%</th>
+                    <th style="white-space: pre;" class="font-monospace{% if total_admin_proportion != 100 %} text-bg-danger{% endif %}" {% if total_admin_proportion != 100 %}title="Less than 100%"{% endif %}>{{ total_admin_proportion|floatformat:"-2" }}%</th>
+                    <th style="white-space: pre;" class="font-monospace{% if total_assessment_proportion != 100 %} text-bg-danger{% endif %}" {% if total_assessment_proportion != 100 %}title="Less than 100%"{% endif %}>{{ total_assessment_proportion|floatformat:"-2" }}%</th>
                 </tr>
             </tbody>
         </table>

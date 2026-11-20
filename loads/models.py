@@ -11,7 +11,7 @@ import re
 from django.db import models
 from django.contrib.auth.models import User, Group
 
-from django.core.validators import validate_comma_separated_integer_list
+from django.core.validators import MaxValueValidator, MinValueValidator, validate_comma_separated_integer_list
 from django.core.exceptions import ValidationError
 
 # Project imports
@@ -713,9 +713,9 @@ class Staff(models.Model):
         # Add hours calculated from "automatic" module allocation
         modulestaff = ModuleStaff.objects.all().filter(staff=self.id).filter(package=package)
         for moduledata in modulestaff:
-            contact_hours = moduledata.contact_proportion * moduledata.module.get_contact_hours() / 100
-            assess_hours = moduledata.assessment_proportion * moduledata.module.get_assessment_hours() / 100
-            admin_hours = (moduledata.admin_proportion * moduledata.module.get_admin_hours() / 100)
+            contact_hours = float(moduledata.contact_proportion) * moduledata.module.get_contact_hours() / 100
+            assess_hours = float(moduledata.assessment_proportion) * moduledata.module.get_assessment_hours() / 100
+            admin_hours = (float(moduledata.admin_proportion) * moduledata.module.get_admin_hours() / 100)
 
             hours = contact_hours + assess_hours + admin_hours
 
@@ -761,17 +761,17 @@ class Staff(models.Model):
             else:
                 coord_hours = [0, 0, 0]
 
-            semester1_hours += (contact_hours[1] * moduledata.contact_proportion / 100)
-            semester1_hours += (assess_hours[1] * moduledata.assessment_proportion / 100)
-            semester1_hours += (admin_hours[1] * moduledata.admin_proportion / 100)
+            semester1_hours += (contact_hours[1] * float(moduledata.contact_proportion) / 100)
+            semester1_hours += (assess_hours[1] * float(moduledata.assessment_proportion) / 100)
+            semester1_hours += (admin_hours[1] * float(moduledata.admin_proportion) / 100)
 
-            semester2_hours += (contact_hours[2] * moduledata.contact_proportion / 100)
-            semester2_hours += (assess_hours[2] * moduledata.assessment_proportion / 100)
-            semester2_hours += (admin_hours[2] * moduledata.admin_proportion / 100)
+            semester2_hours += (contact_hours[2] * float(moduledata.contact_proportion) / 100)
+            semester2_hours += (assess_hours[2] * float(moduledata.assessment_proportion) / 100)
+            semester2_hours += (admin_hours[2] * float(moduledata.admin_proportion) / 100)
 
-            semester3_hours += (contact_hours[3] * moduledata.contact_proportion / 100)
-            semester3_hours += (assess_hours[3] * moduledata.assessment_proportion / 100)
-            semester3_hours += (admin_hours[3] * moduledata.admin_proportion / 100)
+            semester3_hours += (contact_hours[3] * float(moduledata.contact_proportion) / 100)
+            semester3_hours += (assess_hours[3] * float(moduledata.assessment_proportion) / 100)
+            semester3_hours += (admin_hours[3] * float(moduledata.admin_proportion) / 100)
 
         # Add coordinator hours for modules this staff member coordinates
         coordinated = Module.objects.filter(coordinator=self, package=package)
@@ -1121,9 +1121,14 @@ class ModuleStaff(models.Model):
     # TODO package is implicitly linked by module already...?
     activity_type = models.ForeignKey('ActivityType', on_delete=models.CASCADE, default=WAM_DEFAULT_ACTIVITY_TYPE)
 
-    contact_proportion = models.PositiveSmallIntegerField()
-    admin_proportion = models.PositiveSmallIntegerField()
-    assessment_proportion = models.PositiveSmallIntegerField()
+    # Percentages, to two decimal places, so shares worked out from hours (see hours_converter) are exact.
+    # They're Decimals: use float() before multiplying by hours, which are floats.
+    contact_proportion = models.DecimalField(max_digits=5, decimal_places=2,
+                                             validators=[MinValueValidator(0), MaxValueValidator(100)])
+    admin_proportion = models.DecimalField(max_digits=5, decimal_places=2,
+                                           validators=[MinValueValidator(0), MaxValueValidator(100)])
+    assessment_proportion = models.DecimalField(max_digits=5, decimal_places=2,
+                                                validators=[MinValueValidator(0), MaxValueValidator(100)])
 
     def __str__(self):
         return str(self.module) + " : " + str(self.staff)
@@ -1147,7 +1152,7 @@ class ModuleStaff(models.Model):
             ('Admin Hours', module.get_admin_hours_by_semester(), self.admin_proportion),
             ('Assessment Hours', module.get_assessment_hours_by_semester(), self.assessment_proportion),
         ]:
-            p = proportion / 100
+            p = float(proportion) / 100
             breakdown.append((
                 f"{module} {label}",
                 by_semester[0] * p,
@@ -1251,20 +1256,20 @@ class Module(models.Model):
         verbose_name='Number of students',
         help_text='Number of students, or approximate number of students enrolled',
     )
-    contact_hours = models.PositiveSmallIntegerField(
-        blank=True, null=True,
+    contact_hours = models.DecimalField(
+        max_digits=6, decimal_places=1, blank=True, null=True, validators=[MinValueValidator(0)],
         help_text="Contact Hours with Students. Leave blank for an estimate from an automated formula."
     )
     coordinator_hours = models.PositiveSmallIntegerField(
         blank=True, null=True,
         help_text="Hours for Module Coordination. Leave blank for an estimate from an automated formula."
     )
-    assessment_hours = models.PositiveSmallIntegerField(
-        blank=True, null=True,
+    assessment_hours = models.DecimalField(
+        max_digits=6, decimal_places=1, blank=True, null=True, validators=[MinValueValidator(0)],
         help_text="Hours for other aspects of Assessment. Leave blank for an estimate from an automated formula."
     )
-    admin_hours = models.PositiveSmallIntegerField(
-        blank=True, null=True,
+    admin_hours = models.DecimalField(
+        max_digits=6, decimal_places=1, blank=True, null=True, validators=[MinValueValidator(0)],
         help_text="Hours for other aspects of Admin. Leave blank for an estimate from an automated formula."
     )
 

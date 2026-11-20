@@ -1417,9 +1417,9 @@ def module_hours_by_person(request, module_id):
         totals = {'contact': module.get_contact_hours(), 'assessment': module.get_assessment_hours(),
                   'admin': module.get_admin_hours()}
         initial = [{'staff': a.staff,
-                    'contact': round(totals['contact'] * a.contact_proportion / 100, 1),
-                    'assessment': round(totals['assessment'] * a.assessment_proportion / 100, 1),
-                    'admin': round(totals['admin'] * a.admin_proportion / 100, 1)} for a in allocations]
+                    'contact': round(totals['contact'] * float(a.contact_proportion) / 100, 1),
+                    'assessment': round(totals['assessment'] * float(a.assessment_proportion) / 100, 1),
+                    'admin': round(totals['admin'] * float(a.admin_proportion) / 100, 1)} for a in allocations]
         formset = PersonHoursFormSet(initial=initial, prefix='hours', form_kwargs={'staff_queryset': staff_queryset})
 
     return render(request, 'loads/modules/hours_by_person.html', {
