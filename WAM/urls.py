@@ -103,6 +103,7 @@ urlpatterns = [
             name='delete_assessment_sign_off'),
     re_path(r'^modules/allocations/(?P<package_id>[0-9]+)/(?P<module_id>[0-9]+)$', views.module_staff_allocation,
             name='module_staff_allocation'),
+    path('modules/hours_by_person/<int:module_id>', views.module_hours_by_person, name='module_hours_by_person'),
     re_path(r'^modules/create/$', CreateModuleView.as_view(), name='create module'),
     re_path(r'^modules/update/(?P<pk>[0-9]+)$', UpdateModuleView.as_view(), name='update module'),
     re_path(r'^programmes/index/$', ProgrammeList.as_view(), name='programmes_index'),

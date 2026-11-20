@@ -1,0 +1,162 @@
+{% extends "loads/base_automatic.html" %}
+
+{% block content %}
+
+<h3 class="mt-3 mb-1">Enter hours per person</h3>
+<p class="text-body-secondary">
+    <a class="link-offset-2" href="{% url 'modules_details' module.id %}">{{ module.module_code }} {{ module.module_name }}</a>
+    &middot; {{ package }}
+</p>
+
+<p>
+    Enter each person's contact, assessment and admin hours on this module. WAM adds up each column to
+    make the module's totals, and works out everyone's percentage share for you. You'll see a preview
+    before anything is saved.
+</p>
+<p class="small text-body-secondary">
+    Coordinator hours aren't included and won't change. To remove someone, use the bin icon or set their hours to 0.
+</p>
+
+{{ formset.media }}
+<form method="POST" id="hours-form">
+    {% csrf_token %}
+    <div class="border border-secondary rounded-3 p-3 mb-4">
+        <div class="bg-body" data-formset="{{ formset.prefix }}">
+            {{ formset.management_form }}
+            <fieldset class="bg-body wam-fieldset" style="display: none">
+                <div class="wam-formset-grid wam-hours-grid">
+                    {{ formset.empty_form.as_div }}
+                </div>
+            </fieldset>
+            <div class="wam-formset-grid wam-hours-grid wam-hours-head">
+                {% for field in formset.empty_form.visible_fields %}
+                    {% if field.field.widget.input_type == "checkbox" %}
+                    <div></div>
+                    {% else %}
+                    <div class="text-wrap small mb-2 me-1 fw-bold">{{ field.label }}</div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% for form in formset %}
+            <fieldset class="bg-body wam-fieldset">
+                <div class="wam-formset-grid wam-hours-grid">
+                    {{ form.as_div }}
+                </div>
+            </fieldset>
+            {% endfor %}
+        </div>
+        <div class="wam-formset-grid wam-hours-grid wam-hours-totals border-top pt-2 mt-2" aria-live="polite">
+            <div class="small fw-bold">Totals</div>
+            {% for key, label in categories %}
+            <div class="small" data-total-for="{{ key }}">&nbsp;</div>
+            {% endfor %}
+            <div></div>
+        </div>
+        {% if formset.non_form_errors %}
+        <div class="alert alert-danger my-3 p-2">
+            {% for error in formset.non_form_errors %}{{ error|escape }}{% endfor %}
+        </div>
+        {% endif %}
+        <button class="btn btn-primary mt-3" type="submit" name="preview" value="1">
+            {% if plan %}Update the preview{% else %}Preview{% endif %}
+        </button>
+        <a class="btn btn-link mt-3" href="{% url 'modules_details' module.id %}">Cancel</a>
+    </div>
+
+    {% if plan %}
+    <section aria-labelledby="preview-title" class="mb-5">
+        <h4 id="preview-title">Preview</h4>
+
+        <div class="alert alert-warning">
+            <strong>Saving will replace this module's workload.</strong>
+            Its contact, assessment and admin hours become the totals below, and are fixed: they'll no longer be
+            worked out from the credits and number of students. All its staff allocations are replaced by these.
+            {% if plan.dropped %}
+            <br>No allocation for: {{ plan.dropped|join:", " }} (no hours entered).
+            {% endif %}
+        </div>
+
+        <h5 class="h6 mt-4">Module totals</h5>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr><th scope="col"></th><th scope="col" class="text-end">Now</th><th scope="col" class="text-end">After saving</th></tr>
+                </thead>
+                <tbody>
+                    {% for label, fixed, current, new, entered in plan.total_rows %}
+                    <tr>
+                        <th scope="row" class="fw-normal">{{ label }}</th>
+                        <td class="text-end">{{ current|floatformat:"-1" }}{% if fixed is None %} <span class="text-body-secondary small">(automatic)</span>{% endif %}</td>
+                        <td class="text-end fw-bold">{{ new }}{% if new != entered %} <span class="text-body-secondary small fw-normal">(from {{ entered|floatformat:"-1" }})</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h5 class="h6 mt-4">Allocations</h5>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Staff member</th>
+                        {% for key, label in categories %}<th scope="col" class="text-end">{{ label }}</th>{% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for person in plan.people %}
+                    <tr>
+                        <th scope="row" class="fw-normal">{{ person.staff }}</th>
+                        {% for c in person.categories %}
+                        <td class="text-end">
+                            <strong>{{ c.percentage }}%</strong>
+                            <span class="text-body-secondary small">
+                                = {{ c.hours|floatformat:"-1" }} h{% if c.hours != c.entered %} (entered {{ c.entered|floatformat:"-1" }}){% endif %}
+                            </span>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if plan.rounded %}
+        <p class="small text-body-secondary">
+            WAM stores module totals in whole hours and shares as whole percentages, so some hours differ
+            slightly from those entered. Each column's percentages add up to 100.
+        </p>
+        {% endif %}
+
+        <input type="hidden" name="fingerprint" value="{{ plan.fingerprint }}">
+        <button class="btn btn-danger" type="submit" name="confirm" value="1">Replace hours and allocations</button>
+    </section>
+    {% endif %}
+</form>
+
+<script>{{ formset.fancy_init }}</script>
+<script>
+    // Running totals for each column, as people type (the preview is what counts)
+    (function () {
+        const form = document.getElementById('hours-form');
+        const keys = [{% for key, label in categories %}'{{ key }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        function update() {
+            keys.forEach(function (key) {
+                let total = 0;
+                form.querySelectorAll('input[name$="-' + key + '"]').forEach(function (input) {
+                    const fieldset = input.closest('fieldset');
+                    if (!fieldset || fieldset.style.display === 'none') { return; }
+                    const remove = fieldset.querySelector('input[name$="-DELETE"]');
+                    if (remove && remove.checked) { return; }
+                    total += parseFloat(input.value) || 0;
+                });
+                form.querySelector('[data-total-for="' + key + '"]').textContent =
+                    (Math.round(total * 10) / 10).toString();
+            });
+        }
+        form.addEventListener('input', update);
+        form.addEventListener('change', update);
+        document.addEventListener('DOMContentLoaded', update);
+    })();
+</script>
+
+{% endblock content %}
