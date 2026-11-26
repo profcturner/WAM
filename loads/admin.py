@@ -132,8 +132,17 @@ class ModuleStaffAdmin(admin.ModelAdmin):
 
 
 class WorkPackageAdmin(admin.ModelAdmin):
-    list_display = ('name', 'startdate', 'enddate', 'draft', 'archive')
+    list_display = ('name', 'startdate', 'enddate', 'draft', 'archive', 'school_list')
+    list_filter = ('schools',)
     search_fields = ['name']
+    filter_horizontal = ('groups', 'schools')
+
+    @admin.display(description="Schools")
+    def school_list(self, obj):
+        return ", ".join(school.name for school in obj.schools.all()) or "-"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('schools')
 
 
 # Define an inline admin descriptor for Staff model
@@ -176,13 +185,30 @@ admin.site.register(Resource)
 admin.site.register(WorkPackage, WorkPackageAdmin)
 
 class AdminRoleAdmin(admin.ModelAdmin):
-    list_display = ('name', 'can_manage_school_groups')
+    list_display = ('name', 'can_manage_school_groups', 'can_view_workloads')
     search_fields = ['name']
 
 
 class StaffAdminRoleAdmin(admin.ModelAdmin):
-    list_display = ('staff', 'role', 'granted_at', 'granted_by')
-    list_filter = ('role',)
+    list_display = ('staff', 'role', 'scope', 'granted_at', 'granted_by')
+    list_filter = ('role', 'all_schools', 'schools', 'faculties')
+    filter_horizontal = ('schools', 'faculties')
+    fieldsets = (
+        (None, {'fields': ('staff', 'role')}),
+        ("What it covers", {
+            'fields': ('all_schools', 'faculties', 'schools'),
+            'description': "For capabilities that oversee Schools, such as viewing workloads. Choose Faculties to "
+                           "cover all their Schools.",
+        }),
+        (None, {'fields': ('granted_at', 'granted_by')}),
+    )
+
+    @admin.display(description="Covers")
+    def scope(self, obj):
+        if obj.all_schools:
+            return "All Schools"
+        parts = [faculty.name for faculty in obj.faculties.all()] + [school.name for school in obj.schools.all()]
+        return ", ".join(parts) or "-"
     search_fields = ['staff__user__username', 'staff__user__first_name', 'staff__user__last_name']
     autocomplete_fields = ['staff']
     readonly_fields = ('granted_at', 'granted_by')

@@ -114,7 +114,7 @@ def home_summary(staff):
     """
     summary = {'package': staff.package}
     package = staff.package
-    if package and (staff.user.is_superuser or package in staff.get_all_packages()):
+    if package and package in staff.get_visible_packages():
         total, semester1, semester2, semester3, activity_count = staff.hours_by_semester(package)
         summary['hours'] = {'total': total, 'semester1': semester1, 'semester2': semester2,
                             'semester3': semester3}
@@ -415,7 +415,7 @@ def loads(request):
             return HttpResponseRedirect(url)
     else:
         # or it's set to a package they are not "in" send them to the chooser
-        if not package or package not in staff.get_all_packages():
+        if not package or package not in staff.get_visible_packages():
             #TODO: Probably really want to 403 this...
             url = reverse('workpackage_change')
             return HttpResponseRedirect(url)
@@ -527,7 +527,7 @@ def loads_by_staff_chart(request):
             return HttpResponseRedirect(url)
     else:
         # or it's set to a package they are not "in" send them to the chooser
-        if not package or package not in staff.get_all_packages():
+        if not package or package not in staff.get_visible_packages():
             #TODO: Probably really want to 403 this...
             url = reverse('workpackage_change')
             return HttpResponseRedirect(url)
@@ -680,7 +680,7 @@ def loads_modules(request, semesters, staff_details=False):
     package = staff.package
 
     # As for the other loads pages: send anyone without a package, or one they aren't in, to the chooser
-    if not package or (not staff.user.is_superuser and package not in staff.get_all_packages()):
+    if not package or package not in staff.get_visible_packages():
         return HttpResponseRedirect(reverse('workpackage_change'))
 
     logger.info("[%s] loads by modules viewed" % request.user, extra={'package': package})
@@ -1800,7 +1800,7 @@ def modules_details(request, module_id):
             logger.info("[%s] not an examiner for module %s" % (request.user, module))
             return HttpResponseRedirect(reverse('forbidden'))
     else:
-        if not staff.user.is_superuser and not module.package in staff.get_all_packages(include_hidden=True):
+        if module.package not in staff.get_visible_packages(include_hidden=True):
             logger.info("[%s] module %s is not in user's packages" % (request.user, module))
             return HttpResponseRedirect(reverse('forbidden'))
 
@@ -1856,6 +1856,8 @@ def modules_details(request, module_id):
             actors='anyone').order_by('priority'),
         'can_delete_signoffs': can_delete_sign_offs(staff, module),
         'can_enter_hours': can_enter_hours_by_person(staff, module),
+        # Members of the module's package can change it; those overseeing it through a role only view it
+        'can_edit': staff.can_edit_package(module.package),
     }
     return HttpResponse(template.render(context, request))
 
@@ -2253,8 +2255,8 @@ def workpackage_change(request):
     # Get the member of staff for the logged in user
     staff = get_object_or_404(Staff, user=request.user)
 
-    # Get all workpackages that touch on the staff member's group
-    packages = staff.get_all_packages()
+    # The packages they're a member of, and those they oversee through an admin role
+    packages = staff.get_visible_packages()
 
     logger.debug("[%s] changing package" % request.user)
     # if this is a POST request we need to process the form data
@@ -2373,9 +2375,24 @@ class InUsersPackagesMixin:
         return queryset.filter(**{f'{self.package_field}__in': packages})
 
 
+class MemberOfCurrentPackageMixin:
+    """
+    For pages that create things in the person's current work package: only members of the package
+    (or superusers) may, not those who only oversee it through an admin role.
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        staff = Staff.objects.filter(user=request.user).first()
+        # (External Examiners are turned away by the views' own checks)
+        if staff is not None and not staff.is_external and not staff.can_edit_package(staff.package):
+            logger.info("[%s] can only view %s, so can't use %s" % (request.user, staff.package, type(self).__name__))
+            return HttpResponseRedirect(reverse('forbidden'))
+        return super().dispatch(request, *args, **kwargs)
+
+
 @method_decorator(login_required, name='dispatch')
 @method_decorator(staff_only, name='dispatch')
-class CreateActivityGeneratorView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+class CreateActivityGeneratorView(LoginRequiredMixin, MemberOfCurrentPackageMixin, PermissionRequiredMixin, CreateView):
     """View for creating a Module"""
     permission_required = 'loads.add_activitygenerator'
     model = ActivityGenerator
@@ -2501,7 +2518,7 @@ def task_target_choices(staff, package):
     return Staff.objects.filter(pk=staff.pk), Group.objects.none()
 
 
-class CreateTaskView(LoginRequiredMixin, CreateView):
+class CreateTaskView(LoginRequiredMixin, MemberOfCurrentPackageMixin, CreateView):
     """
     View for creating a task. The task belongs to the person setting it (its owner),
     and to their current work package.
@@ -2574,7 +2591,7 @@ class UpdateTaskView(LoginRequiredMixin, UpdateView):
         return response
 
 
-class CreateModuleView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+class CreateModuleView(LoginRequiredMixin, MemberOfCurrentPackageMixin, PermissionRequiredMixin, CreateView):
     """View for creating a Module"""
     permission_required = 'loads.add_module'
     model = Module
@@ -2715,7 +2732,7 @@ class DeleteModuleView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
         return context
 
 
-class CreateProgrammeView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+class CreateProgrammeView(LoginRequiredMixin, MemberOfCurrentPackageMixin, PermissionRequiredMixin, CreateView):
     """View for creating a Programme"""
     permission_required = 'loads.add_programme'
     model = Programme
@@ -2894,7 +2911,7 @@ class ActivityListView(LoginRequiredMixin, ListView):
 
 @method_decorator(login_required, name='dispatch')
 @method_decorator(staff_only, name='dispatch')
-class CreateActivityView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+class CreateActivityView(LoginRequiredMixin, MemberOfCurrentPackageMixin, PermissionRequiredMixin, CreateView):
     """View for creating an Activity"""
     permission_required = 'loads.add_activity'
     model = Activity
