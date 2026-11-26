@@ -81,6 +81,12 @@
         {% endfor %}
     </div>
     {% endif %}
+    {% if viewing_only %}
+    <div class="alert alert-secondary py-2 small wam-hide-on-print" role="status">
+        You're viewing <strong>{{ logged_in_staff.package }}</strong> through your oversight role, so it's read-only.
+        <a class="link-offset-2" href="{% url 'workpackage_change' %}">Change year or School</a>
+    </div>
+    {% endif %}
 
 {% block content %}{% endblock %}
 

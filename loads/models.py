@@ -9,6 +9,7 @@ import re
 # Django imports
 
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import User, Group
 
 from django.core.validators import MaxValueValidator, MinValueValidator, validate_comma_separated_integer_list
@@ -71,6 +72,10 @@ class WorkPackage(models.Model):
     hidden = models.BooleanField(default=False)
     show_percentages = models.BooleanField(default=True)
     groups = models.ManyToManyField(Group, blank=True)
+    # Which Schools the package is for: used for oversight (StaffAdminRole scopes), not membership
+    schools = models.ManyToManyField('School', blank=True, related_name='workpackages',
+                                     help_text="The Schools this work package is for. Admin roles that oversee a "
+                                               "School can view its packages.")
     nominal_hours = models.PositiveIntegerField(default=1600)
     credit_contact_scaling = models.FloatField(default=2.5)
     contact_admin_scaling = models.FloatField(default=1)
@@ -838,6 +843,41 @@ class Staff(models.Model):
             packages = packages.filter(hidden=False)
 
         return packages
+
+    def get_overseen_packages(self):
+        """
+        The work packages this person can view through an admin role with "view workloads", whatever
+        their group memberships: those for the Schools (or Faculties' Schools) the role covers. Hidden
+        packages are included. External Examiners never oversee anything.
+        """
+        if self.is_external:
+            return WorkPackage.objects.none()
+        assignments = self.admin_roles.filter(role__can_view_workloads=True)
+        if not assignments.exists():
+            return WorkPackage.objects.none()
+        if assignments.filter(all_schools=True).exists():
+            return WorkPackage.objects.all()
+        schools = School.objects.filter(Q(staffadminrole__in=assignments) |
+                                        Q(faculty__staffadminrole__in=assignments)).distinct()
+        return WorkPackage.objects.filter(schools__in=schools).distinct()
+
+    def get_visible_packages(self, include_hidden=False):
+        """
+        The work packages this person can view: those they're a member of (get_all_packages), and those
+        they oversee through an admin role. Use this for pages that only show information; anything
+        that changes a package's data must still use get_all_packages (or can_edit_package).
+        """
+        if self.user.is_superuser:
+            return WorkPackage.objects.all()
+        member = self.get_all_packages(include_hidden=include_hidden)
+        overseen = self.get_overseen_packages()
+        return WorkPackage.objects.filter(Q(pk__in=member) | Q(pk__in=overseen)).distinct()
+
+    def can_edit_package(self, package):
+        """Whether this person works in a package (as a member), rather than only overseeing it"""
+        if self.user.is_superuser:
+            return True
+        return package is not None and self.get_all_packages(include_hidden=True).filter(pk=package.pk).exists()
 
     def get_all_staff_in_all_packages(self, include_hidden=False):
         """
@@ -2105,11 +2145,18 @@ class AdminRole(models.Model):
     name                        the role's name, e.g. "School administrator"
     can_manage_school_groups    can add staff in their packages to, and remove them from, the groups
                                 that local admins may manage (see GroupSettings)
+    can_view_workloads          can view the work packages of the Schools the assignment covers (see
+                                StaffAdminRole), without being a member of their groups, so without
+                                appearing in their staff lists and allocations
     """
     name = models.CharField(max_length=100, unique=True)
     can_manage_school_groups = models.BooleanField(
         default=False, verbose_name="Can manage School group membership",
         help_text="Add staff in their work packages to, and remove them from, groups that local admins may manage")
+    can_view_workloads = models.BooleanField(
+        default=False, verbose_name="Can view workloads",
+        help_text="View the work packages (loads, modules, programmes and activities) of the Schools or Faculties "
+                  "each holder's assignment covers, without being a member of them")
 
     def __str__(self):
         return self.name
@@ -2124,11 +2171,18 @@ class StaffAdminRole(models.Model):
 
     staff       the member of staff holding the role
     role        the role
+    schools     the Schools it covers, for capabilities that oversee Schools (can_view_workloads)
+    faculties   the Faculties it covers: all of each one's Schools
+    all_schools whether it covers every School
     granted_at  when it was granted
     granted_by  who granted it, if known
     """
     staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='admin_roles')
     role = models.ForeignKey(AdminRole, on_delete=models.CASCADE, related_name='holders')
+    schools = models.ManyToManyField(School, blank=True, help_text="The Schools this person oversees with this role")
+    faculties = models.ManyToManyField(Faculty, blank=True,
+                                       help_text="Faculties this person oversees with this role: all their Schools")
+    all_schools = models.BooleanField(default=False, help_text="Oversees every School")
     granted_at = models.DateTimeField(auto_now_add=True)
     granted_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
 

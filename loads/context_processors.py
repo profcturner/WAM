@@ -14,7 +14,10 @@ def staff(request):
     try:
         staff = Staff.objects.get(user=request.user)
         return {
-            'logged_in_staff': staff
+            'logged_in_staff': staff,
+            # Whether their current work package is one they only oversee, through an admin role
+            'viewing_only': bool(staff.package_id and not staff.is_external
+                                 and not staff.can_edit_package(staff.package)),
         }
     except Staff.DoesNotExist:
         # The matching Staff user doesn't exist

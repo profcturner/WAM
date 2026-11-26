@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h4>{{ module.module_code }} {{ module.module_name }}{% if logged_in_staff and not logged_in_staff.is_external %}<span class="small wam-hide-on-print"><a class="btn btn-sm btn-secondary ms-1" role="button" href="{% url 'update module' module.pk %}">Edit</a></span>{% endif %}</h4>
+<h4>{{ module.module_code }} {{ module.module_name }}{% if can_edit and not logged_in_staff.is_external %}<span class="small wam-hide-on-print"><a class="btn btn-sm btn-secondary ms-1" role="button" href="{% url 'update module' module.pk %}">Edit</a></span>{% endif %}</h4>
 
 <div class="mt-4">
     <div class="row mb-2">
@@ -156,7 +156,7 @@
             </tbody>
         </table>
     </div>
-    {% if logged_in_staff and not logged_in_staff.is_external %}
+    {% if can_edit and not logged_in_staff.is_external %}
     <p class="wam-hide-on-print">
         <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'module_staff_allocation' package.id module.id %}">Edit allocations</a>
         {% if can_enter_hours %}
@@ -167,7 +167,7 @@
     {% else %}
     <p>
         <span class="text-info-emphasis">No allocations of staff recorded for this module</span>
-        {% if logged_in_staff and not logged_in_staff.is_external %}
+        {% if can_edit and not logged_in_staff.is_external %}
         <span class="small wam-hide-on-print"><a class="btn btn-sm btn-secondary ms-1" role="button" href="{% url 'module_staff_allocation' package.id module.id %}">Edit</a></span>
         {% endif %}
         {% if can_enter_hours %}
@@ -231,10 +231,12 @@
         Please note that these items are not considered final, but rather as in draft until they are signed off.
     </p>
     {% endif %}
+    {% if can_edit or logged_in_staff.is_external %}{# Oversight of assessment is still to come #}
     <p class="wam-hide-on-print">
         <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'add_assessment_resource' module.id %}">add assessment resource</a> |
         <a class="link-opacity-50-hover link-underline-opacity-50 link-offset-2" href="{% url 'add_assessment_sign_off' module.id %}">sign off resources</a>
     </p>
+    {% endif %}
 
 {% if assessment_history %}
     {% for signoff, resources in assessment_history %}
