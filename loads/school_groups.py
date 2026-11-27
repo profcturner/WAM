@@ -1,21 +1,31 @@
 """
 Which staff and groups a local admin may manage on the School groups page.
 
-Local admins (an AdminRole with can_manage_school_groups) can add internal staff in their own
-work packages to groups, and remove them, where each group:
-  - is attached to one of the admin's work packages (hidden packages included),
-  - is marked "Local admins may manage membership" (GroupSettings.locally_managed), and
-  - carries no permissions of its own.
+Local admins (an AdminRole with can_manage_school_groups) can add internal staff to groups, and
+remove them, for the Schools they're responsible for: those of their own work packages, and those
+their role assignment covers (its Schools, Faculties, or all Schools; see StaffAdminRole). Groups
+carry no permissions of their own, and are either:
+  - marked "Local admins may manage membership" (GroupSettings.locally_managed) and attached to one
+    of the admin's packages, or one of the chosen School's packages (WorkPackage.schools), or
+  - the chosen School's own "Academic Staff" and "Admin Staff" groups (see School.create_groups),
+    found by name, for a School the admin is responsible for.
 
 The page shows one School's staff at a time, or optionally everyone in the admin's packages.
-Superusers' packages are all packages, and they may also choose to see every group without
-permissions, whether or not it's marked as locally managed.
+Superusers are responsible for every School. For the chosen School they see every group (without
+permissions) in its packages, locally managed or not, such as its main Staff group; and they may
+also choose to see every group without permissions, in any package or none.
 
 The same scope decides what is shown and what may be changed when the page is saved.
 """
 from django.contrib.auth.models import Group, User
+from django.db.models import Q
 
 from .models import School, Staff, WorkPackage
+
+
+def school_subgroup_names(schools):
+    """The names School.create_groups gives Schools' Academic and Admin Staff groups"""
+    return [f"{school.name} {suffix}" for school in schools for suffix in ("Academic Staff", "Admin Staff")]
 
 
 class SchoolGroupScope:
@@ -28,18 +38,30 @@ class SchoolGroupScope:
         self.widen = bool(widen)
         self.all_groups = bool(all_groups) and self.is_superuser
 
+        # The Schools they're responsible for: all for superusers; otherwise those of their packages, and
+        # those their School groups role covers
         if self.is_superuser:
             self.packages = WorkPackage.objects.all()
-        elif self.viewer is not None:
-            self.packages = self.viewer.get_all_packages(include_hidden=True)
+            self.responsible_schools = School.objects.all()
+        elif self.viewer is not None and not self.viewer.is_external:
+            member_packages = self.viewer.get_all_packages(include_hidden=True)
+            covered = self._covered_schools()
+            self.responsible_schools = School.objects.filter(
+                Q(workpackages__in=member_packages) | Q(pk__in=covered)).distinct()
+            self.packages = WorkPackage.objects.filter(
+                Q(pk__in=member_packages) | Q(schools__in=covered)).distinct()
         else:
             self.packages = WorkPackage.objects.none()
+            self.responsible_schools = School.objects.none()
 
-        # Internal, active staff in any of the packages (External Examiners are never listed)
+        # Internal, active staff in any of the packages, or of a School they're responsible for
+        # (External Examiners are never listed)
         self.package_staff = Staff.objects.filter(
-            user__groups__workpackage__in=self.packages, is_external=False, user__is_active=True).distinct()
+            Q(user__groups__workpackage__in=self.packages) | Q(school__in=self.responsible_schools),
+            is_external=False, user__is_active=True).distinct()
 
-        self.schools = School.objects.filter(staff__in=self.package_staff).distinct().order_by('name')
+        self.schools = School.objects.filter(
+            Q(staff__in=self.package_staff) | Q(pk__in=self.responsible_schools)).distinct().order_by('name')
         self.school = self._choose_school(school_id)
 
         people = self.package_staff
@@ -48,6 +70,14 @@ class SchoolGroupScope:
         self.people = people.select_related('user').order_by('user__last_name', 'user__first_name')
 
         self.groups = self._find_groups()
+
+    def _covered_schools(self):
+        """The Schools the viewer's School groups role assignments cover"""
+        assignments = self.viewer.admin_roles.filter(role__can_manage_school_groups=True)
+        if assignments.filter(all_schools=True).exists():
+            return School.objects.all()
+        return School.objects.filter(Q(staffadminrole__in=assignments) |
+                                     Q(faculty__staffadminrole__in=assignments)).distinct()
 
     def _choose_school(self, school_id):
         if school_id:
@@ -69,8 +99,29 @@ class SchoolGroupScope:
             packages = WorkPackage.objects.filter(groups__user__staff__in=self.people)
         else:
             packages = self.packages
-        return groups.filter(wam_settings__locally_managed=True,
-                             workpackage__in=packages).distinct().order_by('name')
+        found = Q(wam_settings__locally_managed=True, workpackage__in=packages)
+
+        # The School (or Schools) shown, where they're responsible for it: its packages' locally managed
+        # groups, and its own Academic and Admin Staff groups, whatever packages they're in
+        shown = self.schools if self.widen else ([self.school] if self.school else [])
+        shown = [school for school in shown if self.responsible_schools.filter(pk=school.pk).exists()]
+        if shown:
+            if self.is_superuser:
+                # Superusers see every group in the School's packages (but not those with permissions)
+                found |= Q(workpackage__schools__in=shown)
+            else:
+                found |= Q(wam_settings__locally_managed=True, workpackage__schools__in=shown)
+            found |= Q(name__in=school_subgroup_names(shown))
+        return groups.filter(found).distinct().order_by('name')
+
+    @property
+    def missing_subgroups(self):
+        """The chosen School's Academic and Admin Staff groups that don't exist yet (superusers may create them)"""
+        if not self.school or self.widen:
+            return []
+        names = school_subgroup_names([self.school])
+        existing = set(Group.objects.filter(name__in=names).values_list('name', flat=True))
+        return [name for name in names if name not in existing]
 
     def membership(self):
         """The (staff pk, group pk) pairs in scope where the person is currently in the group"""

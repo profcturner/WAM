@@ -1104,6 +1104,18 @@ def school_groups(request):
     scope = SchoolGroupScope(request.user, school_id=request.GET.get('school'),
                              widen=request.GET.get('widen') == '1', all_groups=request.GET.get('all_groups') == '1')
 
+    if request.method == 'POST' and request.POST.get('create_subgroups'):
+        # Superusers can create a School's Academic and Admin Staff groups, if it doesn't have them
+        if not scope.is_superuser:
+            return HttpResponseRedirect(reverse('forbidden'))
+        from .models import GroupSettings
+        for name in scope.missing_subgroups:
+            group = Group.objects.create(name=name)
+            GroupSettings.objects.update_or_create(group=group, defaults={'locally_managed': True})
+            logger.info("[%s] created group %s (School groups page)" % (request.user, name))
+            messages.success(request, f"Created the group {name}.")
+        return HttpResponseRedirect(request.get_full_path())
+
     if request.method == 'POST':
         allowed = scope.allowed_pairs()
         current = scope.membership()

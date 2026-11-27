@@ -197,8 +197,8 @@ class StaffAdminRoleAdmin(admin.ModelAdmin):
         (None, {'fields': ('staff', 'role')}),
         ("What it covers", {
             'fields': ('all_schools', 'faculties', 'schools'),
-            'description': "For capabilities that oversee Schools, such as viewing workloads. Choose Faculties to "
-                           "cover all their Schools.",
+            'description': "For capabilities that cover Schools: viewing workloads, and managing School groups. "
+                           "Choose Faculties to cover all their Schools.",
         }),
         (None, {'fields': ('granted_at', 'granted_by')}),
     )

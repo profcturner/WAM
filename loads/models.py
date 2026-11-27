@@ -2143,8 +2143,9 @@ class AdminRole(models.Model):
     Django admin site, for local administration.
 
     name                        the role's name, e.g. "School administrator"
-    can_manage_school_groups    can add staff in their packages to, and remove them from, the groups
-                                that local admins may manage (see GroupSettings)
+    can_manage_school_groups    can add staff to, and remove them from, the groups that local admins
+                                may manage (see GroupSettings), in their packages and the Schools the
+                                assignment covers (see loads.school_groups)
     can_view_workloads          can view the work packages of the Schools the assignment covers (see
                                 StaffAdminRole), without being a member of their groups, so without
                                 appearing in their staff lists and allocations
@@ -2152,7 +2153,8 @@ class AdminRole(models.Model):
     name = models.CharField(max_length=100, unique=True)
     can_manage_school_groups = models.BooleanField(
         default=False, verbose_name="Can manage School group membership",
-        help_text="Add staff in their work packages to, and remove them from, groups that local admins may manage")
+        help_text="Add staff to, and remove them from, groups that local admins may manage, in their work packages "
+                  "and the Schools or Faculties each holder's assignment covers")
     can_view_workloads = models.BooleanField(
         default=False, verbose_name="Can view workloads",
         help_text="View the work packages (loads, modules, programmes and activities) of the Schools or Faculties "
@@ -2171,7 +2173,8 @@ class StaffAdminRole(models.Model):
 
     staff       the member of staff holding the role
     role        the role
-    schools     the Schools it covers, for capabilities that oversee Schools (can_view_workloads)
+    schools     the Schools it covers, for capabilities that cover Schools (can_view_workloads,
+                can_manage_school_groups)
     faculties   the Faculties it covers: all of each one's Schools
     all_schools whether it covers every School
     granted_at  when it was granted
@@ -2179,10 +2182,10 @@ class StaffAdminRole(models.Model):
     """
     staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='admin_roles')
     role = models.ForeignKey(AdminRole, on_delete=models.CASCADE, related_name='holders')
-    schools = models.ManyToManyField(School, blank=True, help_text="The Schools this person oversees with this role")
+    schools = models.ManyToManyField(School, blank=True, help_text="The Schools this role covers for this person")
     faculties = models.ManyToManyField(Faculty, blank=True,
-                                       help_text="Faculties this person oversees with this role: all their Schools")
-    all_schools = models.BooleanField(default=False, help_text="Oversees every School")
+                                       help_text="Faculties this role covers for this person: all their Schools")
+    all_schools = models.BooleanField(default=False, help_text="Covers every School")
     granted_at = models.DateTimeField(auto_now_add=True)
     granted_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
 

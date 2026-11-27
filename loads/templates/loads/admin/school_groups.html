@@ -3,8 +3,14 @@
 <h2 class="my-3">School groups</h2>
 
 <p>
-    Tick to add someone to a group, untick to remove them, then save. Only groups that local admins may manage
-    are shown; the main School Staff group isn't, as it gives access to work packages.
+    Tick to add someone to a group, untick to remove them, then save.
+    {% if scope.is_superuser %}
+    As a superuser you see every group in the School's work packages, including its main Staff group, which
+    gives access to those packages; local admins see only the groups they may manage.
+    {% else %}
+    Only groups that local admins may manage are shown; the main School Staff group isn't, as it gives access
+    to work packages.
+    {% endif %}
 </p>
 <p class="small text-body-secondary">
     <strong>Has workload</strong> decides whether someone can be allocated to modules and appears in loads.
@@ -40,10 +46,19 @@
     </div>
 </form>
 
+{% if scope.is_superuser and scope.missing_subgroups %}
+<form method="post" class="alert alert-info d-flex flex-wrap align-items-center gap-3">
+    {% csrf_token %}
+    <span>{{ scope.school.name }} doesn't have {% for name in scope.missing_subgroups %}<strong>{{ name }}</strong>{% if not forloop.last %} or {% endif %}{% endfor %} yet.</span>
+    <button type="submit" class="btn btn-sm btn-primary" name="create_subgroups" value="1">Create {{ scope.missing_subgroups|length|pluralize:"it,them" }}</button>
+</form>
+{% endif %}
+
 {% if not columns %}
 <p class="alert alert-secondary">
     There are no groups you can manage{% if scope.school and not scope.widen %} for {{ scope.school.name }}{% endif %}.
-    A superuser can mark a group as one that local admins may manage in Django admin, under Groups.
+    {% if scope.is_superuser %}You can create its Academic and Admin Staff groups above, or mark{% else %}A superuser can mark{% endif %}
+    a group as one that local admins may manage in Django admin, under Groups.
 </p>
 {% elif not rows %}
 <p class="alert alert-secondary">There are no staff to show.</p>

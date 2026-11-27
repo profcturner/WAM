@@ -223,3 +223,98 @@ class GroupSettingsTests(TestCase):
         self.assertTrue(academics.wam_settings.locally_managed)
         self.assertTrue(admin.wam_settings.locally_managed)
         self.assertFalse(GroupSettings.objects.filter(group__in=[staff, externals]).exists())
+
+
+class ResponsibleSchoolsTests(SchoolGroupsTestCase):
+    """Groups found through the School itself, for superusers and those whose role covers it"""
+
+    def setUp(self):
+        super().setUp()
+        # A School whose people are in no package with its groups: only the School links them
+        self.deans = School.objects.create(name="Dean's Office")
+        self.deans_academic = make_group("Dean's Office Academic Staff")  # not marked as locally managed
+        self.deans_admin = make_group("Dean's Office Admin Staff", managed=True)
+        self.deans_package = make_package("Dean's Office 2026/27")
+        self.deans_package.schools.add(self.deans)
+        self.deans_project = make_group("Dean's Office Projects", managed=True)
+        self.deans_staff = make_group("Dean's Office Staff")  # its main group: not locally managed
+        self.deans_package.groups.add(self.deans_project, self.deans_staff)
+        self.dean = make_staff('dean', first_name="Dee", last_name="Ann")  # in no package
+        self.dean.school = self.deans
+        self.dean.save()
+
+    def test_superusers_see_the_schools_own_groups(self):
+        scope = self.scope(self.superuser.user, school_id=self.deans.pk)
+        self.assertEqual(scope.school, self.deans)
+        self.assertEqual(list(scope.people), [self.dean])
+        self.assertEqual(set(scope.groups), {self.deans_academic, self.deans_admin, self.deans_project,
+                                             self.deans_staff})
+        self.assertNotIn(self.computing_academic, scope.groups)
+        self.assertNotIn(self.unattached, scope.groups)  # that's what "show all groups" is for
+
+    def test_a_role_covering_the_school(self):
+        scope = self.scope(school_id=self.deans.pk)
+        self.assertNotIn(self.deans, scope.schools)  # not theirs yet
+        self.assertNotIn(self.dean, scope.people)
+        assignment = StaffAdminRole.objects.get(staff=self.local_admin)
+        assignment.schools.add(self.deans)
+        scope = self.scope(school_id=self.deans.pk)
+        self.assertEqual(scope.school, self.deans)
+        self.assertEqual(list(scope.people), [self.dean])
+        # (as well as their own packages' groups, as before)
+        self.assertLessEqual({self.deans_academic, self.deans_admin, self.deans_project}, set(scope.groups))
+        self.assertNotIn(self.deans_staff, scope.groups)  # local admins: locally managed groups only
+        # and they can save there
+        self.save(self.local_admin, [(self.dean, self.deans_academic)], school=self.deans.pk)
+        self.assertTrue(self.dean.user.groups.filter(pk=self.deans_academic.pk).exists())
+
+    def test_faculty_and_all_schools(self):
+        from .models import Faculty
+        faculty = Faculty.objects.create(name="Faculty of Life and Health Sciences")
+        self.deans.faculty = faculty
+        self.deans.save()
+        assignment = StaffAdminRole.objects.get(staff=self.local_admin)
+        assignment.faculties.add(faculty)
+        self.assertEqual(self.scope(school_id=self.deans.pk).school, self.deans)
+        assignment.faculties.clear()
+        assignment.all_schools = True
+        assignment.save()
+        self.assertEqual(self.scope(school_id=self.deans.pk).school, self.deans)
+
+    def test_a_colleagues_school_is_not_enough(self):
+        """Computing appears because a colleague in their package is in it, but its groups stay out of reach"""
+        self.biomed_package = self.package
+        self.package.schools.add(self.biomed)
+        computing_named = make_group("School of Computing Academic Staff Extra")  # (not a subgroup name)
+        scope = self.scope(school_id=self.computing.pk)
+        self.assertEqual(scope.school, self.computing)
+        self.assertNotIn(self.computing_academic, scope.groups)
+        self.assertNotIn(computing_named, scope.groups)
+        self.save(self.local_admin, [(self.joint, self.computing_academic)], school=self.computing.pk)
+        self.assertFalse(self.joint.user.groups.filter(pk=self.computing_academic.pk).exists())
+
+    def test_their_own_packages_school(self):
+        """With their package linked to its School, its named subgroups count even if not in the package"""
+        self.package.schools.add(self.biomed)
+        extra = make_group("School of Biomedical Sciences Admin Staff Old")  # not a subgroup name
+        self.package.groups.remove(self.admin_staff)
+        scope = self.scope()
+        self.assertIn(self.admin_staff, scope.groups)
+        self.assertNotIn(extra, scope.groups)
+
+    def test_creating_missing_subgroups(self):
+        nursing = School.objects.create(name="School of Nursing")
+        nurse = make_staff('nurse', group=self.main)
+        nurse.school = nursing
+        nurse.save()
+        self.client.force_login(self.local_admin.user)
+        url = reverse('school_groups') + f'?school={nursing.pk}'
+        self.assertRedirects(self.client.post(url, {'create_subgroups': '1'}), reverse('forbidden'),
+                             fetch_redirect_response=False)
+        self.client.force_login(self.superuser.user)
+        self.assertContains(self.client.get(url), "Create them")
+        self.client.post(url, {'create_subgroups': '1'})
+        academic = Group.objects.get(name="School of Nursing Academic Staff")
+        self.assertTrue(academic.wam_settings.locally_managed)
+        self.assertTrue(Group.objects.filter(name="School of Nursing Admin Staff").exists())
+        self.assertNotContains(self.client.get(url), "Create them")
