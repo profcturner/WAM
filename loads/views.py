@@ -1104,6 +1104,18 @@ def school_groups(request):
     scope = SchoolGroupScope(request.user, school_id=request.GET.get('school'),
                              widen=request.GET.get('widen') == '1', all_groups=request.GET.get('all_groups') == '1')
 
+    if request.method == 'POST' and request.POST.get('create_subgroups'):
+        # Superusers can create a School's Academic and Admin Staff groups, if it doesn't have them
+        if not scope.is_superuser:
+            return HttpResponseRedirect(reverse('forbidden'))
+        from .models import GroupSettings
+        for name in scope.missing_subgroups:
+            group = Group.objects.create(name=name)
+            GroupSettings.objects.update_or_create(group=group, defaults={'locally_managed': True})
+            logger.info("[%s] created group %s (School groups page)" % (request.user, name))
+            messages.success(request, f"Created the group {name}.")
+        return HttpResponseRedirect(request.get_full_path())
+
     if request.method == 'POST':
         allowed = scope.allowed_pairs()
         current = scope.membership()
@@ -1120,6 +1132,22 @@ def school_groups(request):
         staff_by_pk = {staff.pk: staff for staff in scope.people}
         group_by_pk = {group.pk: group for group in scope.groups}
         user_type = ContentType.objects.get_for_model(User)
+        staff_type = ContentType.objects.get_for_model(Staff)
+
+        # Whether each person shown has a workload (only when the form had that column)
+        workload_changes = 0
+        if request.POST.get('workload_shown'):
+            for staff in staff_by_pk.values():
+                has_workload = f'w-{staff.pk}' in request.POST
+                if staff.has_workload != has_workload:
+                    staff.has_workload = has_workload
+                    staff.save(update_fields=['has_workload'])
+                    workload_changes += 1
+                    message = f"{'Has' if has_workload else 'No'} workload (School groups page)"
+                    logger.info("[%s] %s: %s" % (request.user, staff, message))
+                    LogEntry.objects.create(user=request.user, content_type=staff_type, object_id=str(staff.pk),
+                                            object_repr=str(staff)[:200], action_flag=CHANGE,
+                                            change_message=message)
         for pairs, verb in ((to_add, 'Added to'), (to_remove, 'Removed from')):
             for staff_pk, group_pk in sorted(pairs):
                 staff, group = staff_by_pk[staff_pk], group_by_pk[group_pk]
@@ -1133,15 +1161,36 @@ def school_groups(request):
                                         object_repr=str(staff.user)[:200], action_flag=CHANGE,
                                         change_message=message)
 
-        if to_add or to_remove:
-            messages.success(request, f"Saved: {len(to_add)} added, {len(to_remove)} removed.")
+        if to_add or to_remove or workload_changes:
+            messages.success(request, f"Saved: {len(to_add)} added, {len(to_remove)} removed"
+                                      f"{f', {workload_changes} workload change' + ('s' if workload_changes != 1 else '') if workload_changes else ''}.")
         else:
             messages.info(request, "No changes to save.")
         return HttpResponseRedirect(request.get_full_path())
 
+    from .job_titles import Suggestion, school_subgroups
+
     current = scope.membership()
     groups = list(scope.groups)
-    rows = [(staff, [(group, (staff.pk, group.pk) in current) for group in groups]) for staff in scope.people]
+    group_pks = {group.pk for group in groups}
+    subgroups_by_school = {}
+    rows = []
+    for staff in scope.people:
+        if staff.school_id not in subgroups_by_school:
+            subgroups_by_school[staff.school_id] = school_subgroups(staff.school)
+        academic_group, admin_group = subgroups_by_school[staff.school_id]
+        suggestion = Suggestion(staff, subgroups=(academic_group, admin_group))
+        cells = []
+        for group in groups:
+            # Marks the person's own School subgroups, for "Apply suggestions"
+            kind = 'academic' if academic_group and group.pk == academic_group.pk else \
+                'admin' if admin_group and group.pk == admin_group.pk else ''
+            cells.append((group, (staff.pk, group.pk) in current, kind))
+        suggested_group = suggestion.group if suggestion.group and suggestion.group.pk in group_pks else None
+        differs = bool((suggested_group and (staff.pk, suggested_group.pk) not in current) or
+                       (suggestion.has_workload is not None and staff.has_workload != suggestion.has_workload))
+        rows.append({'staff': staff, 'cells': cells, 'suggestion': suggestion, 'suggested_group': suggested_group,
+                     'differs': differs})
 
     logger.info("[%s] (admin) viewed School groups for %s" % (request.user, scope.school))
     template = loader.get_template('loads/admin/school_groups.html')
