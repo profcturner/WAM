@@ -40,6 +40,11 @@ WAM_ADFS_AUTH = False
 # False if examiners have local WAM accounts while staff use ADFS / Entra ID, or True for the reverse
 WAM_EXTERNAL_ADFS_AUTH = None
 
+# Phrases in job titles that suggest what kind of staff someone is, for the School groups page and
+# onboarding (see loads.job_titles): a dict of 'academic', 'research' and 'other' to lists of phrases.
+# None uses loads.job_titles.DEFAULT_PATTERNS. Check them with: manage.py report_job_titles
+WAM_JOB_TITLE_PATTERNS = None
+
 # The following settings are usually used with some form of external authentication as above
 # And if enabled, will create Campuses, Faculties and Schools for authenticated users belonging to unknown ones.
 # This allows WAM to automatically learn your University structure

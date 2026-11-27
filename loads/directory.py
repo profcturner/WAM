@@ -147,6 +147,13 @@ def onboard_staff_record(record):
             logger.info("onboarded new user %s", username)
 
         staff = apply_staff_record(user, record)
+        if created and staff is not None:
+            # A first guess from their job title at their School subgroup and workload; see loads.job_titles.
+            # Only for new people, so re-running onboarding never undoes a decision someone has made.
+            from loads.job_titles import apply_suggestion
+            changes = apply_suggestion(staff, new=True)
+            if changes:
+                logger.info("suggested for %s from job title %r: %s", username, staff.job_title, ", ".join(changes))
 
     return staff, created
 

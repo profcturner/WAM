@@ -6,6 +6,11 @@
     Tick to add someone to a group, untick to remove them, then save. Only groups that local admins may manage
     are shown; the main School Staff group isn't, as it gives access to work packages.
 </p>
+<p class="small text-body-secondary">
+    <strong>Has workload</strong> decides whether someone can be allocated to modules and appears in loads.
+    <strong>Suggested</strong> is a guess from their job title; highlighted rows don't match it.
+    Research staff aren't suggested for either group, and whether they have a workload is decided for each person.
+</p>
 
 <form method="get" class="row g-3 align-items-end mb-4 wam-hide-on-print" id="school-groups-options">
     <div class="col-auto">
@@ -52,7 +57,13 @@
                    autocomplete="off">
         </div>
         <div class="col-auto small text-body-secondary" id="filter-count">{{ rows|length }} staff</div>
+        <div class="col-auto ms-auto">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="apply-suggestions"
+                    title="For anyone shown who is in neither the Academic nor the Admin Staff group yet">Apply suggestions</button>
+            <span class="small text-body-secondary ms-2" id="apply-result" aria-live="polite"></span>
+        </div>
     </div>
+    <input type="hidden" name="workload_shown" value="1">
 
     <div class="wam-frozen-header small">
         <table class="table table-sm table-striped table-hover" id="school-groups-table">
@@ -60,25 +71,42 @@
                 <tr>
                     <th scope="col">Name</th>
                     {% if scope.widen %}<th scope="col">School</th>{% endif %}
+                    <th scope="col">Job title</th>
+                    <th scope="col">Suggested</th>
+                    <th scope="col" class="text-center">Has workload</th>
                     {% for group, label in columns %}
                     <th scope="col" class="text-center" title="{{ group.name }}">{{ label }}</th>
                     {% endfor %}
                 </tr>
             </thead>
             <tbody class="table-group-divider">
-                {% for staff, cells in rows %}
-                <tr data-name="{{ staff.user.last_name|lower }} {{ staff.user.first_name|lower }} {{ staff.user.username|lower }}">
+                {% for row in rows %}{% with staff=row.staff suggestion=row.suggestion %}
+                <tr data-name="{{ staff.user.last_name|lower }} {{ staff.user.first_name|lower }} {{ staff.user.username|lower }}"
+                    data-suggest-group="{{ row.suggested_group.pk|default:'' }}"
+                    data-suggest-workload="{% if suggestion.has_workload is True %}1{% elif suggestion.has_workload is False %}0{% endif %}"
+                    {% if row.differs %}class="wam-suggestion-differs"{% endif %}>
                     <th scope="row" class="fw-normal">{{ staff }} <span class="text-body-secondary">({{ staff.user.username }})</span></th>
                     {% if scope.widen %}<td>{{ staff.school|default:"" }}</td>{% endif %}
-                    {% for group, member in cells %}
+                    <td>{{ staff.job_title|default:"" }}</td>
+                    <td>
+                        <span class="badge {% if suggestion.kind == 'academic' %}text-bg-primary{% elif suggestion.kind == 'research' %}text-bg-info{% elif suggestion.kind == 'other' %}text-bg-secondary{% else %}text-bg-light border{% endif %}"
+                              {% if suggestion.phrase %}title="From &quot;{{ suggestion.phrase }}&quot; in the job title"{% endif %}>{{ suggestion.label }}</span>
+                    </td>
+                    <td class="text-center">
+                        <input class="form-check-input" type="checkbox" name="w-{{ staff.pk }}" id="w-{{ staff.pk }}"
+                               data-workload{% if staff.has_workload %} checked{% endif %}
+                               aria-label="{{ staff }}: has workload">
+                    </td>
+                    {% for group, member, kind in row.cells %}
                     <td class="text-center">
                         <input class="form-check-input" type="checkbox" name="m-{{ staff.pk }}-{{ group.pk }}"
-                               id="m-{{ staff.pk }}-{{ group.pk }}"{% if member %} checked{% endif %}
+                               id="m-{{ staff.pk }}-{{ group.pk }}" data-group="{{ group.pk }}"
+                               {% if kind %}data-subgroup="{{ kind }}"{% endif %}{% if member %} checked{% endif %}
                                aria-label="{{ staff }}: {{ group.name }}">
                     </td>
                     {% endfor %}
                 </tr>
-                {% endfor %}
+                {% endwith %}{% endfor %}
             </tbody>
         </table>
     </div>
@@ -103,6 +131,33 @@
                 if (match) { shown++; }
             });
             count.textContent = shown + ' of ' + rows.length + ' staff';
+        });
+
+        // Tick the suggested group, and has workload, for anyone in neither of their School's
+        // Academic and Admin Staff groups yet. Nothing is saved until Save changes.
+        document.getElementById('apply-suggestions').addEventListener('click', function () {
+            let changed = 0;
+            rows.forEach(function (row) {
+                if (row.hidden) { return; }  // only those the filter shows
+                const subgroups = row.querySelectorAll('input[data-subgroup]');
+                if (Array.prototype.some.call(subgroups, function (box) { return box.checked; })) { return; }
+                let rowChanged = false;
+                const group = row.dataset.suggestGroup;
+                if (group) {
+                    const box = row.querySelector('input[data-group="' + group + '"]');
+                    if (box && !box.checked) { box.checked = true; rowChanged = true; }
+                }
+                const workload = row.dataset.suggestWorkload;
+                const workloadBox = row.querySelector('input[data-workload]');
+                if (workload && workloadBox && workloadBox.checked !== (workload === '1')) {
+                    workloadBox.checked = workload === '1';
+                    rowChanged = true;
+                }
+                if (rowChanged) { changed++; row.classList.add('wam-suggestion-applied'); }
+            });
+            document.getElementById('apply-result').textContent = changed
+                ? changed + ' ' + (changed === 1 ? 'person' : 'people') + ' updated. Check, then Save changes.'
+                : 'Nothing to change.';
         });
     })();
 </script>

@@ -76,6 +76,16 @@ class SchoolGroupsTestCase(TestCase):
             url += '?' + '&'.join(f'{k}={v}' for k, v in params.items())
         return self.client.post(url, {f'm-{s.pk}-{g.pk}': 'on' for s, g in ticks})
 
+    def save_workloads(self, staff, with_workload, **params):
+        """Save the page with just these people having a workload, and no group changes"""
+        self.client.force_login(staff.user)
+        current = [(person, group) for person in self.scope(staff.user, **params).people
+                   for group in person.user.groups.filter(wam_settings__locally_managed=True)]
+        data = {f'm-{s.pk}-{g.pk}': 'on' for s, g in current}
+        data.update({f'w-{s.pk}': 'on' for s in with_workload})
+        data['workload_shown'] = '1'
+        return self.client.post(reverse('school_groups'), data)
+
 
 class AdminRoleTests(SchoolGroupsTestCase):
 
@@ -161,8 +171,9 @@ class SchoolGroupsPageTests(SchoolGroupsTestCase):
         response = self.page(self.local_admin)
         self.assertEqual([label for group, label in response.context['columns']], ["Academic Staff", "Admin Staff"])
         self.assertContains(response, f'name="m-{self.lecturer.pk}-{self.academic.pk}"')
-        cells = dict(response.context['rows'])[self.lecturer]
-        self.assertEqual([member for group, member in cells], [True, False])
+        row = next(row for row in response.context['rows'] if row['staff'] == self.lecturer)
+        self.assertEqual([member for group, member, kind in row['cells']], [True, False])
+        self.assertEqual([kind for group, member, kind in row['cells']], ['academic', 'admin'])
 
     def test_save_adds_and_removes(self):
         self.lecturer.user.groups.add(self.academic)

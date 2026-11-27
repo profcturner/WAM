@@ -511,7 +511,7 @@ div.wam-formset-grid div input[type=checkbox]:before {
     background: var(--wam-gold-soft);
 }
 .wam-home-awaiting > * {
-    box-shadow: inset 0 0 0 9999px rgba(var(--bs-primary-rgb), 0.06);
+    --bs-table-bg-state: rgba(var(--bs-primary-rgb), 0.08);
 }
 .wam-home-awaiting > :first-child {
     border-left: 3px solid var(--wam-navy);
@@ -541,4 +541,13 @@ div.wam-formset-grid div input[type=checkbox]:before {
     div.wam-formset-grid.wam-hours-head {
         display: none;
     }
+}
+
+/* School groups page: rows that don't match the job title's suggestion, and those just changed to.
+   (Bootstrap tables shade cells with --bs-table-bg-state, which wins over a background of our own.) */
+.wam-suggestion-differs > * {
+    --bs-table-bg-state: rgba(var(--bs-warning-rgb), 0.2);
+}
+.wam-suggestion-applied > * {
+    --bs-table-bg-state: rgba(var(--bs-success-rgb), 0.18);
 }
